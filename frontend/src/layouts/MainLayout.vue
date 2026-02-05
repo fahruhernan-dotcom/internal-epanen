@@ -110,13 +110,13 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="user-info" v-if="!sidebarCollapsed">
+        <router-link to="/profile" class="user-info" v-if="!sidebarCollapsed" title="Buka Profil">
           <span class="user-avatar">👤</span>
           <div class="user-details">
             <span class="user-name">{{ authStore.userName }}</span>
             <span class="user-role">{{ capitalizeRole(authStore.user?.role) }}</span>
           </div>
-        </div>
+        </router-link>
         <div class="footer-actions">
           <button class="btn-icon" @click="themeStore.toggleTheme" title="Toggle Theme">
             {{ themeStore.isDarkMode ? '☀️' : '🌙' }}

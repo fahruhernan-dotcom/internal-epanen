@@ -60,8 +60,11 @@ export const useAuthStore = defineStore('auth', () => {
                 throw new Error('Akses ditolak. Role tidak dikenali.')
             }
 
-            // Simple password check (for demo - in production use proper auth)
-            if (password !== 'smartfarm2026') {
+            // Enhanced password check: check DB password if available, otherwise fallback to default
+            const dbPassword = users.password
+            const expectedPassword = dbPassword || 'smartfarm2026'
+
+            if (password !== expectedPassword) {
                 console.warn('Invalid password attempt for:', normalizedPhone)
                 throw new Error('Password salah')
             }
