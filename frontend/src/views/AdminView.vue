@@ -156,8 +156,8 @@
               <select
                 v-model="formData.company_id"
                 class="form-input"
-                :required="formData.role !== 'admin'"
-                :disabled="formData.role === 'admin'"
+                :required="!['admin', 'owner'].includes(formData.role)"
+                :disabled="['admin', 'owner'].includes(formData.role)"
               >
                 <option value="">Select Company</option>
                 <option v-for="company in companies" :key="company.id" :value="company.id">
@@ -338,6 +338,13 @@ function handleRoleChange() {
   // Clear company_id when admin is selected (admin doesn't belong to any company)
   if (formData.value.role === 'admin') {
     formData.value.company_id = ''
+  } 
+  // Automatically select 'Holding' company for Owner
+  else if (formData.value.role === 'owner') {
+    const holdingCompany = companies.value.find(c => c.code === 'HD' || c.name.toLowerCase().includes('holding'))
+    if (holdingCompany) {
+      formData.value.company_id = holdingCompany.id
+    }
   }
 }
 
