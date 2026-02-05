@@ -93,6 +93,9 @@
                   <button class="btn-icon" @click="toggleUserStatus(user)" :title="user.is_active ? 'Nonaktifkan' : 'Aktifkan'">
                     {{ user.is_active ? '🔒' : '🔓' }}
                   </button>
+                  <button class="btn-icon btn-delete" @click="confirmDeleteUser(user)" title="Hapus User">
+                    🗑️
+                  </button>
                 </div>
               </td>
             </tr>
@@ -168,6 +171,17 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Password (Sistem Website)</label>
+            <input 
+              type="text" 
+              v-model="formData.password" 
+              class="form-input" 
+              placeholder="smartfarm2026"
+            />
+            <small class="form-hint">Kosongkan jika ingin menggunakan default "smartfarm2026"</small>
+          </div>
+
+          <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" v-model="formData.is_active" />
               <span>User Aktif</span>
@@ -209,6 +223,7 @@ const formData = ref({
   phone_number: '',
   role: '',
   company_id: '',
+  password: '',
   is_active: true
 })
 
@@ -251,6 +266,7 @@ function openAddModal() {
     phone_number: '',
     role: '',
     company_id: '',
+    password: 'smartfarm2026',
     is_active: true
   }
   formError.value = ''
@@ -264,6 +280,7 @@ function openEditModal(user) {
     phone_number: String(user.phone_number || ''),
     role: user.role || '',
     company_id: user.company_id || '',
+    password: user.password || '',
     is_active: user.is_active !== false
   }
   formError.value = ''
@@ -302,6 +319,7 @@ async function saveUser() {
       phone_number: parseInt(phone),
       role: formData.value.role,
       company_id: formData.value.company_id || null,
+      password: formData.value.password || 'smartfarm2026',
       is_active: formData.value.is_active
     }
 
@@ -342,6 +360,32 @@ async function toggleUserStatus(user) {
     await loadUsers()
   } catch (err) {
     alert('Gagal mengubah status: ' + err.message)
+  }
+}
+
+async function confirmDeleteUser(user) {
+  if (user.role === 'owner') {
+    alert('User dengan role Owner tidak dapat dihapus demi keamanan sistem.')
+    return
+  }
+
+  const confirmMsg = `Apakah Anda yakin ingin menghapus user "${user.full_name}"? 
+Tindakan ini permanen dan tidak dapat dibatalkan.`
+  
+  if (window.confirm(confirmMsg)) {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', user.id)
+
+      if (error) throw error
+      
+      await loadUsers()
+      alert('User berhasil dihapus.')
+    } catch (err) {
+      alert('Gagal menghapus user: ' + err.message)
+    }
   }
 }
 
@@ -472,6 +516,11 @@ onMounted(() => {
 .btn-icon:hover {
   background: var(--primary-100);
   transform: scale(1.05);
+}
+
+.btn-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
 }
 
 /* Modal */
