@@ -1,0 +1,6 @@
+@echo off
+echo Starting SmartFarm Internal System...
+echo.
+echo Please wait while the server starts...
+echo.
+npm run dev

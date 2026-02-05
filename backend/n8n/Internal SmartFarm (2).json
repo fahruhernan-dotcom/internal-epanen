@@ -1,0 +1,5003 @@
+{
+  "name": "Internal SmartFarm",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "users",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone_number",
+              "keyValue": "={{ $json.phone_normalized }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        48,
+        336
+      ],
+      "id": "get-internal-user",
+      "name": "Get Internal User",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.role }}",
+                    "rightValue": "owner",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "route-owner"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "OWNER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.role }}",
+                    "rightValue": "ceo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "route-ceo"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CEO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.role }}",
+                    "rightValue": "farmer",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "route-farmer"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FARMER"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1024,
+        496
+      ],
+      "id": "role-switch",
+      "name": "Route by Role"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        496,
+        544
+      ],
+      "id": "07c846a6-953c-4a08-8e91-b3adcfba3b81",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// Extract User Info from Supabase\n// Purpose: Prepare user data for message routing\n// ============================================\n\nconst user = $input.first().json || {};\n// Mengambil data pesan dari node \"Code in JavaScript1\"\nconst messageData = $('Code in JavaScript1').first().json || {};\n\n// ============================================\n// CHECK USER EXISTENCE\n// ============================================\n\nconst userExists = !!user.id;\n\nif (!userExists) {\n  return [{\n    json: {\n      user_exists: false,\n      error: \"User not found in database\",\n      // Menggunakan phone_normalized dari input JavaScript1\n      phone_searched: messageData.phone_normalized \n    }\n  }];\n}\n\n// ============================================\n// EXTRACT CORE USER DATA\n// ============================================\n\n// Mengambil nickname dari full_name (misal: \"Farmer Lyori (Pak Tani)\")\nlet nickname = \"\";\nif (user.full_name) {\n  // Cek jika ada nama dalam kurung\n  const parenthesesMatch = user.full_name.match(/\\(([^)]+)\\)/);\n  if (parenthesesMatch) {\n    nickname = parenthesesMatch[1]; // Hasil: \"Pak Tani\"\n  } else {\n    // Jika tidak ada kurung, ambil kata pertama\n    const words = user.full_name.trim().split(/\\s+/);\n    if (words.length > 0) {\n      nickname = words[0];\n    }\n  }\n}\n\n// ============================================\n// ROLE-BASED ROUTING\n// ============================================\n\n// Menentukan jalur routing berdasarkan role\nconst routingDecision = (() => {\n  switch(user.role) {\n    case 'farmer':\n    case 'employee':\n      return 'DAILY_REPORT_INPUT';\n    \n    case 'manager':\n      return 'DAILY_REPORT_OR_QUERY';\n    \n    case 'ceo':\n      return 'DOCUMENT_UPLOAD_OR_QUERY';\n    \n    case 'owner':\n      return 'RAG_QUERY_ONLY';\n    \n    default:\n      return 'UNKNOWN_ROLE';\n  }\n})();\n\n// ============================================\n// PERMISSIONS CHECK\n// ============================================\n\nconst permissions = {\n  can_submit_daily_report: ['farmer', 'employee', 'manager'].includes(user.role),\n  can_upload_document: ['ceo', 'manager', 'owner'].includes(user.role),\n  can_query_rag: ['manager', 'ceo', 'owner'].includes(user.role),\n  can_view_all_companies: user.role === 'owner',\n  can_approve_reports: ['manager', 'ceo', 'owner'].includes(user.role)\n};\n\n// ============================================\n// RETURN NORMALIZED USER DATA\n// ============================================\n\nreturn [{\n  json: {\n    // User existence\n    user_exists: true,\n    \n    // Core fields\n    user_id: user.id,\n    phone_number: user.phone_number,\n    full_name: user.full_name,\n    nickname: nickname,\n    role: user.role,\n    company_id: user.company_id,\n    is_active: user.is_active,\n    \n    // Routing\n    routing_decision: routingDecision,\n    \n    // Permissions\n    permissions: permissions,\n    \n    // Message metadata (dari node Code in JavaScript1)\n    message_body: messageData.chatInput, // \"halo\"\n    message_id: messageData.id || \"N/A\", \n    timestamp: messageData.timestamp || new Date().toISOString(),\n    \n    // For database insert\n    direction: 'inbound',\n    \n    // Debug\n    _source: 'user_info_extractor'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        336
+      ],
+      "id": "786b3a17-62f4-495b-b163-6b42420d19b5",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Deklarasi payload utama dari _data\nconst data = $input.first().json.payload?._data || {};\n\n// 2. Akses info pengirim dari path baru yang kamu berikan\nconst senderAlt = data.Info?.SenderAlt || {};\n\n// 3. Ambil remoteJid (Bisa dari JID langsung atau properti id di SenderAlt)\nconst rawJid = \n  (typeof senderAlt === 'string' ? senderAlt : senderAlt.id) || \n  data.key?.remoteJid || \n  null;\n\nif (!rawJid) {\n  return [{\n    json: {\n      isValid: false,\n      reason: \"remoteJid tidak ditemukan di SenderAlt maupun key\",\n      debug_info: { senderAlt }\n    }\n  }];\n}\n\n// 4. Bersihkan & Normalisasi Nomor ke 08xxxx (Ganti 62 ke 0)\nlet phone = rawJid.split(':')[0].replace(/\\D/g, '');\n\nif (phone.startsWith('62')) {\n  phone = '62' + phone.slice(2); // Menghasilkan 08xxxx\n} else if (!phone.startsWith('0')) {\n  phone = '62' + phone; // Memastikan diawali 0 jika pengirim nomor luar/asing\n}\n\n// 5. Ambil teks pesan (Conversation atau ExtendedText)\nconst msg = data.message || {};\nconst chatInput = ($input.first().json.payload._data.RawMessage.conversation);\n\nreturn [{\n  json: {\n    isValid: true,\n    phone_normalized: phone,\n    pushName: senderAlt.name || senderAlt.pushName || data.pushName || \"User\",\n    chatInput: chatInput,\n    rawJid: rawJid\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        560
+      ],
+      "id": "96c0263c-12f8-428a-abd5-a8bf75c86856",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        3184,
+        -880
+      ],
+      "id": "8373461e-55ed-453d-a513-5ff2ea31831f",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.role }}",
+              "rightValue": false,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              },
+              "id": "gatekeeper-condition-1"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        544
+      ],
+      "id": "gatekeeper-if",
+      "name": "User Registered?"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        4736,
+        736
+      ],
+      "id": "agent-b-llm",
+      "name": "Agent B LLM",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@devlikeapro/n8n-nodes-waha.wahaTrigger",
+      "typeVersion": 202502,
+      "position": [
+        -736,
+        576
+      ],
+      "id": "08835690-7127-45a2-aa87-0c8cc18a26bc",
+      "name": "WAHA Trigger",
+      "webhookId": "21719ab8-e200-4c0c-af35-fc6a9c480cf4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "00501b75-01dd-4200-b0db-2543de88c086",
+              "leftValue": "={{ $('readmsglog').item.json.id }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -384,
+        592
+      ],
+      "id": "732ebeac-8474-4f6c-94a9-c1dcaef84185",
+      "name": "If4",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "errorMessage": "Message already processed, skipped"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        864
+      ],
+      "id": "04a402f9-c41e-4d0d-9329-746c45d12074",
+      "name": "Stop and Error1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6fbf8901-eac8-4845-8637-4b05a6e92688",
+              "leftValue": "={{ $json.payload.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -176,
+        576
+      ],
+      "id": "6aef583a-b8a4-4e1e-a3b1-ca058a70d823",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "processed_messages",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.id || 'none' }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        432
+      ],
+      "id": "24989e78-bdcb-410c-b118-a24cdc2c8df8",
+      "name": "readmsglog",
+      "alwaysOutputData": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "error_message",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $json.payload._data.message.conversation }}"
+            },
+            {
+              "fieldId": "payload",
+              "fieldValue": "={{ $json.payload._data.key.remoteJidAlt }}"
+            },
+            {
+              "fieldId": "execution_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "Internal"
+            },
+            {
+              "fieldId": "event_type",
+              "fieldValue": "={{ $json.event }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        864
+      ],
+      "id": "bf65e139-7765-4d7b-94dc-b132edad478b",
+      "name": "errorlog",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "reply_to": "={{ $('WAHA Trigger').item.json.payload._data.key.remoteJidAlt }}",
+        "text": "Maaf Nomor Ini Tidak Dikenal Mohon Menghubungi Admin Untuk mendaftarkan User",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        656,
+        800
+      ],
+      "id": "40d54d89-e28f-4c14-9a8c-6fce91b2d644",
+      "name": "Send a text message",
+      "credentials": {
+        "wahaApi": {
+          "id": "UhSWIrRi7T5gFYYP",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "Kamu adalah **ePanen AI Specialist**, AI assistant untuk company ePanen\n\nList Tools\n1. Date and Time\n2. epanendailyreport\n3. del_dailyReport\n4. RAG_LaporanKeuangan"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        2160,
+        -1568
+      ],
+      "id": "abb23d28-f563-4aa3-a926-ae4b0aaa5358",
+      "name": "E-Panen Ai"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        -1344
+      ],
+      "id": "b38beb7c-8dc0-4b82-983f-1a38fc391819",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        3376,
+        -1664
+      ],
+      "id": "61420bfc-777d-4c2d-891c-4be1e1204421",
+      "name": "OpenRouter Chat Model3",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "Terdapat Dokumen Company Lyori\n\nPENTING tentang pencarian laporan keuangan:\n- Laporan keuangan diorganisir per minggu (week) dan bulan\n- Saat user bertanya tentang periode tertentu, cari dengan keyword yang sesuai\n- Contoh: \"laporan januari\" → cari dengan kata \"Januari 2026\"\n- Contoh: \"minggu ke-5\" → cari dengan kata \"Week 5\"\nPastikan di dokumen PDF sudah tertulis periode dengan jelas."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        3232,
+        -1824
+      ],
+      "id": "5a64d0a4-504c-41a7-a391-736950715c30",
+      "name": "Lyori Ai"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        -144
+      ],
+      "id": "bdaaf167-9227-4cf4-a5f0-4c3675b793f1",
+      "name": "OpenRouter Chat Model4",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        2656,
+        -336
+      ],
+      "id": "01cf0377-0a97-409e-b072-493ed9c70b7c",
+      "name": "Moafarm Ai"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Kamu adalah AI Analyst untuk Owner Farm.\n\nUser: {{ $json.full_name }}\nPertanyaan: {{ $('WAHA Trigger').item.json.payload.body }}",
+        "options": {
+          "systemMessage": "=You are an AI Orchestrator (Router & Analyst).\n\nYour role:\n- Analyze the user's message to understand their intent\n- Identify which company the request is about (Lyori, Moafarm, or Kaja)\n- Route to the appropriate company-specific AI tool\n- NEVER answer domain-specific questions yourself - ALWAYS use tools\n- Summarize tool responses in plain text without tables\n\nAvailable company AI tools:\n- date_time_tool → for current date/time queries\n- lyori_ai_tool → for Lyori\n- moafarm_ai_tool → for Moafarm\n- kaja_ai_tool → for Kaja\n\nRouting rules:\n1. If message explicitly mentions company name (Lyori/Moafarm/Kaja) → call that company's tool immediately\n2. If context implies a company → call appropriate tool\n3. If completely ambiguous → ask clarification: \"Pertanyaan ini untuk perusahaan mana? (Lyori/Moafarm/Kaja)\"\n4. ALWAYS call a tool when company is identified - NEVER answer directly\n\nResponse rules:\n- Call ONLY ONE tool per request\n- Wait for tool response before answering\n- Summarize tool results in plain natural language\n- NO tables, NO formatting - plain text summary only\n- Keep answers concise and actionable\n- Use today's date as reference for time-based queries\n\nOutput format:\n- Internal reasoning: HIDDEN from user\n- User-facing: Natural conversational language in Indonesian\n- Format: Plain text paragraphs, no markdown, no tables"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3184,
+        -1184
+      ],
+      "id": "owner-agent",
+      "name": "Ai Owner"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Merge').item.json.company_id }}",
+                    "rightValue": "3d0e89d1-76f5-421b-ba7b-c2c0dea6ebf0",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "12d67986-1f60-4b54-a85f-e94b3c29c9d9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "E-Panen"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8893acda-bcb3-4c8b-9732-e25b6b310573",
+                    "leftValue": "={{ $('Get Internal User').item.json.company_id }}",
+                    "rightValue": "5236043f-a9ce-498c-84c4-c5de16893ccd",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Moafarm"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "07c19ac7-729a-4b04-8297-7b0ab70021c1",
+                    "leftValue": "={{ $('Get Internal User').item.json.company_id }}",
+                    "rightValue": "53af2fd7-685d-41b5-8daa-265fe3db9b46",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Lyori"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f9f67cbb-a3cf-4e33-a2d0-fec0aaf836a7",
+                    "leftValue": "={{ $('Get Internal User').item.json.company_id }}",
+                    "rightValue": "8523f28b-7f12-4455-a8a8-015d2a826d5c",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Holding"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "81e49b87-fe15-4625-a871-c7d4edb66f84",
+                    "leftValue": "={{ $('Get Internal User').item.json.company_id }}",
+                    "rightValue": "9c839312-d9ff-40c0-9800-732877cd7287",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Melon"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2128,
+        992
+      ],
+      "id": "af450b28-b37a-45ad-b1c3-8afc19269989",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        1152
+      ],
+      "id": "e512810f-1081-4a16-bd6b-1eec4b427b6e",
+      "name": "Agent B LLM4",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        1280
+      ],
+      "id": "f21d6b59-039d-4450-a09a-bcf2aaab0ae4",
+      "name": "Agent B LLM5",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        3120,
+        1296
+      ],
+      "id": "edac950e-d9e9-4d34-97b3-c5538a808f9d",
+      "name": "Agent B LLM6",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_epanen",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Merge').item.json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Merge').item.json.name }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ $json.weather }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ $json.currentdate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        768
+      ],
+      "id": "0ce88a82-02df-4e92-8c2b-b663b06735cd",
+      "name": "epanen",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "companies",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.company_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        48,
+        208
+      ],
+      "id": "59adefc6-b850-4fcb-86ed-9d4a4493fb1c",
+      "name": "companny",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        224
+      ],
+      "id": "b7f9d6a3-2643-4e83-9ee2-44692c8386af",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "RAG INI BERISI RULES\nAktivitas Harian: Penyiraman, Pemupukan, Monitoring Hama, Penyiangan\nAktivitas Mingguan: Pemangkasan, Penyemprotan Pestisida\nPanduan Panen: Kriteria dan handling\nFormat Pelaporan: Kata kunci yang dipahami AI\nKondisi Alert: Critical dan Warning alerts\nCatatan Penting",
+        "tableName": {
+          "__rl": true,
+          "value": "sop_farmer",
+          "mode": "list",
+          "cachedResultName": "sop_farmer"
+        },
+        "includeDocumentMetadata": false,
+        "useReranker": true,
+        "options": {
+          "queryName": "sop_farmer"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3184,
+        1440
+      ],
+      "id": "40b103ad-9b6c-4e15-8c78-d8c2aa44f032",
+      "name": "SOP Farmer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3184,
+        1616
+      ],
+      "id": "114928c5-5f54-4e99-bfbe-ba4936d3ba7e",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qfzQaCGTyvqdag9P",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        3232,
+        1712
+      ],
+      "id": "d8787d43-a736-4dc2-a765-81f0b4e5a979",
+      "name": "Reranker Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        1280
+      ],
+      "id": "69d649b5-ccdd-4d60-afff-da85d7cb9c3e",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User: {{ $json.Nama || $json.pushName || $json.firstName || 'CEO' }}\nCompany: {{ $json.company_id || 'company' }}\nRequest: {{ $json.chatInput }}\n\nTugasmu:\n- Memahami bahasa petani, bahasa daerah, dan slang informal\n- Mengekstrak laporan harian menjadi data terstruktur\n- Fokus pada aktivitas, masalah, cuaca, dan catatan tambahan\n- Jangan menambah informasi yang tidak disebutkan user\n\nKamu HARUS memahami variasi bahasa seperti:\n- \"aman bos\" = kondisi aman\n- \"ujan deres / deres banget\" = heavy rain\n- \"gerimis\" = light rain\n- \"panas pol\" = hot\n- \"daun kuning dikit\" = early leaf yellowing\n- \"hama dikit\" = minor pest issue\n- \"pupuk NPK\", \"disemprot\", \"disiram\", \"panen\", \"bersih-bersih\"\n\nAturan output (WAJIB):\n- Output HARUS berupa JSON VALID\n- TIDAK BOLEH ada teks penjelasan di luar JSON\n- Gunakan bahasa Inggris sederhana untuk value teknis (weather, issue)\n- Tanggal saat ini diambil dari tools Date & Time\n- Format tanggal WAJIB: \"DD Month YYYY\" (contoh: \"21 March 2026\")\n- Jika data tidak disebutkan, isi dengan null atau array kosong\n- Jangan mengarang data\n\nFormat output JSON HARUS PERSIS seperti ini:\n\n{\n  \"activities\": {\n    \"summary\": string | null,\n    \"details\": string | null\n  },\n  \"issues\": [\n    {\n      \"type\": string,\n      \"severity\": \"low\" | \"medium\" | \"high\",\n      \"notes\": string\n    }\n  ],\n  \"issue\": string | null,\n  \"weather\": string | null,\n  \"notes\": string | null,\n  \"currentdate\": string | null\n}",
+        "options": {
+          "systemMessage": "=Kamu adalah AI Admin Pencatat Laporan Lapangan Pertanian.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1376,
+        1056
+      ],
+      "id": "1aa293e1-5776-411d-a59a-9399b6247840",
+      "name": "Farmer"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1696,
+        1040
+      ],
+      "id": "50018ad6-67b2-4930-9d97-3c3f8726f9e2",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil string JSON dari node sebelumnya\nconst rawText = $input.first().json.output;\n\n// Parse string JSON\nlet data;\ntry {\n  data = JSON.parse(rawText);\n} catch (e) {\n  throw new Error('Invalid JSON string from AI output');\n}\n\n// Format current date: \"21 March 2026\"\nconst currentDate = new Date().toLocaleDateString('en-GB', {\n  day: '2-digit',\n  month: 'long',\n  year: 'numeric',\n});\n\n// FORCE schema: field wajib ada walaupun tidak dikirim AI\nconst result = {\n  activities: {\n    summary: data.activities?.summary ?? null,\n    details: data.activities?.details ?? null,\n  },\n\n  issues: Array.isArray(data.issues)\n    ? data.issues.map(issue => ({\n        type: issue.type ?? null,\n        severity: issue.severity ?? null,\n        notes: issue.notes ?? null,\n      }))\n    : [],\n\n  weather: data.weather ?? null,\n  notes: data.notes ?? null,\n  currentdate: currentDate,\n};\n\n// Return final output\nreturn [\n  {\n    json: result,\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        1040
+      ],
+      "id": "9c10229c-b13f-4be8-9c55-e12e3528a348",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
+        "contextWindowLength": 4
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        3216,
+        1312
+      ],
+      "id": "b8ce02b1-fe6d-4543-a0d9-45bb536b0c46",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User: {{ $json.user_id }}\nCompany: {{ $json.company_id || 'company' }}\nRequest: {{ $('Farmer').item.json.output }}\n\nTUGAS:\n1. Identifikasi aktivitas dan masalah dari laporan harian\n2. Cocokkan dengan SOP pada konteks RAG\n3. Nilai kepatuhan sesuai aturan\n4. Berikan ringkasan singkat yang bisa dipahami petani",
+        "options": {
+          "systemMessage": "Kamu adalah AI Auditor Operasional Farm.\n\nPERAN:\nMenilai kepatuhan laporan kegiatan harian terhadap SOP resmi perusahaan.\n\nSUMBER KEBENARAN:\n- HANYA gunakan dokumen SOP yang diberikan melalui konteks RAG\n- Jangan menggunakan asumsi, pengalaman umum, atau pengetahuan di luar SOP\n- Jika SOP tidak membahas suatu aktivitas, nyatakan \"not_found\"\n\nATURAN WAJIB:\n- Output HARUS PLAIN TEKS\n- Gunakan bahasa yang mudah dipahami petani\n- Jangan mengarang isi SOP\n\nLOGIKA PENILAIAN:\n- compliant → semua aktivitas sesuai SOP\n- partial → sebagian sesuai, sebagian tidak\n- non_compliant → mayoritas melanggar SOP\n- Jika tidak ada SOP relevan → compliance_status = \"not_found\"\n\nFormat Output plain Teks"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3120,
+        1072
+      ],
+      "id": "3acd2251-1fff-4bab-9f2f-9f78b6c02f3c",
+      "name": "SOP FARMER"
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_moafarm",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Merge').item.json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Merge').item.json.name }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ $json.weather }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ $json.currentdate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        912
+      ],
+      "id": "195af699-5389-4d38-bdd4-89d79fa1ecc3",
+      "name": "moafarm",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_lyori",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Merge').item.json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Merge').item.json.name }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ $json.weather }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ $json.currentdate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        1056
+      ],
+      "id": "19bb7495-d297-48bb-81fb-4ea8a8d68256",
+      "name": "lyori",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_holding",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Merge').item.json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Merge').item.json.name }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ $json.weather }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ $json.currentdate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        1200
+      ],
+      "id": "8f3244b6-ceb6-4b87-ade9-f7ce508e9e3a",
+      "name": "holding",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_melon",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Merge').item.json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Merge').item.json.name }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ $json.weather }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ $json.currentdate }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        1344
+      ],
+      "id": "5dc42810-bd81-4e73-8508-62108bf26655",
+      "name": "melon",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "reply_to": "={{ $('WAHA Trigger').item.json.payload._data.key.remoteJidAlt }}",
+        "text": "={{ $json.message }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        3696,
+        1072
+      ],
+      "id": "b96cc22c-b2e7-4c1a-a20e-f99009bcafc5",
+      "name": "Send a text message1",
+      "credentials": {
+        "wahaApi": {
+          "id": "UhSWIrRi7T5gFYYP",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil output dari input AI Agent (FAQ/Onboarding/Support)\nlet text =\n  $input.first()?.json?.output ?? \"\";\n\n// Pastikan string\ntext = typeof text === \"string\" ? text : \"\";\n// Bersihkan '**' (Markdown Standar) jadi '*' (Format Bold WhatsApp)\nlet cleanText = text.replace(/\\*\\*/g, \"*\");\n// Ambil data dari node 'WAHA Trigger' untuk routing balik\n// Return data yang siap dikirim oleh node WAHA Send Message\nreturn [\n  {\n    json: {\n      message: cleanText,\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        1072
+      ],
+      "id": "758674f2-b47a-44b1-a1ba-5579bfb43a4a",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "daily_reports_epanen",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', `>10`, 'number') }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "gte",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 2026-01-27`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        -1824
+      ],
+      "id": "baf6d748-cdb4-48ac-a84a-e626d0ef4e35",
+      "name": "epanendailyreport",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        -1824
+      ],
+      "id": "546e0c36-151f-4fe8-8db3-e310eb159c5f",
+      "name": "Date & Time1"
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        3328,
+        -784
+      ],
+      "id": "9a9502be-dc5b-4480-afab-8cd184f88974",
+      "name": "Date & Time2"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "reply_to": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
+        "text": "={{ $json.message }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        3888,
+        -1184
+      ],
+      "id": "12a138ff-9b50-4f57-b4c4-c70778f931db",
+      "name": "Send a text message2",
+      "credentials": {
+        "wahaApi": {
+          "id": "tlYysFOCjpI2q2DK",
+          "name": "Epanen Official"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil output dari input AI Agent (FAQ/Onboarding/Support)\nlet text =\n  $input.first()?.json?.output ?? \"\";\n\n// Pastikan string\ntext = typeof text === \"string\" ? text : \"\";\n// Bersihkan '**' (Markdown Standar) jadi '*' (Format Bold WhatsApp)\nlet cleanText = text.replace(/\\*\\*/g, \"*\");\n// Ambil data dari node 'WAHA Trigger' untuk routing balik\n// Return data yang siap dikirim oleh node WAHA Send Message\nreturn [\n  {\n    json: {\n      message: cleanText,\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3648,
+        -1184
+      ],
+      "id": "b3629d2d-ee7d-4d71-aa56-404ee17199ed",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_epanen",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        -1824
+      ],
+      "id": "8cb597d4-8857-4dd5-85cb-e22a04bfa9d6",
+      "name": "del_dailyReport",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2112,
+        1776
+      ],
+      "id": "dbaac610-663a-41c8-b4f4-5b34100fcde9",
+      "name": "Embeddings Google Gemini4",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qfzQaCGTyvqdag9P",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "loader": "pdfLoader",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        2272,
+        1760
+      ],
+      "id": "763d33ba-f221-4571-9d30-aa3fd51c51b9",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "formTitle": "Submit SOP",
+        "formDescription": "Submit SOP Farmer",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        1920,
+        1552
+      ],
+      "id": "9036fd82-cdb5-434b-8e17-53fbe3382311",
+      "name": "On form submission1",
+      "webhookId": "fc34dd8d-a259-4961-abd8-d70215daab88"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_epanen",
+          "mode": "list",
+          "cachedResultName": "finance_epanen"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        2112,
+        1552
+      ],
+      "id": "2342d323-757b-47ca-ac2c-f7bbab61c0dd",
+      "name": "Input SOP Farmer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_epanen",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026 11:30:31`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2448,
+        -1824
+      ],
+      "id": "8ae926bf-b0f0-4082-84cf-9e22163a4eb3",
+      "name": "del_financialReport",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        -1184
+      ],
+      "id": "252a937e-a0a0-44af-ba9e-d12839892ec0",
+      "name": "Reranker Cohere1",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Laporan Keuangan Epanen",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_epanen",
+          "mode": "list",
+          "cachedResultName": "finance_epanen"
+        },
+        "useReranker": true,
+        "options": {
+          "queryName": "match_finance_epanen"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1888,
+        -1344
+      ],
+      "id": "1a76a686-9a03-4fe7-9fd3-5956838e7c95",
+      "name": "Laporan Keuangan Epanen",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        -1552
+      ],
+      "id": "60d7b39c-3e8c-4b6a-a7c9-eb4b59e0a552",
+      "name": "Reranker Cohere2",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        -1984
+      ],
+      "id": "55626828-80ca-4545-ba5b-436fff0e141c",
+      "name": "Date & Time3"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Laporan Keuangan Lyori",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_lyori",
+          "mode": "list",
+          "cachedResultName": "finance_lyori"
+        },
+        "useReranker": true,
+        "options": {
+          "queryName": "match_finance_lyori"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3120,
+        -1664
+      ],
+      "id": "8ca64d99-10e0-4d57-b90e-87e5fcaf9fbd",
+      "name": "Laporan Keuangan Lyori",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "daily_reports_lyori",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', `>10`, 'number') }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "gte",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3088,
+        -1984
+      ],
+      "id": "d7ab6b80-5f8f-4c96-9b72-2cd791c9009d",
+      "name": "lyoridailyreport",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_lyori",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3232,
+        -1984
+      ],
+      "id": "74b3652b-868b-4e7d-bf9a-bacb6eb47076",
+      "name": "del_dailyReportL",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_lyori",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3504,
+        -1984
+      ],
+      "id": "e39dd978-8043-423c-bfe3-1c9180428ab4",
+      "name": "del_financialReportL",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        -112
+      ],
+      "id": "922c56fa-726d-4ba7-8211-196258e88559",
+      "name": "OpenRouter Chat Model5",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        3984,
+        16
+      ],
+      "id": "07d880fa-859d-41b4-8950-6ca5c47e0bd6",
+      "name": "Reranker Cohere3",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        4176,
+        -512
+      ],
+      "id": "1a003793-7e2b-441d-87e5-d3625b0279e2",
+      "name": "Date & Time4"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        5600,
+        -832
+      ],
+      "id": "8b9e633c-cfed-42d8-bda1-a8636d38c6a9",
+      "name": "OpenRouter Chat Model6",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        5424,
+        -688
+      ],
+      "id": "2c34900f-1142-400d-a746-fd00388b2d8e",
+      "name": "Reranker Cohere4",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        5776,
+        -1168
+      ],
+      "id": "f335197e-aeb4-45af-bc41-c21d273b1609",
+      "name": "Date & Time5"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Laporan Keuangan Lyori",
+        "tableName": {
+          "__rl": true,
+          "value": "financial_epanen",
+          "mode": "list",
+          "cachedResultName": "financial_epanen"
+        },
+        "useReranker": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        5344,
+        -832
+      ],
+      "id": "1b5b214f-ccf6-4a5d-a3d0-aacaa4263fc7",
+      "name": "Laporan Keuangan Lyori2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "daily_reports_lyori",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', `>10`, 'number') }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "gte",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        5504,
+        -1168
+      ],
+      "id": "bdb8ea3c-92f1-47fc-b6aa-163f6e3eb7cd",
+      "name": "lyoridailyreport2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_lyori",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        5648,
+        -1168
+      ],
+      "id": "23ebd797-359d-4eea-bf16-ceff9c811b83",
+      "name": "del_dailyReportL2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_lyori",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026 11:30:31`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        5920,
+        -1168
+      ],
+      "id": "13b2302c-9298-439f-abe9-046fdba7b985",
+      "name": "del_financialReportL2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        -496
+      ],
+      "id": "32001e67-39a5-4b49-9ddb-7e62c134d83c",
+      "name": "Date & Time6"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        2496,
+        -16
+      ],
+      "id": "e1d8a927-4d18-4a5e-b97c-d4a4206916f7",
+      "name": "Reranker Cohere5",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Laporan Keuangan Lyori",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_moafarm",
+          "mode": "list",
+          "cachedResultName": "finance_moafarm"
+        },
+        "useReranker": true,
+        "options": {
+          "queryName": "match_finance_moafarm"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        2416,
+        -144
+      ],
+      "id": "16758914-3132-48d2-ae87-a8c0d1fdd18e",
+      "name": "Laporan Keuangan Moafarm",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "daily_reports_moafarm",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', `>10`, 'number') }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "gte",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        -496
+      ],
+      "id": "13e634db-c514-4d45-9704-fded63c0bdde",
+      "name": "moadailyreport",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "loader": "pdfLoader",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "week",
+                "value": "={{ $now.weekNumber }}"
+              },
+              {
+                "name": "month",
+                "value": "={{ $now.month }}"
+              },
+              {
+                "name": "year",
+                "value": "={{ $now.year }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        3920,
+        -1856
+      ],
+      "id": "00d83398-b447-43bd-b78e-12e605826203",
+      "name": "Default Data Loader2"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_epanen",
+          "mode": "list",
+          "cachedResultName": "finance_epanen"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1776,
+        -1664
+      ],
+      "id": "93fced72-5d30-40a6-92dc-2a2d0bcd6bc4",
+      "name": "Finance Epanen",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_lyori",
+          "mode": "list",
+          "cachedResultName": "finance_lyori"
+        },
+        "options": {
+          "queryName": "match_finance_lyori"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3808,
+        -2048
+      ],
+      "id": "5e048c5b-711e-4964-8e56-ee7f34b614bc",
+      "name": "Finance Lyori",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        -160
+      ],
+      "id": "6cf471ab-ab49-4df4-b573-1b9445f9b3b1",
+      "name": "Embeddings Google Gemini9",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qfzQaCGTyvqdag9P",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_moafarm",
+          "mode": "list",
+          "cachedResultName": "finance_moafarm"
+        },
+        "options": {
+          "queryName": "match_finance_moafarm"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3216,
+        -336
+      ],
+      "id": "501eea4a-9362-4767-9fb1-462814eaeb6c",
+      "name": "Finance Moafarm",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4672,
+        -224
+      ],
+      "id": "f1bd6dd8-b5f6-4a3b-b48f-01b0b81150d2",
+      "name": "Embeddings Google Gemini10",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qfzQaCGTyvqdag9P",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "loader": "pdfLoader",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        4816,
+        -224
+      ],
+      "id": "99f7deb4-bc36-4464-bcfa-159d429d093f",
+      "name": "Default Data Loader4"
+    },
+    {
+      "parameters": {
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        5600,
+        -976
+      ],
+      "id": "3e677595-8d3e-4432-ae9f-dd28c084b679",
+      "name": "Melon Ai"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
+        "contextWindowLength": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        3280,
+        -912
+      ],
+      "id": "cbd2703e-8b64-42db-a60b-64212f1e3a67",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "topN": 4
+      },
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        3600,
+        -1504
+      ],
+      "id": "85109572-11a8-449c-8220-9cb7c2e8aa4d",
+      "name": "Reranker Cohere6",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        4080,
+        -1536
+      ],
+      "id": "e8a9c670-ac1e-4c2c-a536-f8d40e0d70b5",
+      "name": "Default Data Loader5"
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        3920,
+        -1504
+      ],
+      "id": "0288618b-7edc-4ad1-8602-dfab08a9225d",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        3120,
+        -1536
+      ],
+      "id": "cdb5c32d-9e15-4732-a5ba-de503e91a845",
+      "name": "Embeddings Cohere1",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        3472,
+        -1552
+      ],
+      "id": "968b712a-6aaa-4a79-8d23-fa001cd8b024",
+      "name": "Embeddings Cohere2",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Berisi General Dokumen Company Lyori",
+        "tableName": {
+          "__rl": true,
+          "value": "general_document_lyori",
+          "mode": "list",
+          "cachedResultName": "general_document_lyori"
+        },
+        "includeDocumentMetadata": false,
+        "useReranker": true,
+        "options": {
+          "queryName": "match_general_document_lyori"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3472,
+        -1664
+      ],
+      "id": "ba244d26-c012-4b7e-9259-09750598f7d6",
+      "name": "General Dokumen Lyori",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "general_document_lyori",
+          "mode": "list",
+          "cachedResultName": "general_document_lyori"
+        },
+        "options": {
+          "queryName": "match_general_document_lyori"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3920,
+        -1712
+      ],
+      "id": "9bf771d9-90d1-4d4f-a0d3-32ab282d0db9",
+      "name": "Dokumen Lyori",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        3792,
+        -1856
+      ],
+      "id": "5587ae15-e75e-4a7c-9b71-292a786ebb9a",
+      "name": "Embeddings Cohere3",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Lyori Laporan Keuangan",
+        "formDescription": "Kirim Laporan Keuangan Lyori",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        3664,
+        -2048
+      ],
+      "id": "ad01f2ed-ec33-42be-bb01-ede308640a1c",
+      "name": "Form Keuangan Lyori",
+      "webhookId": "72b3dbbe-34c7-48f0-b7de-f2e7c017d519"
+    },
+    {
+      "parameters": {
+        "formTitle": "Lyori Dokumen",
+        "formDescription": "Dokumen",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        3760,
+        -1712
+      ],
+      "id": "edc88004-3524-4ff3-8b9a-668206bd5177",
+      "name": "Submit General Dokumen Lyori",
+      "webhookId": "d0a6df0b-84ff-48e7-9eec-914cda1580f1"
+    },
+    {
+      "parameters": {
+        "tableId": "processed_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.id }}"
+            },
+            {
+              "fieldId": "from_number",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4096,
+        -1184
+      ],
+      "id": "3184fe18-bf9b-4032-802c-08a5e4ac9fb8",
+      "name": "massage",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        -1200
+      ],
+      "id": "6bb6283e-4007-4313-84d9-98f2edfd34ea",
+      "name": "Embeddings Cohere4",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        -1504
+      ],
+      "id": "dd9caf0b-b7cc-4f80-a679-411edd4837ca",
+      "name": "Embeddings Cohere5",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        3856,
+        16
+      ],
+      "id": "c214dfc6-e7e1-4f8b-a567-9b964c1b6529",
+      "name": "Embeddings Cohere6",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        5312,
+        -688
+      ],
+      "id": "1aa1c037-d4ec-4053-bfb2-bfd84983bc33",
+      "name": "Embeddings Cohere7",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "Terdapat Dokumen Company Kaja\n\nPENTING tentang pencarian laporan keuangan:\n- Laporan keuangan diorganisir per minggu (week) dan bulan\n- Saat user bertanya tentang periode tertentu, cari dengan keyword yang sesuai\n- Contoh: \"laporan januari\" → cari dengan kata \"Januari 2026\"\n- Contoh: \"minggu ke-5\" → cari dengan kata \"Week 5\"\nPastikan di dokumen PDF sudah tertulis periode dengan jelas."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        4064,
+        -336
+      ],
+      "id": "99e60d35-a0c9-4cda-971d-bce61eabd461",
+      "name": "Kaja Ai"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Laporan Keuangan Lyori",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_kaja",
+          "mode": "list",
+          "cachedResultName": "finance_kaja"
+        },
+        "useReranker": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3904,
+        -112
+      ],
+      "id": "c0576bf6-35a3-46d4-a4d1-7704d714b8b4",
+      "name": "Laporan Keuangan Kaja",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        -32
+      ],
+      "id": "9f5bf499-ea63-4b2c-a79a-b786450877c0",
+      "name": "Embeddings Cohere8",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Moafarm Laporan Keuangan",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        3008,
+        -336
+      ],
+      "id": "5a62aa4a-c68d-42a0-850b-86cdb8fb2950",
+      "name": "Form Keuangan Moafarm",
+      "webhookId": "4a20bcf8-ed90-4910-9451-45631fc26fe5"
+    },
+    {
+      "parameters": {
+        "formTitle": "E-Panen Laporan Keuangan",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        1632,
+        -1664
+      ],
+      "id": "97a96795-86a3-4374-98b6-01286aeb0827",
+      "name": "Form Keuangan Epanen",
+      "webhookId": "8487ffd0-325f-455e-bf06-98709dd3b108"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "loader": "pdfLoader",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "week",
+                "value": "={{ $now.weekNumber }}"
+              },
+              {
+                "name": "month",
+                "value": "={{ $now.month }}"
+              },
+              {
+                "name": "year",
+                "value": "={{ $now.year }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        3344,
+        -160
+      ],
+      "id": "0ed22692-abe2-45ba-a88b-eb8f118de46d",
+      "name": "Default Data Loader3"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "loader": "pdfLoader",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "week",
+                "value": "={{ $now.weekNumber }}"
+              },
+              {
+                "name": "month",
+                "value": "={{ $now.month }}"
+              },
+              {
+                "name": "year",
+                "value": "={{ $now.year }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1856,
+        -1504
+      ],
+      "id": "e26b7bf5-b94e-4180-bd1e-a89d1aee4c65",
+      "name": "Default Data Loader6"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "finance_epanen",
+          "mode": "list",
+          "cachedResultName": "finance_epanen"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        4672,
+        -400
+      ],
+      "id": "a725c329-8437-4328-bf33-eac746a052fc",
+      "name": "Finance Kaja",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "topN": 4
+      },
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        2928,
+        -16
+      ],
+      "id": "59575c87-7c05-4967-b693-0d6823fada2f",
+      "name": "Reranker Cohere7",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        -32
+      ],
+      "id": "6ae5b7de-fc12-481a-95b7-5a4f7a6c3270",
+      "name": "Embeddings Cohere9",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=Berisi General Dokumen Moafarm\n1. SOP Moafarm\n2. RAB Moafarm\n3. KPI Moafarm\n4. BMC Moafarm\n5. General Dokumen Moafarm",
+        "tableName": {
+          "__rl": true,
+          "value": "general_document_lyori",
+          "mode": "list",
+          "cachedResultName": "general_document_lyori"
+        },
+        "includeDocumentMetadata": false,
+        "useReranker": true,
+        "options": {
+          "queryName": "match_general_document_moafarm"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        2800,
+        -144
+      ],
+      "id": "ddc763eb-e6c8-45e1-906e-0ce5f40e70bf",
+      "name": "General Dokumen Moafarm",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "topN": 4
+      },
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        4400,
+        16
+      ],
+      "id": "1df4b46a-7dc3-4eaf-95c9-4896141e15fd",
+      "name": "Reranker Cohere8",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        4272,
+        0
+      ],
+      "id": "ee15062e-45ee-4e9d-9bcd-f74522339776",
+      "name": "Embeddings Cohere10",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=Berisi General Dokumen Kaja",
+        "tableName": {
+          "__rl": true,
+          "value": "general_document_kaja",
+          "mode": "list",
+          "cachedResultName": "general_document_kaja"
+        },
+        "includeDocumentMetadata": false,
+        "useReranker": true,
+        "options": {
+          "queryName": "match_general_document_kaja"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        4272,
+        -112
+      ],
+      "id": "7d350739-cc9f-4843-904d-098ad20fc18d",
+      "name": "General Dokumen Kaja",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "E-Panen Laporan Keuangan",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        4464,
+        -400
+      ],
+      "id": "3ba02a93-1b2b-4a0b-8a61-b488ad6d5f71",
+      "name": "Form Keuangan Kaja",
+      "webhookId": "ea756b54-6155-4de3-be2a-415bb3cd769e"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "daily_reports_kaja",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', `>10`, 'number') }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "gte",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3904,
+        -512
+      ],
+      "id": "b1f9d7df-2603-4e2a-b985-0ccdb4942414",
+      "name": "kajadailyreport",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_kaja",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        -512
+      ],
+      "id": "972f7989-d03a-4e67-82cb-486c8cf0196f",
+      "name": "del_dailyReportkj",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_kaja",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026 11:30:31`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        4320,
+        -512
+      ],
+      "id": "0f8e16f0-cc0c-456c-b3e8-c0ea86f2072a",
+      "name": "del_financialReportkj",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_lyori",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026 11:30:31`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        -496
+      ],
+      "id": "b23fbc2e-be2d-4e4f-a6dd-5a9b3a083f11",
+      "name": "del_financialReportmoa",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "daily_reports_moafarm",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "report_date",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Formatted value:\nExample 27 Jan 2026`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        -496
+      ],
+      "id": "0f8708f0-9060-4e1f-bee4-2d5a6bbf1dfb",
+      "name": "del_dailyReportmoa",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        2912,
+        336
+      ],
+      "id": "6432ff14-3b4d-4621-89a5-ba38f32ff4f6",
+      "name": "Default Data Loader7"
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        2752,
+        368
+      ],
+      "id": "88029f0b-b2c1-4f45-bd78-0c2a06249d2f",
+      "name": "Embeddings Cohere11",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Moafarm Dokumen",
+        "formDescription": "Dokumen",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        2592,
+        160
+      ],
+      "id": "37afbacd-e9df-47ed-8840-6bbecc1821c4",
+      "name": "Submit General Dokumen Moafarm",
+      "webhookId": "7347fab7-4ffe-4b82-b81d-db4521338ae1"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "general_document_moafarm",
+          "mode": "list",
+          "cachedResultName": "general_document_moafarm"
+        },
+        "options": {
+          "queryName": "match_general_document_moafarm"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        2752,
+        160
+      ],
+      "id": "fbed1cbb-588f-4cfb-b1d6-662036f49204",
+      "name": "Dokumen Moafarm",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User: {{ $('Get Internal User').item.json.full_name }}\nRequest: {{ $json.chatInput }}\nCompany : {{ $json.name }}",
+        "options": {
+          "systemMessage": "=SYSTEM PROMPT – GATEKEEPER AI\n\nRole\nYou route CEO requests to the correct Company AI from company \"{{ $json.name }}\".\n\nLogic\n- If request is related to {{ $('companny').item.json.name }} → route to its Company AI.\n- If not company-specific → respond directly.\n\nRules\n- Never answer company-specific requests yourself.\n- Do not ask for confirmation or clarification.\n- Be fast, concise, and decisive.\n\nOutput\n- Company-related → delegate immediately.\n- General → answer briefly."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        4736,
+        512
+      ],
+      "id": "agent-b-executive",
+      "name": "Ai CEO"
+    },
+    {
+      "parameters": {
+        "toolDescription": "AI Agent Lyori",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "=SYSTEM PROMPT – CEO ASSISTANT PERSONAL (LYORI)\n\nRole\nKamu adalah CEO Assistant Personal untuk ekosistem pertanian Lyori (ePanen).\nFokus utama kamu adalah pengelolaan dan pengamanan laporan keuangan CEO Lyori.\n\nCore Function\n- Menjadi pintu masuk resmi laporan keuangan mingguan CEO Lyori.\n- Memberikan link form laporan keuangan HANYA saat:\n  - CEO ingin melaporkan profit\n  - CEO ingin melaporkan biaya/pengeluaran\n  - CEO meminta submission laporan keuangan\n\nFinancial Submission Link\nGunakan link berikut setiap kali ada input data keuangan:\nhttps://n8n-wrw2bveswawm.cica.sumopod.my.id/form/72b3dbbe-34c7-48f0-b7de-f2e7c017d519\n\nCommunication Rules\n- Tone: Profesional, hormat, singkat, dan langsung ke inti.\n- Sapaan: Gunakan \"Kak [Nama]\".\n- Posisikan diri sebagai asisten admin resmi Lyori.\n\nConstraints\n- Jika topik di luar Lyori, sampaikan dengan sopan bahwa akses saat ini hanya untuk operasional Lyori.\n- Jangan membahas atau menangani data perusahaan lain.\n- Jangan memberikan link form jika tidak relevan dengan pelaporan keuangan.\n\nResponse Behavior\n- Jika ada niat input keuangan → langsung berikan link form.\n- Jika tidak → jawab singkat atau arahkan sesuai batasan.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        4800,
+        960
+      ],
+      "id": "4b33a77f-4350-4ce4-bbb1-fb374fd5d41a",
+      "name": "CEO Lyori"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "reply_to": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
+        "text": "={{ $json.message }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        5664,
+        592
+      ],
+      "id": "97b5ab04-7d2f-46a7-b6a6-1e6f8c942df9",
+      "name": "Send a text message3",
+      "credentials": {
+        "wahaApi": {
+          "id": "tlYysFOCjpI2q2DK",
+          "name": "Epanen Official"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil output dari input AI Agent (FAQ/Onboarding/Support)\nlet text =\n  $input.first()?.json?.output ?? \"\";\n\n// Pastikan string\ntext = typeof text === \"string\" ? text : \"\";\n// Bersihkan '**' (Markdown Standar) jadi '*' (Format Bold WhatsApp)\nlet cleanText = text.replace(/\\*\\*/g, \"*\");\n// Ambil data dari node 'WAHA Trigger' untuk routing balik\n// Return data yang siap dikirim oleh node WAHA Send Message\nreturn [\n  {\n    json: {\n      message: cleanText,\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5248,
+        512
+      ],
+      "id": "24aac4cf-8875-4183-a8cc-e9a0ce24afc0",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "tableId": "processed_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.id }}"
+            },
+            {
+              "fieldId": "from_number",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        5872,
+        592
+      ],
+      "id": "acf9ad9b-bbf4-4180-8bf0-e9bdcb848853",
+      "name": "massage2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        5088,
+        1152
+      ],
+      "id": "e8c708a7-d2ac-453c-b41f-42b125bae61c",
+      "name": "Agent B LLM7",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "AI Agent Moafarm",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "=SYSTEM PROMPT – CEO ASSISTANT PERSONAL (Moafarm)\n\nRole\nKamu adalah CEO Assistant Personal untuk ekosistem pertanian Moafarm (ePanen).\nFokus utama kamu adalah pengelolaan dan pengamanan laporan keuangan CEO Moafarm.\n\nCore Function\n- Menjadi pintu masuk resmi laporan keuangan mingguan CEO Moafarm.\n- Memberikan link form laporan keuangan HANYA saat:\n  - CEO ingin melaporkan profit\n  - CEO ingin melaporkan biaya/pengeluaran\n  - CEO meminta submission laporan keuangan\n\nFinancial Submission Link\nGunakan link berikut setiap kali ada input data keuangan:\nhttps://n8n-wrw2bveswawm.cica.sumopod.my.id/form/4a20bcf8-ed90-4910-9451-45631fc26fe5\n\nCommunication Rules\n- Tone: Profesional, hormat, singkat, dan langsung ke inti.\n- Sapaan: Gunakan \"Kak [Nama]\".\n- Posisikan diri sebagai asisten admin resmi Moafarm.\n\nConstraints\n- Jika topik di luar Moafarm, sampaikan dengan sopan bahwa akses saat ini hanya untuk operasional Moafarm.\n- Jangan membahas atau menangani data perusahaan lain.\n- Jangan memberikan link form jika tidak relevan dengan pelaporan keuangan.\n\nResponse Behavior\n- Jika ada niat input keuangan → langsung berikan link form.\n- Jika tidak → jawab singkat atau arahkan sesuai batasan."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        5088,
+        960
+      ],
+      "id": "c147b6d2-03e5-4771-a7bd-334b3d1418a4",
+      "name": "CEO Moafarm"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        5360,
+        1152
+      ],
+      "id": "bdaa6667-20c3-46fa-8c32-125c221f363d",
+      "name": "Agent B LLM8",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "AI Agent Kaja",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', ``, 'string') }}",
+        "options": {
+          "systemMessage": "=SYSTEM PROMPT – CEO ASSISTANT PERSONAL (Kaja)\n\nRole\nKamu adalah CEO Assistant Personal untuk ekosistem pertanian Kaja (ePanen).\nFokus utama kamu adalah pengelolaan dan pengamanan laporan keuangan CEO Kaja.\n\nCore Function\n- Menjadi pintu masuk resmi laporan keuangan mingguan CEO Kaja.\n- Memberikan link form laporan keuangan HANYA saat:\n  - CEO ingin melaporkan profit\n  - CEO ingin melaporkan biaya/pengeluaran\n  - CEO meminta submission laporan keuangan\n\nFinancial Submission Link\nGunakan link berikut setiap kali ada input data keuangan:\nhttps://n8n-wrw2bveswawm.cica.sumopod.my.id/form/ea756b54-6155-4de3-be2a-415bb3cd769e\n\nCommunication Rules\n- Tone: Profesional, hormat, singkat, dan langsung ke inti.\n- Sapaan: Gunakan \"Kak [Nama]\".\n- Posisikan diri sebagai asisten admin resmi Kaja.\n\nConstraints\n- Jika topik di luar Kaja, sampaikan dengan sopan bahwa akses saat ini hanya untuk operasional Kaja.\n- Jangan membahas atau menangani data perusahaan lain.\n- Jangan memberikan link form jika tidak relevan dengan pelaporan keuangan.\n\nResponse Behavior\n- Jika ada niat input keuangan → langsung berikan link form.\n- Jika tidak → jawab singkat atau arahkan sesuai batasan."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        5360,
+        960
+      ],
+      "id": "2838d18f-db3e-469a-b260-855fa37919f1",
+      "name": "CEO Kaja"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
+        "contextWindowLength": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1472,
+        1360
+      ],
+      "id": "19a91b6c-8a65-4727-a7ad-123b63f63a36",
+      "name": "Simple Memory3"
+    },
+    {
+      "parameters": {
+        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
+        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        4608,
+        736
+      ],
+      "id": "b37e1a60-31d1-45d8-96cf-1f0137d94021",
+      "name": "Date & Time7"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
+        "contextWindowLength": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        4896,
+        1424
+      ],
+      "id": "89ac83eb-1fa8-483a-a1e8-72a4cda8cc91",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        5248,
+        592
+      ],
+      "id": "0e1a33be-038b-41f7-bfb2-1d2670853b02",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        4928,
+        128
+      ],
+      "id": "ab31d401-cf4b-4b90-ac7b-0194b9ad08a8",
+      "name": "Default Data Loader8"
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        4768,
+        160
+      ],
+      "id": "87150474-a49c-4835-8bfe-8a29604557c6",
+      "name": "Embeddings Cohere12",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Kaja Dokumen",
+        "formDescription": "Dokumen",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        4608,
+        -48
+      ],
+      "id": "7e2ec17d-0e2a-4779-9de9-bd30414d27ff",
+      "name": "Submit General Dokumen Kaja",
+      "webhookId": "c1ece8ff-c967-4845-a85a-c8b4a83ac896"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "general_document_kaja",
+          "mode": "list",
+          "cachedResultName": "general_document_kaja"
+        },
+        "options": {
+          "queryName": "match_general_document_kaja"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        4768,
+        -48
+      ],
+      "id": "9d35d1f0-504b-4c4b-a93d-4808e355ced4",
+      "name": "Dokumen Kaja",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Internal User": {
+      "main": [
+        [
+          {
+            "node": "companny",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Role": {
+      "main": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ai CEO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Farmer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Get Internal User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "User Registered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Registered?": {
+      "main": [
+        [
+          {
+            "node": "Route by Role",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent B LLM": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Ai CEO",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WAHA Trigger": {
+      "main": [
+        [],
+        [
+          {
+            "node": "readmsglog",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "errorlog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "errorlog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "readmsglog": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "errorlog": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-Panen Ai": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "E-Panen Ai",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Lyori Ai",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lyori Ai": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Moafarm Ai",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Moafarm Ai": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ai Owner": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent B LLM4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CEO Lyori",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent B LLM5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Farmer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent B LLM6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "epanen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "moafarm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "lyori",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "holding",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "melon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "epanen": {
+      "main": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "companny": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SOP Farmer": {
+      "ai_tool": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "SOP Farmer",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere": {
+      "ai_reranker": [
+        [
+          {
+            "node": "SOP Farmer",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "ai_tool": [
+        [
+          {
+            "node": "Farmer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Farmer": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "moafarm": {
+      "main": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lyori": {
+      "main": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "holding": {
+      "main": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "melon": {
+      "main": [
+        [
+          {
+            "node": "SOP FARMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        []
+      ]
+    },
+    "SOP FARMER": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "epanendailyreport": {
+      "ai_tool": [
+        [
+          {
+            "node": "E-Panen Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time1": {
+      "ai_tool": [
+        [
+          {
+            "node": "E-Panen Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_dailyReport": {
+      "ai_tool": [
+        [
+          {
+            "node": "E-Panen Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini4": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Input SOP Farmer",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Input SOP Farmer",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission1": {
+      "main": [
+        [
+          {
+            "node": "Input SOP Farmer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_financialReport": {
+      "ai_tool": [
+        [
+          {
+            "node": "E-Panen Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere1": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Laporan Keuangan Epanen",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Laporan Keuangan Epanen": {
+      "ai_tool": [
+        [
+          {
+            "node": "E-Panen Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere2": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Laporan Keuangan Lyori",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time3": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lyori Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Laporan Keuangan Lyori": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lyori Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lyoridailyreport": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lyori Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_dailyReportL": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lyori Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_financialReportL": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lyori Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Kaja Ai",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere3": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Laporan Keuangan Kaja",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time4": {
+      "ai_tool": [
+        [
+          {
+            "node": "Kaja Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Melon Ai",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere4": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Laporan Keuangan Lyori2",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time5": {
+      "ai_tool": [
+        [
+          {
+            "node": "Melon Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Laporan Keuangan Lyori2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Melon Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lyoridailyreport2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Melon Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_dailyReportL2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Melon Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_financialReportL2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Melon Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere5": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Laporan Keuangan Moafarm",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Laporan Keuangan Moafarm": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moafarm Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "moadailyreport": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moafarm Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time6": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moafarm Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader2": {
+      "ai_document": [
+        [
+          {
+            "node": "Finance Lyori",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini9": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Finance Moafarm",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini10": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Finance Kaja",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader4": {
+      "ai_document": [
+        [
+          {
+            "node": "Finance Kaja",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Melon Ai": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere6": {
+      "ai_reranker": [
+        [
+          {
+            "node": "General Dokumen Lyori",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader5": {
+      "ai_document": [
+        [
+          {
+            "node": "Dokumen Lyori",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Dokumen Lyori",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Laporan Keuangan Lyori",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "General Dokumen Lyori",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General Dokumen Lyori": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lyori Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Finance Lyori",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Keuangan Lyori": {
+      "main": [
+        [
+          {
+            "node": "Finance Lyori",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit General Dokumen Lyori": {
+      "main": [
+        [
+          {
+            "node": "Dokumen Lyori",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message2": {
+      "main": [
+        [
+          {
+            "node": "massage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere4": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Laporan Keuangan Epanen",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere5": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Finance Epanen",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere6": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Laporan Keuangan Kaja",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kaja Ai": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai Owner",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Laporan Keuangan Kaja": {
+      "ai_tool": [
+        [
+          {
+            "node": "Kaja Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere7": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Laporan Keuangan Lyori2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere8": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Laporan Keuangan Moafarm",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Keuangan Moafarm": {
+      "main": [
+        [
+          {
+            "node": "Finance Moafarm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Keuangan Epanen": {
+      "main": [
+        [
+          {
+            "node": "Finance Epanen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader3": {
+      "ai_document": [
+        [
+          {
+            "node": "Finance Moafarm",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader6": {
+      "ai_document": [
+        [
+          {
+            "node": "Finance Epanen",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere7": {
+      "ai_reranker": [
+        [
+          {
+            "node": "General Dokumen Moafarm",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere9": {
+      "ai_embedding": [
+        [
+          {
+            "node": "General Dokumen Moafarm",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General Dokumen Moafarm": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moafarm Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere8": {
+      "ai_reranker": [
+        [
+          {
+            "node": "General Dokumen Kaja",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere10": {
+      "ai_embedding": [
+        [
+          {
+            "node": "General Dokumen Kaja",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General Dokumen Kaja": {
+      "ai_tool": [
+        [
+          {
+            "node": "Kaja Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Keuangan Kaja": {
+      "main": [
+        [
+          {
+            "node": "Finance Kaja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "kajadailyreport": {
+      "ai_tool": [
+        [
+          {
+            "node": "Kaja Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_dailyReportkj": {
+      "ai_tool": [
+        [
+          {
+            "node": "Kaja Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_financialReportkj": {
+      "ai_tool": [
+        [
+          {
+            "node": "Kaja Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_financialReportmoa": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moafarm Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del_dailyReportmoa": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moafarm Ai",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader7": {
+      "ai_document": [
+        [
+          {
+            "node": "Dokumen Moafarm",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere11": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Dokumen Moafarm",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit General Dokumen Moafarm": {
+      "main": [
+        [
+          {
+            "node": "Dokumen Moafarm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ai CEO": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CEO Lyori": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai CEO",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message3": {
+      "main": [
+        [
+          {
+            "node": "massage2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Agent B LLM7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CEO Moafarm",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CEO Moafarm": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai CEO",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent B LLM8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CEO Kaja",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CEO Kaja": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai CEO",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "Farmer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time7": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ai CEO",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "CEO Lyori",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "CEO Moafarm",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "CEO Kaja",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Send a text message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader8": {
+      "ai_document": [
+        [
+          {
+            "node": "Dokumen Kaja",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere12": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Dokumen Kaja",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit General Dokumen Kaja": {
+      "main": [
+        [
+          {
+            "node": "Dokumen Kaja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed"
+  },
+  "versionId": "efb6b858-0573-49e3-8ce9-6565a9875c32",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f2d9e660b34c9d92ed2d1946fd6a1cf5eabf8eee0b2182c48836c963c437441a"
+  },
+  "id": "7cIm8KIw6yZmcWHb",
+  "tags": [
+    {
+      "updatedAt": "2026-01-26T16:41:31.504Z",
+      "createdAt": "2026-01-26T16:41:31.504Z",
+      "id": "2kfzTJdlUYWkQS5K",
+      "name": "smartfarm"
+    },
+    {
+      "updatedAt": "2026-01-26T19:46:34.030Z",
+      "createdAt": "2026-01-26T19:46:34.030Z",
+      "id": "BB47Tn15oCcl9MON",
+      "name": "scheduled"
+    },
+    {
+      "updatedAt": "2026-01-26T19:46:34.023Z",
+      "createdAt": "2026-01-26T19:46:34.023Z",
+      "id": "CrAtnotARsUbOY66",
+      "name": "sop"
+    },
+    {
+      "updatedAt": "2026-01-26T19:47:40.219Z",
+      "createdAt": "2026-01-26T19:47:40.219Z",
+      "id": "V3Js1VEBXBcYIDE0",
+      "name": "subworkflow"
+    },
+    {
+      "updatedAt": "2026-01-26T19:47:40.220Z",
+      "createdAt": "2026-01-26T19:47:40.220Z",
+      "id": "gBNMxvPTbYFyQ9Ci",
+      "name": "api"
+    }
+  ]
+}
