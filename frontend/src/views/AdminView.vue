@@ -202,6 +202,43 @@
         </form>
       </div>
     </div>
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+      <div class="modal-content card border-error shadow-xl animate-shake">
+        <div class="modal-header border-none bg-error-light text-error">
+          <h3>⚠️ Konfirmasi Penghapusan Permanen</h3>
+          <button class="btn-close" @click="closeDeleteModal">✕</button>
+        </div>
+        
+        <div class="modal-body p-lg">
+          <p>Anda akan menghapus user <strong>{{ userToDelete?.full_name }}</strong> secara permanen.</p>
+          <p class="text-sm text-muted mb-md">Seluruh data akses user ini akan dicabut. Ketik <strong>{{ userToDelete?.full_name }}</strong> di bawah untuk melanjutkan:</p>
+          
+          <input 
+            type="text" 
+            v-model="deleteConfirmationText" 
+            class="form-input border-error mb-md" 
+            :placeholder="userToDelete?.full_name"
+          />
+
+          <div v-if="userToDelete?.role === 'owner'" class="warning-banner mb-md">
+            <strong>PERINGATAN:</strong> Ini adalah akun OWNER. Pastikan ada akun Owner lain sebelum menghapus akun ini agar sistem tidak terkunci.
+          </div>
+        </div>
+
+        <div class="modal-footer bg-gray-50">
+          <button class="btn btn-secondary" @click="closeDeleteModal">Batal</button>
+          <button 
+            @click="executeDeleteUser" 
+            class="btn btn-error" 
+            :disabled="deleteConfirmationText !== userToDelete?.full_name || deleting"
+          >
+            <span v-if="deleting" class="spinner"></span>
+            <span v-else>🔥 Ya, Hapus Permanen</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -213,7 +250,11 @@ const users = ref([])
 const companies = ref([])
 const loading = ref(true)
 const saving = ref(false)
+const deleting = ref(false)
 const showModal = ref(false)
+const showDeleteModal = ref(false)
+const userToDelete = ref(null)
+const deleteConfirmationText = ref('')
 const editingUser = ref(null)
 const filterRole = ref('')
 const formError = ref('')
@@ -364,28 +405,36 @@ async function toggleUserStatus(user) {
 }
 
 async function confirmDeleteUser(user) {
-  if (user.role === 'owner') {
-    alert('User dengan role Owner tidak dapat dihapus demi keamanan sistem.')
-    return
-  }
+  userToDelete.value = user
+  deleteConfirmationText.value = ''
+  showDeleteModal.value = true
+}
 
-  const confirmMsg = `Apakah Anda yakin ingin menghapus user "${user.full_name}"? 
-Tindakan ini permanen dan tidak dapat dibatalkan.`
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  userToDelete.value = null
+  deleteConfirmationText.value = ''
+}
+
+async function executeDeleteUser() {
+  if (deleteConfirmationText.value !== userToDelete.value.full_name) return
   
-  if (window.confirm(confirmMsg)) {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', user.id)
+  deleting.value = true
+  try {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userToDelete.value.id)
 
-      if (error) throw error
-      
-      await loadUsers()
-      alert('User berhasil dihapus.')
-    } catch (err) {
-      alert('Gagal menghapus user: ' + err.message)
-    }
+    if (error) throw error
+    
+    await loadUsers()
+    closeDeleteModal()
+    alert('User berhasil dihapus secara permanen.')
+  } catch (err) {
+    alert('Gagal menghapus user: ' + err.message)
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -622,6 +671,50 @@ onMounted(() => {
   margin-top: var(--space-lg);
   padding-top: var(--space-lg);
   border-top: 1px solid var(--border-color);
+}
+
+.border-error {
+  border: 1px solid var(--error) !important;
+}
+
+.bg-error-light {
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.btn-error {
+  background: var(--error);
+  color: white;
+  border: none;
+}
+
+.btn-error:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-error:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.warning-banner {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  color: #92400e;
+  padding: var(--space-md);
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
 /* Loading State */
