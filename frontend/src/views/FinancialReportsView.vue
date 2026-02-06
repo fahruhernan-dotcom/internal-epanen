@@ -1,8 +1,8 @@
 <template>
   <div class="finance-page animate-fade-in">
-    <!-- Filters -->
+    <!-- Filters & Controls -->
     <div class="filters-bar card">
-      <div class="filter-group" v-if="authStore.isAdmin || authStore.isOwner">
+      <div class="filter-group" v-if="compAuth.isAdmin || compAuth.isOwner">
         <label class="form-label">Perusahaan</label>
         <select v-model="selectedCompany" class="form-input" @change="loadReports">
           <option value="all">Semua Perusahaan</option>
@@ -11,122 +11,66 @@
           </option>
         </select>
       </div>
-      <div class="filter-group">
-        <label class="form-label">Dari Tanggal</label>
-        <input type="date" v-model="startDate" class="form-input" @change="loadReports" />
+
+      <!-- New: Period Type Selector -->
+      <div class="period-tabs-container">
+        <div class="period-tabs">
+          <button 
+            v-for="type in periodTypes" 
+            :key="type.value"
+            class="tab-btn" 
+            :class="{ active: selectedPeriodType === type.value }"
+            @click="setPeriodType(type.value)"
+          >
+            {{ type.label }}
+          </button>
+        </div>
       </div>
-      <div class="filter-group">
-        <label class="form-label">Sampai Tanggal</label>
-        <input type="date" v-model="endDate" class="form-input" @change="loadReports" />
+      
+      <!-- Date Range (only for Custom) -->
+      <div v-if="selectedPeriodType === 'custom'" class="flex gap-sm animate-fade-in">
+        <div class="filter-group">
+            <input type="date" v-model="customStartDate" class="form-input" @change="loadReports" />
+        </div>
+        <div class="filter-group">
+            <input type="date" v-model="customEndDate" class="form-input" @change="loadReports" />
+        </div>
       </div>
-      <div class="flex gap-sm">
-        <button class="btn btn-primary" @click="loadReports">🔍 Refresh</button>
-        <button 
-          v-if="reports.length > 0"
-          class="btn btn-secondary" 
-          @click="generateAISummary"
-          :disabled="aiLoading"
-        >
-          <span v-if="aiLoading" class="spinner"></span>
-          <span v-else>🤖 Summary by AI</span>
-        </button>
-      </div>
+
+      <div class="flex-spacer"></div>
+      
+      <button class="btn btn-primary" @click="loadReports">🔄 Refresh Data</button>
     </div>
 
-    <!-- AI Summary Box -->
-    <div v-if="aiSummary" class="card glass-premium mb-lg animate-slide-up">
-      <div class="card-header border-none">
-        <h3>🤖 AI Financial Insight</h3>
-        <button class="btn-text" @click="aiSummary = null">Tutup</button>
-      </div>
-      <div class="ai-content">
-        <div class="markdown-body" v-html="formattedAISummary"></div>
-      </div>
-    </div>
-
-    <!-- Finance Reports Table -->
-    <div class="card">
-      <div class="card-header">
-        <h3>Database Keuangan & RAG</h3>
-        <span class="report-count">{{ reports.length }} dokumen</span>
-      </div>
-
-      <div v-if="loading" class="loading-state">
+    <!-- Main Content Area -->
+    <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <span>Memuat data keuangan...</span>
-      </div>
-
-      <div v-else-if="reports.length === 0" class="empty-state">
-        <span class="empty-icon">💸</span>
-        <p>Tidak ada data keuangan ditemukan</p>
-      </div>
-
-      <div v-else class="table-container">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Tanggal</th>
-              <th>Perusahaan</th>
-              <th>Judul / Tipe</th>
-              <th>Isi Ringkasan</th>
-              <th>Metadata</th>
-              <th v-if="authStore.isOwner || authStore.isAdmin || authStore.user?.role === 'ceo'">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="report in reports" :key="report.id">
-              <td>{{ formatDate(report.metadata?.date || report.created_at) }}</td>
-              <td>
-                <span class="badge" :class="getCompanyBadgeClass(report._company)">
-                  {{ report._company }}
-                </span>
-              </td>
-              <td>
-                <strong>{{ report.metadata?.title || 'Laporan' }}</strong>
-                <div class="text-tiny">{{ report.metadata?.type || 'Keuangan' }}</div>
-              </td>
-              <td class="text-wrap">{{ truncate(report.content, 100) }}</td>
-              <td>
-                <div v-if="report.metadata?.revenue" class="text-tiny">Rev: {{ formatCurrency(report.metadata.revenue) }}</div>
-                <div v-if="report.metadata?.expenses" class="text-tiny">Exp: {{ formatCurrency(report.metadata.expenses) }}</div>
-                <div class="text-tiny">By: {{ report.metadata?.submitted_by || '-' }}</div>
-              </td>
-              <td v-if="authStore.isOwner || authStore.isAdmin || authStore.user?.role === 'ceo'">
-                <div class="flex gap-sm">
-                  <button 
-                    class="btn-icon btn-primary" 
-                    @click="openReconstructor(report)" 
-                    title="Baca Dokumen Asli"
-                  >
-                    📖
-                  </button>
-                  <button 
-                    v-if="authStore.isOwner"
-                    class="btn-icon btn-delete" 
-                    @click="confirmDelete(report)" 
-                    title="Hapus Laporan"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <span>Mengambil dan menganalisa data keuangan...</span>
     </div>
 
-    <!-- RAG Reconstructor Modal -->
-    <div v-if="showReconstructor" class="modal-overlay" @click.self="showReconstructor = false">
-      <div class="modal-container">
-        <button class="modal-close" @click="showReconstructor = false">×</button>
-        <RAGDocumentReconstructor 
-          v-if="selectedReport"
-          :documentId="selectedReport.id"
-          :company="selectedReport._company"
-          :metadata="selectedReport.metadata"
-        />
-      </div>
+    <div v-else class="content-area">
+        <!-- New: Smart Insight Cards (Consolidated View) -->
+        <div class="cards-container">
+            <h3 class="section-title">
+                📊 Laporan Keuangan {{ getPeriodLabel() }}
+                <span class="report-count">({{ consolidatedPeriods.length }} Periode)</span>
+            </h3>
+
+            <div v-if="consolidatedPeriods.length === 0" class="empty-state">
+                <span class="empty-icon">📭</span>
+                <p>Tidak ada data laporan untuk rentang waktu ini.</p>
+            </div>
+            
+            <PeriodInsightCard 
+                v-for="period in consolidatedPeriods" 
+                :key="period.id"
+                :period="period"
+                :is-expanded="expandedPeriodId === period.id"
+                :is-generating="generationStatus[period.id]"
+                @toggle="togglePeriod"
+                @generate-ai="generateInsight"
+            />
+        </div>
     </div>
   </div>
 </template>
@@ -134,309 +78,364 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { supabase, COMPANY_TABLES } from '@/services/supabase'
+import { supabase, COMPANY_TABLES, TABLES } from '@/services/supabase'
 import { aiService } from '@/services/ai'
+import PeriodInsightCard from '@/components/PeriodInsightCard.vue'
 
-// Dynamic import for modal component
-const RAGDocumentReconstructor = defineAsyncComponent(() => 
-  import('@/components/RAGDocumentReconstructor.vue')
-)
-
+// --- State ---
 const authStore = useAuthStore()
 const loading = ref(true)
-const aiLoading = ref(false)
-const aiSummary = ref(null)
 const reports = ref([])
-const selectedCompany = ref('all')
-const startDate = ref('')
-const endDate = ref('')
 
-// Modal State
-const showReconstructor = ref(false)
-const selectedReport = ref(null)
+// Filters
+const selectedCompany = ref('all')
+const selectedPeriodType = ref('monthly') // monthly, 3weeks, 2weeks, weekly, custom
+const customStartDate = ref('')
+const customEndDate = ref('')
+
+// Consolidated Data
+const consolidatedPeriods = ref([])
+const expandedPeriodId = ref(null)
+const generationStatus = ref({}) // Track loading per card
+
+// Constants
+const periodTypes = [
+    { value: 'monthly', label: 'Bulanan' },
+    { value: '3weeks', label: '3 Mingguan' },
+    { value: '2weeks', label: '2 Mingguan' },
+    { value: 'weekly', label: 'Mingguan' },
+    { value: 'custom', label: 'Custom' }
+]
+
+// Auth wrapper
+const compAuth = computed(() => ({
+    isAdmin: authStore.user?.role === 'admin',
+    isOwner: authStore.user?.role === 'owner',
+    userRole: authStore.user?.role
+}))
 
 const companyOptions = computed(() => {
   const all = Object.keys(COMPANY_TABLES).filter(c => c !== 'Owner' && c !== 'Admin')
-  if (authStore.user?.role === 'ceo' || authStore.user?.role === 'farmer') {
-    const userCompany = authStore.user?.companies?.name
-    return all.filter(c => c === userCompany)
-  }
-  return all
+  if (compAuth.value.isOwner || compAuth.value.isAdmin) return all
+  const userCompany = authStore.user?.companies?.name
+  return userCompany ? [userCompany] : []
 })
 
-function formatCurrency(val) {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(val)
+// --- Logic ---
+
+function setPeriodType(type) {
+    selectedPeriodType.value = type
+    loadReports()
 }
 
-function formatDate(date) {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'short', year: 'numeric'
-  })
+function getPeriodLabel() {
+    return periodTypes.find(t => t.value === selectedPeriodType.value)?.label || 'Custom'
 }
 
-function truncate(str, len) {
-  if (str.length <= len) return str
-  return str.slice(0, len) + '...'
+function togglePeriod(id) {
+    expandedPeriodId.value = expandedPeriodId.value === id ? null : id
 }
 
-function getCompanyBadgeClass(company) {
-  const classes = {
-    'Lyori': 'badge-success',
-    'Moafarm': 'badge-info',
-    'Kaja': 'badge-warning',
-    'ePanen': 'badge-primary'
-  }
-  return classes[company] || 'badge-secondary'
-}
-
+// Data Fetching
 async function loadReports() {
   loading.value = true
-  reports.value = []
+  consolidatedPeriods.value = []
+  reports.value = [] // Reset raw data
   
   try {
-    let companiesToFetch = []
+    // 1. Determine Date Range based on Period Type
+    const { start, end } = calculateDateRange(selectedPeriodType.value)
     
-    if (authStore.user?.role === 'ceo' || authStore.user?.role === 'farmer') {
-      const userCompany = authStore.user?.companies?.name
-      if (!userCompany) throw new Error('Perusahaan user tidak ditemukan.')
-      companiesToFetch = [userCompany]
-      selectedCompany.value = userCompany
+    // 2. Fetch Raw Financial Reports
+    let companiesToFetch = []
+    if (selectedCompany.value === 'all') {
+        companiesToFetch = companyOptions.value
     } else {
-      companiesToFetch = selectedCompany.value === 'all' 
-        ? companyOptions.value 
-        : [selectedCompany.value]
+        companiesToFetch = [selectedCompany.value]
     }
 
     const allData = []
-
+    
     for (const company of companiesToFetch) {
-      const tableInfo = COMPANY_TABLES[company]
-      if (!tableInfo?.finance) continue
+        const tableInfo = COMPANY_TABLES[company]
+        if (!tableInfo?.finance) continue
 
-      const { data, error } = await supabase
-        .from(tableInfo.finance)
-        .select('*')
-        .order('id', { ascending: false })
-        .limit(100)
-
-      if (error) {
-        console.error(`Error fetching ${company}:`, error.message)
-        continue
-      }
-
-      const formatted = (data || []).map(item => ({
-        ...item,
-        _company: company,
-        _table: tableInfo.finance
-      }))
-      
-      allData.push(...formatted)
+        let query = supabase
+            .from(tableInfo.finance)
+            .select('*')
+            .order('created_at', { ascending: false })
+        
+        if (start) query = query.gte('created_at', start)
+        if (end) query = query.lte('created_at', end)
+            
+        const { data, error } = await query
+        
+        if (!error && data) {
+            allData.push(...data.map(item => ({...item, _company: company})))
+        }
     }
+    
+    reports.value = allData
 
-    // Client-side filtering for safety
-    let filteredData = allData
-    if (startDate.value) {
-      filteredData = filteredData.filter(r => {
-        const reportDate = r.metadata?.date || r.created_at
-        return reportDate && reportDate >= startDate.value
-      })
-    }
-    if (endDate.value) {
-      filteredData = filteredData.filter(r => {
-        const reportDate = r.metadata?.date || r.created_at
-        return reportDate && reportDate <= endDate.value
-      })
-    }
+    // 3. Consolidate/Group Logic
+    await consolidateData(allData, start, end)
 
-    reports.value = filteredData.sort((a, b) => {
-      const dateA = new Date(a.metadata?.date || a.created_at || 0)
-      const dateB = new Date(b.metadata?.date || b.created_at || 0)
-      return dateB - dateA
-    })
   } catch (err) {
-    console.error('Failed to load financial reports:', err)
+    console.error('Failed to load reports:', err)
   } finally {
     loading.value = false
   }
 }
 
-function openReconstructor(report) {
-  selectedReport.value = report
-  showReconstructor.value = true
+// Helper: Parse ID currency format vs Number
+function parseRefNumber(val) {
+    if (typeof val === 'number') return val
+    if (!val) return 0
+    // Remove "Rp", spaces, and non-numeric chars except . and ,
+    let str = String(val).replace(/Rp|\s/g, '')
+    
+    // Check format: "1.000.000" (ID) vs "1,000,000" (US)
+    // Assumption: reports are in ID format (dot = thousands, comma = decimal)
+    if (str.includes('.') && !str.includes(',')) {
+        // e.g. "1.000.000" -> "1000000"
+        return parseFloat(str.replace(/\./g, ''))
+    }
+    
+    if (str.includes('.') && str.includes(',')) {
+        // e.g. "1.000.000,50" -> "1000000.50"
+        return parseFloat(str.replace(/\./g, '').replace(',', '.'))
+    }
+    
+    // Fallback cleanup
+    return parseFloat(str.replace(/[^0-9.-]/g, '')) || 0
 }
 
-async function confirmDelete(report) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus laporan "${report.metadata?.title || 'ini'}" dari ${report._company}?`)) {
-    return
-  }
-
-  try {
-    const { error } = await supabase
-      .from(report._table)
-      .delete()
-      .eq('id', report.id)
-
-    if (error) throw error
-    await loadReports()
-  } catch (err) {
-    alert('Gagal menghapus: ' + err.message)
-  }
+// Helper: Group RAG chunks into logical documents
+function groupChunksToDocuments(rawChunks) {
+    const grouped = {}
+    
+    rawChunks.forEach(chunk => {
+        const title = chunk.metadata?.title || 'Untitled'
+        const date = chunk.metadata?.date || chunk.created_at
+        const company = chunk._company
+        
+        const dateStr = new Date(date).toISOString().split('T')[0]
+        const key = `${company}_${dateStr}_${title}`.trim()
+        
+        if (!grouped[key]) {
+            grouped[key] = {
+                id: chunk.id,
+                _company: company,
+                created_at: chunk.created_at,
+                metadata: { ...chunk.metadata }, // Start with first chunk's metadata
+                chunks: []
+            }
+        }
+        
+        // Merge Logic: If this new chunk has better metadata (non-zero revenue/expenses), overwrite!
+        const existingMeta = grouped[key].metadata
+        const newMeta = chunk.metadata || {}
+        
+        // Helper to check 'validity' of a value
+        const isValid = (v) => v && v !== '0' && v !== 0 && v !== 'Rp 0'
+        
+        if (!isValid(existingMeta.revenue) && isValid(newMeta.revenue)) {
+            existingMeta.revenue = newMeta.revenue
+        }
+        if (!isValid(existingMeta.expenses) && isValid(newMeta.expenses)) {
+            existingMeta.expenses = newMeta.expenses
+        }
+        
+        grouped[key].chunks.push(chunk)
+    })
+    
+    return Object.values(grouped)
 }
 
-async function generateAISummary() {
-  if (reports.value.length === 0) return
-  
-  aiLoading.value = true
-  aiSummary.value = null
-  
-  try {
-    const period = (startDate.value && endDate.value) 
-      ? `${formatDate(startDate.value)} - ${formatDate(endDate.value)}`
-      : 'Semua Periode'
-      
-    aiSummary.value = await aiService.summarizeFinancialPeriod(reports.value, period)
-  } catch (err) {
-    console.error('AI Insight Error:', err)
-    aiSummary.value = "⚠️ Terjadi kesalahan saat menghubungi AI. Periksa koneksi atau API Key Anda."
-  } finally {
-    aiLoading.value = false
-  }
+// Core Logic: Grouping & AI Summary Integration
+async function consolidateData(rawData, globalStart, globalEnd) {
+    const buckets = []
+    const now = new Date()
+    
+    // Define bucket size in days
+    let daysPerBucket = 30
+    if (selectedPeriodType.value === 'weekly') daysPerBucket = 7
+    if (selectedPeriodType.value === '2weeks') daysPerBucket = 14
+    if (selectedPeriodType.value === '3weeks') daysPerBucket = 21
+
+    // Generate buckets going BACKWARDS from today (or endDate)
+    let currentCursor = new Date(now)
+    if (customEndDate.value) currentCursor = new Date(customEndDate.value)
+
+    // Limit lookback
+    const stopDate = new Date()
+    stopDate.setFullYear(stopDate.getFullYear() - 1) 
+    
+    while (currentCursor > stopDate) {
+        const bucketEnd = new Date(currentCursor)
+        const bucketStart = new Date(currentCursor)
+        bucketStart.setDate(bucketStart.getDate() - daysPerBucket + 1)
+        
+        // 1. Filter raw chunks for this timeframe
+        const rawBucketChunks = rawData.filter(r => {
+            const rDate = new Date(r.metadata?.date || r.created_at)
+            return rDate >= bucketStart && rDate <= bucketEnd
+        })
+
+        if (rawBucketChunks.length > 0) {
+            // 2. GROUP CHUNKS into Logical Documents
+            const uniqueDocs = groupChunksToDocuments(rawBucketChunks)
+            
+            // 3. Aggregate metrics based on UNIQUE DOCUMENTS (using strict parsing)
+            const revenue = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.revenue), 0)
+            const expenses = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.expenses), 0)
+            
+            // Build daily trend using Unique Docs
+            const dailyTrends = new Array(daysPerBucket).fill(0)
+            uniqueDocs.forEach(r => {
+                const rDate = new Date(r.metadata?.date || r.created_at)
+                const diffDays = Math.floor((rDate - bucketStart) / (1000 * 60 * 60 * 24))
+                if (diffDays >= 0 && diffDays < daysPerBucket) {
+                    dailyTrends[diffDays] += parseRefNumber(r.metadata?.revenue)
+                }
+            })
+
+            const startDateStr = bucketStart.toISOString().split('T')[0]
+            const endDateStr = bucketEnd.toISOString().split('T')[0]
+            
+            // Fetch saved AI Summary
+            const savedSummary = await aiService.fetchSavedSummary({
+                startDate: startDateStr,
+                endDate: endDateStr,
+                periodType: selectedPeriodType.value,
+                companyId: selectedCompany.value === 'all' ? null : COMPANY_TABLES[selectedCompany.value]?.id
+            })
+
+            buckets.push({
+                id: `${startDateStr}_${endDateStr}`,
+                startDate: startDateStr,
+                endDate: endDateStr,
+                label: `${formatDateShort(bucketStart)} - ${formatDateShort(bucketEnd)}`,
+                reports: uniqueDocs, // Pass the UNIQUE docs
+                chunkCount: rawBucketChunks.length, 
+                revenue,
+                expenses,
+                netProfit: revenue - expenses,
+                dailyTrend: dailyTrends,
+                aiSummary: savedSummary
+            })
+        }
+        
+        currentCursor.setDate(currentCursor.getDate() - daysPerBucket)
+        if (customStartDate.value && currentCursor < new Date(customStartDate.value)) break
+    }
+
+    consolidatedPeriods.value = buckets
 }
 
-const formattedAISummary = computed(() => {
-  if (!aiSummary.value) return ''
-  // Basic markdown-like replacement
-  return aiSummary.value
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/### (.*?)/g, '<h4>$1</h4>')
-})
+
+// --- AI Generation ---
+async function generateInsight(period) {
+    if (generationStatus.value[period.id]) return
+    generationStatus.value[period.id] = true
+    
+    try {
+        const result = await aiService.summarizeFinancialPeriod(period.reports, period.label, {
+            startDate: period.startDate,
+            endDate: period.endDate,
+            periodType: selectedPeriodType.value,
+            companyId: selectedCompany.value === 'all' ? null : COMPANY_TABLES[selectedCompany.value]?.id,
+            totalRevenue: period.revenue,
+            totalExpenses: period.expenses,
+            reportCount: period.reports.length
+        })
+        
+        // Update local state
+        const idx = consolidatedPeriods.value.findIndex(p => p.id === period.id)
+        if (idx !== -1) {
+            consolidatedPeriods.value[idx].aiSummary = result
+        }
+        
+    } catch (err) {
+        alert('Gagal generate AI')
+    } finally {
+        generationStatus.value[period.id] = false
+    }
+}
+
+
+// --- Helpers ---
+function calculateDateRange(type) {
+    const today = new Date()
+    const start = new Date()
+    
+    if (type === 'custom') {
+        return { 
+            start: customStartDate.value || null, 
+            end: customEndDate.value || null 
+        }
+    }
+    
+    // Default fetch range: Last 90 days to capture a few periods
+    start.setDate(today.getDate() - 90) 
+    return { start: start.toISOString(), end: today.toISOString() }
+}
+
+function formatDateShort(date) {
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' })
+}
 
 onMounted(() => {
-  // Set default dates
-  const today = new Date()
-  const weekAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-  endDate.value = today.toISOString().split('T')[0]
-  startDate.value = weekAgo.toISOString().split('T')[0]
-  
-  loadReports()
+    // Init dates
+    const today = new Date()
+    customEndDate.value = today.toISOString().split('T')[0]
+    today.setMonth(today.getMonth() - 1)
+    customStartDate.value = today.toISOString().split('T')[0]
+
+    loadReports()
 })
 </script>
 
 <style scoped>
 .finance-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-lg);
+  padding-bottom: 50px;
 }
 
+/* Filters Bar */
 .filters-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-lg);
+  display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;
+  padding: var(--space-md);
+  background: var(--bg-primary); 
 }
 
-.filter-group {
-  min-width: 200px;
+.period-tabs-container {
+    background: var(--bg-tertiary); padding: 4px; border-radius: var(--radius-lg);
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--border-color);
+.period-tabs { display: flex; gap: 2px; }
+
+.tab-btn {
+    background: transparent; border: none; padding: 6px 14px;
+    font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;
+    border-radius: var(--radius-md); transition: all 0.2s;
 }
 
-.report-count {
-  font-size: 0.875rem;
-  color: var(--text-tertiary);
-}
+.tab-btn.active { background: var(--bg-primary); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
 
-.text-wrap {
-  white-space: normal;
-  max-width: 300px;
-}
+.flex-spacer { flex: 1; }
 
-.text-tiny {
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-}
+/* Content */
+.section-title { font-size: 1.2rem; margin-bottom: var(--space-md); color: var(--text-primary); display: flex; align-items: center; gap: var(--space-sm); }
+.report-count { font-size: 0.8rem; color: var(--text-tertiary); font-weight: normal; }
 
-.btn-delete {
-  background: var(--error-100);
-}
+.cards-container { display: flex; flex-direction: column; gap: var(--space-md); }
 
-.btn-delete:hover {
-  background: var(--error);
-  color: white;
-}
+.loading-state, .empty-state { text-align: center; padding: 40px; color: var(--text-tertiary); }
+.empty-icon { font-size: 3rem; display: block; margin-bottom: 10px; }
 
-.loading-state, .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-2xl);
-  color: var(--text-tertiary);
-}
-
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: var(--space-md);
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: var(--space-xl);
-}
-
-.modal-container {
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--border-color);
-}
-
-.modal-close {
-  position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-  background: rgba(0, 0, 0, 0.2);
-  border: none;
-  font-size: 2rem;
-  color: white;
-  cursor: pointer;
-  z-index: 1100;
-  line-height: 1;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.modal-close:hover {
-  background: var(--error);
-  transform: rotate(90deg);
+@media (max-width: 768px) {
+    .filters-bar { flex-direction: column; align-items: stretch; }
+    .period-tabs { overflow-x: auto; }
 }
 </style>

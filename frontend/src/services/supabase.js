@@ -10,7 +10,8 @@ export const VIEWS = {
     USER_DETAILS: 'v_user_details',
     ALL_DAILY_REPORTS: 'v_all_daily_reports',
     FINANCIAL_REPORTS: 'v_financial_reports',
-    SOP_VIOLATIONS: 'v_sop_violations'
+    SOP_VIOLATIONS: 'v_sop_violations',
+    ALL_FINANCE_DOCS: 'v_all_finance_docs'
 }
 
 export const TABLES = {
@@ -22,7 +23,8 @@ export const TABLES = {
     WEEKLY_FINANCE: 'weekly_financial_reports',
     WHATSAPP_LOGS: 'whatsapp_logs',
     DRAFT_REPORTS: 'draft_daily_reports',
-    USER_PREFERENCES: 'user_preferences'
+    USER_PREFERENCES: 'user_preferences',
+    PERIOD_SUMMARIES: 'financial_period_summaries'
 }
 
 // Company table mapping - For companies only (Admin is website super-user, not a company)
@@ -100,6 +102,36 @@ export async function getUnifiedReports(filters = {}) {
     if (filters.limit) {
         query = query.limit(filters.limit)
     }
+
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+}
+
+/**
+ * Helper to fetch unified finance RAG docs
+ */
+export async function getFinanceDocs(filters = {}) {
+    let query = supabase
+        .from(VIEWS.ALL_FINANCE_DOCS)
+        .select('*')
+        // Use created_at date for sorting/filtering since metadata.date might be irregular
+        .order('created_at', { ascending: false })
+
+    if (filters.company_id) {
+        query = query.eq('company_id', filters.company_id)
+    }
+    // Filter by created_at range
+    if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate)
+    }
+    if (filters.endDate) {
+        query = query.lte('created_at', filters.endDate) // Should likely be end of day
+    }
+
+    // Also try to filter by metadata->date if possible? 
+    // PostgreSQL JSONB filtering is tricky in simple generic queries, 
+    // so we rely on created_at for the "Chunking Date" which usually matches upload.
 
     const { data, error } = await query
     if (error) throw error

@@ -48,6 +48,47 @@ export const useReportsStore = defineStore('reports', () => {
     }
 
     /**
+     * Fetch Finance RAG Docs
+     */
+    async function fetchFinanceDocs(filters = {}) {
+        loading.value = true
+        try {
+            const queryFilters = { ...filters }
+            if (authStore.user?.role === 'ceo' || authStore.user?.role === 'farmer') {
+                queryFilters.company_id = authStore.user?.company_id
+                // Hard override selected company to match user role
+                selectedCompany.value = Object.keys(COMPANY_TABLES).find(
+                    k => COMPANY_TABLES[k].id === authStore.user?.company_id
+                ) || 'all'
+            } else if (selectedCompany.value !== 'all') {
+                const config = COMPANY_TABLES[selectedCompany.value]
+                if (config) queryFilters.company_id = config.id
+            }
+
+            const data = await getUnifiedReports(queryFilters).catch(() => []) // Fallback calls original if needed, but we want new one
+
+            // Actually call the new service
+            const { getFinanceDocs } = await import('@/services/supabase')
+            const financeData = await getFinanceDocs(queryFilters)
+
+            // Map
+            dailyReports.value = financeData.map(doc => ({
+                ...doc,
+                _company: doc.company_name,
+                report_date: doc.created_at, // Map for UI compatibility
+                activities: doc.content // Map content to activities for display? Or handle in UI
+            }))
+
+            return dailyReports.value
+        } catch (e) {
+            console.error(e)
+            return []
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
      * Get report statistics (Simplified using unified view)
      */
     async function getReportStats() {

@@ -11,27 +11,37 @@
           </option>
         </select>
       </div>
-      
-      <div class="filter-group">
-        <label class="form-label">Dari Tanggal</label>
-        <input 
-          type="date" 
-          v-model="startDate" 
-          class="form-input"
-          @change="loadReports"
-        />
+
+      <!-- Period Tabs -->
+      <div class="period-tabs-container">
+        <label class="form-label mb-xs block">Periode</label>
+        <div class="period-tabs">
+          <button 
+            v-for="type in periodTypes" 
+            :key="type.value"
+            class="tab-btn" 
+            :class="{ active: selectedPeriodType === type.value }"
+            @click="setPeriodType(type.value)"
+          >
+            {{ type.label }}
+          </button>
+        </div>
       </div>
       
-      <div class="filter-group">
-        <label class="form-label">Sampai Tanggal</label>
-        <input 
-          type="date" 
-          v-model="endDate" 
-          class="form-input"
-          @change="loadReports"
-        />
+      <!-- Custom Date Inputs -->
+      <div v-if="selectedPeriodType === 'custom'" class="flex gap-sm animate-fade-in filter-group">
+        <div>
+            <label class="form-label">Dari</label>
+            <input type="date" v-model="customStartDate" class="form-input" @change="loadReports" />
+        </div>
+        <div>
+            <label class="form-label">Sampai</label>
+            <input type="date" v-model="customEndDate" class="form-input" @change="loadReports" />
+        </div>
       </div>
       
+      <div class="flex-spacer"></div>
+
       <button class="btn btn-primary" @click="loadReports">
         🔍 Filter
       </button>
@@ -159,11 +169,54 @@ const reportsStore = useReportsStore()
 const authStore = useAuthStore()
 
 const selectedCompany = ref('all')
-const startDate = ref('')
-const endDate = ref('')
 const selectedReport = ref(null)
 
+// Filtering State
+const selectedPeriodType = ref('weekly') // Default to weekly for operational
+const customStartDate = ref('')
+const customEndDate = ref('')
+
+const periodTypes = [
+    { value: 'monthly', label: 'Bulanan' },
+    { value: '3weeks', label: '3 Mingguan' },
+    { value: '2weeks', label: '2 Mingguan' },
+    { value: 'weekly', label: 'Mingguan' },
+    { value: 'custom', label: 'Custom' }
+]
+
 const companyOptions = computed(() => Object.keys(COMPANY_TABLES))
+
+function setPeriodType(type) {
+    selectedPeriodType.value = type
+    loadReports()
+}
+
+function calculateDateRange() {
+    const today = new Date()
+    const end = today // Default end is today
+    let start = new Date()
+
+    if (selectedPeriodType.value === 'custom') {
+        return { 
+            start: customStartDate.value || undefined, 
+            end: customEndDate.value || undefined 
+        }
+    }
+    
+    // Logic for presets
+    let daysBack = 7
+    if (selectedPeriodType.value === '2weeks') daysBack = 14
+    if (selectedPeriodType.value === '3weeks') daysBack = 21
+    if (selectedPeriodType.value === 'monthly') daysBack = 30
+    
+    start.setDate(today.getDate() - daysBack)
+    
+    return { 
+        start: start.toISOString().split('T')[0], 
+        end: end.toISOString().split('T')[0] 
+    }
+}
+
 
 function formatDate(dateStr) {
   if (!dateStr) return '-'
@@ -234,21 +287,23 @@ function showReportDetail(report) {
 }
 
 async function loadReports() {
+  const { start, end } = calculateDateRange()
+  
   reportsStore.setSelectedCompany(selectedCompany.value)
   await reportsStore.fetchAllDailyReports({
-    startDate: startDate.value || undefined,
-    endDate: endDate.value || undefined
+    startDate: start,
+    endDate: end
   })
 }
 
 onMounted(() => {
-  // Set default date range (last 7 days)
-  const today = new Date()
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-  endDate.value = today.toISOString().split('T')[0]
-  startDate.value = weekAgo.toISOString().split('T')[0]
-  
-  loadReports()
+    // Init Custom Dates
+    const today = new Date()
+    customEndDate.value = today.toISOString().split('T')[0]
+    today.setDate(today.getDate() - 7)
+    customStartDate.value = today.toISOString().split('T')[0]
+    
+    loadReports()
 })
 </script>
 
@@ -257,18 +312,36 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  padding-bottom: 50px;
 }
 
 /* Filters */
 .filters-bar {
   display: flex;
+  align-items: center; /* Changed from flex-end */
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-lg);
+  gap: var(--space-md);
+  padding: var(--space-md);
 }
 
+.period-tabs-container {
+    background: var(--bg-tertiary); padding: 4px; border-radius: var(--radius-lg);
+    display: flex; flex-direction: column; justify-content: center;
+}
+
+.period-tabs { display: flex; gap: 2px; }
+
+.tab-btn {
+    background: transparent; border: none; padding: 6px 14px;
+    font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;
+    border-radius: var(--radius-md); transition: all 0.2s;
+}
+
+.tab-btn.active { background: var(--bg-primary); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
+
+.flex-spacer { flex: 1; }
+
 .filter-group {
-  flex: 1;
   min-width: 150px;
 }
 
@@ -433,10 +506,15 @@ onMounted(() => {
 @media (max-width: 768px) {
   .filters-bar {
     flex-direction: column;
+    align-items: stretch;
   }
   
   .filter-group {
     width: 100%;
+  }
+  
+  .period-tabs {
+    overflow-x: auto;
   }
 }
 </style>
