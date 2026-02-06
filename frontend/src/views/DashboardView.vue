@@ -189,6 +189,7 @@ import { useReportsStore } from '@/stores/reports'
 import { useAuthStore } from '@/stores/auth'
 import { COMPANY_TABLES, supabase } from '@/services/supabase'
 import { aiService } from '@/services/ai'
+import { groupChunksToDocuments, parseRefNumber } from '@/utils/financialUtils'
 
 const router = useRouter()
 const reportsStore = useReportsStore()
@@ -288,21 +289,42 @@ async function generateAutoInsight() {
     const allFinanceData = []
     const companies = Object.keys(COMPANY_TABLES).filter(c => c !== 'Owner')
     
-    for (const company of companies) {
-      const { data } = await supabase
-        .from(COMPANY_TABLES[company].finance)
-        .select('*')
-        .limit(100)
-      
-      if (data) {
-        // Filter by date client-side
-        const filtered = data
-          .filter(d => (d.metadata?.date || d.created_at) >= firstDay)
-          .map(d => ({ ...d, _company: company }))
+        // Use the new VIEW that contains all finance docs with content + metadata
+        // Instead of querying COMPANY_TABLES[company].finance individually, let's try the unified view if possible,
+        // OR sticking to the loop but using the util to Group.
         
-        allFinanceData.push(...filtered)
-      }
+        // For Dashboard, we want 'This Month's' overview.
+        // Let's use the unified view 'v_all_finance_docs' directly if we can, but since we are looping companies...
+        // Actually, better to query the individual finance tables CORRECTLY or use the unified view.
+        // Let's use the unified view for simplicity and accuracy.
+
+    
+    // Fetch from Unified View 'v_all_finance_docs' (defined in services/supabase.js as ALL_FINANCE_DOCS logic ideally)
+    // But since we don't have a direct helper for it here, let's use supabase direct.
+    
+    const { data: unifiedData } = await supabase
+      .from('v_all_finance_docs')
+      .select('*')
+      .gte('created_at', firstDay) // Optimistic filter, metadata.date is better but requires raw check
+      
+    if (unifiedData) {
+        // Apply Smart Grouping to fix "10 chunks vs 1 doc" and extract financial usage
+        const groupedDocs = groupChunksToDocuments(unifiedData)
+        
+        // Filter by Date (metadata.date > firstDay)
+        const currentMonthDocs = groupedDocs.filter(d => {
+             const dDate = new Date(d.metadata?.date || d.created_at)
+             return dDate >= new Date(firstDay)
+        })
+
+        // Prepare data for AI (Total Revenue/Expense calculation is now safe here too)
+        allFinanceData.push(...currentMonthDocs)
     }
+
+    /* 
+    // OLD LOOP REMOVED - it was checking wrong tables or raw chunks without grouping
+    for (const company of companies) { ... } 
+    */
 
     if (allFinanceData.length === 0) {
       aiSummary.value = "### 🤖 Insight Belum Tersedia\nBelum ada data keuangan yang cukup untuk bulan ini untuk dianalisis oleh AI."
