@@ -21,6 +21,30 @@
         </div>
       </div>
 
+      <!-- AI Profile Summary -->
+      <div v-if="aiSummary || aiLoading" class="card ai-summary-card mb-lg">
+        <div class="card-header">
+          <div class="flex items-center gap-2">
+            <h3>🤖 Profil & Analisis Operasional</h3>
+            <span class="badge badge-info">AI Insight</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button v-if="canModify && getSubmissionUrl()" @click="openUploadForm" class="btn-icon" title="Upload Dokumen Baru">
+                📂
+            </button>
+            <button @click="refreshAISummary" class="btn-icon" title="Analisis Ulang (Refresh)">
+                🔄
+            </button>
+          </div>
+        </div>
+        
+        <div v-if="aiLoading" class="p-md flex justify-center flex-col items-center">
+            <div class="spinner-sm mb-sm"></div> 
+            <span class="text-muted text-sm">Sedang menganalisis dokumen (Identifikasi Struktur & Aset)...</span>
+        </div>
+        <div v-else class="markdown-content" v-html="renderMarkdown(aiSummary)"></div>
+      </div>
+
       <!-- Stats -->
       <div class="stats-row">
         <div class="mini-stat card">
@@ -95,18 +119,28 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { supabase, COMPANY_TABLES } from '@/services/supabase'
+import { supabase, COMPANY_TABLES, VIEWS } from '@/services/supabase'
+import { aiService } from '@/services/ai'
+
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const authStore = useAuthStore()
 
+// State
 const loading = ref(true)
+const aiLoading = ref(false)
 const company = ref(null)
 const reports = ref([])
+const generalDocs = ref([])
+const aiSummary = ref('')
 const stats = ref({ total: 0, today: 0, week: 0 })
 
 const companyId = computed(() => route.params.id)
+const canModify = computed(() => authStore.user && (authStore.isAdmin || authStore.isOwner))
 
-function getCompanyIcon(code) {
+// Helpers defined as const to ensure order and scope 
+const getCompanyIcon = (code) => {
   const icons = {
     'Lyori': '🌾',
     'moafarm': '🌱',
@@ -120,7 +154,7 @@ function getCompanyIcon(code) {
   return icons[code] || '🏭'
 }
 
-function formatDate(dateStr) {
+const formatDate = (dateStr) => {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -129,26 +163,44 @@ function formatDate(dateStr) {
   })
 }
 
-function truncate(text, length) {
+const truncate = (text, length) => {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
 }
 
-function getActivitiesSummary(activities) {
+const getActivitiesSummary = (activities) => {
   if (!activities) return '-'
   if (typeof activities === 'string') return truncate(activities, 50)
   if (activities.summary) return truncate(activities.summary, 50)
   return '-'
 }
 
-function hasIssues(issues) {
+const hasIssues = (issues) => {
   if (!issues) return false
   if (Array.isArray(issues)) return issues.length > 0
   if (typeof issues === 'object') return Object.keys(issues).length > 0
   return false
 }
 
-function getTableConfig() {
+const renderMarkdown = (text) => {
+  if (!text) return ''
+  // Simple regex replacement for basic Markdown
+  let html = text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^(#+) (.*$)/gm, (match, level, content) => {
+          const size = Math.min(6, level.length + 2) // H3 default mapping
+          return `<h${size}>${content}</h${size}>`
+      })
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>')
+      .replace(/- \[(.*?)\]/g, '• $1')
+      .replace(/- (.*$)/gm, '• $1')
+  
+  return html
+}
+
+const getTableConfig = () => {
   for (const [name, config] of Object.entries(COMPANY_TABLES)) {
     if (config.id === companyId.value) {
       return { name, ...config }
@@ -157,11 +209,44 @@ function getTableConfig() {
   return null
 }
 
-async function loadCompanyData() {
+const loadAISummary = async (companyData, force = false) => {
+    aiLoading.value = true
+    try {
+        // Fetch docs
+        const { data: docs } = await supabase
+          .from(VIEWS.ALL_GENERAL_DOCS)
+          .select('*')
+          .ilike('company_name', `%${companyData.name}%`)
+          .limit(100)
+        
+        generalDocs.value = docs || []
+        
+        // Call AI
+        aiSummary.value = await aiService.summarizeCompanyProfile(
+            generalDocs.value, 
+            companyData.id, 
+            companyData.name,
+            force // Pass forceRefresh param
+        )
+    } catch (err) {
+        console.error('AI Summary failed:', err)
+    } finally {
+        aiLoading.value = false
+    }
+}
+
+const refreshAISummary = () => {
+    if (company.value) {
+        loadAISummary(company.value, true) // Force refresh
+    }
+}
+
+const loadCompanyData = async () => {
   loading.value = true
+  aiSummary.value = '' 
   
   try {
-    // Get company info
+    // 1. Get company info
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('*')
@@ -170,54 +255,74 @@ async function loadCompanyData() {
     
     if (companyError) throw companyError
     company.value = companyData
-    
-    // Get table config
+
+    // 2. Get table config & reports (Critical Data)
+    // 2. Get table config & reports (Critical Data)
     const tableConfig = getTableConfig()
-    if (!tableConfig) {
-      console.error('No table config found for company')
-      return
+    if (tableConfig) {
+        try {
+            // Get reports
+            const { data: reportsData, error: reportsErr } = await supabase
+              .from(tableConfig.dailyReports)
+              .select('*')
+              .order('report_date', { ascending: false })
+              .limit(50)
+            
+            if (reportsErr) {
+                console.warn(`Reports table ${tableConfig.dailyReports} query issue:`, reportsErr.message)
+            } else {
+                reports.value = reportsData || []
+            }
+            
+            // Get stats
+            const today = new Date().toISOString().split('T')[0]
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            
+            try {
+                const { count: total } = await supabase.from(tableConfig.dailyReports).select('*', { count: 'exact', head: true })
+                const { count: todayCount } = await supabase.from(tableConfig.dailyReports).select('*', { count: 'exact', head: true }).eq('report_date', today)
+                const { count: weekCount } = await supabase.from(tableConfig.dailyReports).select('*', { count: 'exact', head: true }).gte('report_date', weekAgo)
+                
+                stats.value = { total: total || 0, today: todayCount || 0, week: weekCount || 0 }
+            } catch (statErr) {
+                console.warn('Stat fetching failed:', statErr.message)
+            }
+        } catch (tableErr) {
+            console.error('Unexpected error accessing reports table:', tableErr)
+        }
     }
-    
-    // Get reports
-    const { data: reportsData, error: reportsError } = await supabase
-      .from(tableConfig.dailyReports)
-      .select('*')
-      .order('report_date', { ascending: false })
-      .limit(50)
-    
-    if (!reportsError) {
-      reports.value = reportsData || []
-    }
-    
-    // Get stats
-    const today = new Date().toISOString().split('T')[0]
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    
-    const { count: total } = await supabase
-      .from(tableConfig.dailyReports)
-      .select('*', { count: 'exact', head: true })
-    
-    const { count: todayCount } = await supabase
-      .from(tableConfig.dailyReports)
-      .select('*', { count: 'exact', head: true })
-      .eq('report_date', today)
-    
-    const { count: weekCount } = await supabase
-      .from(tableConfig.dailyReports)
-      .select('*', { count: 'exact', head: true })
-      .gte('report_date', weekAgo)
-    
-    stats.value = {
-      total: total || 0,
-      today: todayCount || 0,
-      week: weekCount || 0
-    }
-    
   } catch (err) {
     console.error('Failed to load company data:', err)
   } finally {
+    // Reveal page immediately
     loading.value = false
   }
+
+  // 3. Load AI Summary in background (Non-blocking)
+  if (company.value) {
+      loadAISummary(company.value)
+  }
+}
+
+const DOC_FORMS = {
+    'Lyori': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/d0a6df0b-84ff-48e7-9eec-914cda1580f1',
+    'moafarm': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/7347fab7-4ffe-4b82-b81d-db4521338ae1',
+    'Kaja': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/c1ece8ff-c967-4845-a85a-c8b4a83ac896'
+}
+
+const getSubmissionUrl = () => {
+    if (!company.value) return null
+    // Try matching by name parts since exact names might vary
+    const name = company.value.name
+    if (name.includes('Lyori')) return DOC_FORMS['Lyori']
+    if (name.toLowerCase().includes('moafarm')) return DOC_FORMS['moafarm']
+    if (name.includes('Kaja')) return DOC_FORMS['Kaja']
+    return null
+}
+
+const openUploadForm = () => {
+    const url = getSubmissionUrl()
+    if (url) window.open(url, '_blank')
 }
 
 watch(companyId, () => {

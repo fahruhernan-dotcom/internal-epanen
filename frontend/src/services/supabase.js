@@ -11,12 +11,17 @@ export const VIEWS = {
     ALL_DAILY_REPORTS: 'v_all_daily_reports',
     FINANCIAL_REPORTS: 'v_financial_reports',
     SOP_VIOLATIONS: 'v_sop_violations',
-    ALL_FINANCE_DOCS: 'v_all_finance_docs'
+    ALL_FINANCE_DOCS: 'v_all_finance_docs',
+    ALL_GENERAL_DOCS: 'v_all_general_docs'
 }
 
 export const TABLES = {
-    USERS: 'users',
+    DAILY_REPORTS: 'daily_reports',
+    USERS: 'epanen_users',
     COMPANIES: 'companies',
+    CHAT_HISTORY: 'chat_history',
+    PERIOD_SUMMARIES: 'financial_period_summaries',
+    COMPANY_SUMMARIES: 'company_profile_summaries',
     AUDIT_LOGS: 'audit_logs',
     NOTIFICATIONS: 'notifications',
     ANALYTICS: 'analytics_snapshots',
@@ -24,7 +29,7 @@ export const TABLES = {
     WHATSAPP_LOGS: 'whatsapp_logs',
     DRAFT_REPORTS: 'draft_daily_reports',
     USER_PREFERENCES: 'user_preferences',
-    PERIOD_SUMMARIES: 'financial_period_summaries'
+    STANDARDIZED_FINANCIALS: 'standardized_financials'
 }
 
 // Company table mapping - For companies only (Admin is website super-user, not a company)
@@ -59,11 +64,13 @@ export const COMPANY_TABLES = {
         dailyReports: 'daily_reports_melon',
         finance: 'finance_melon'
     },
+    // Note: 'Owner' is technically a Role/User context, but listed here for table mapping convenience.
+    // UI components should filter this out when listing "Companies".
     'Owner': {
-        id: 'fef23b03-fe98-4a56-9ebc-64e1d21845fb',
-        code: 'Owner',
-        dailyReports: 'daily_reports_holding',
-        finance: 'finance_holding'
+        id: 'fef23b03-fe98-4a56-9cbc-64e1d21845fb',
+        code: 'OWNER',
+        dailyReports: 'daily_reports_owner', // might be unused or aggregation
+        finance: 'finance_epanen' // Fallback or specific?
     }
 }
 

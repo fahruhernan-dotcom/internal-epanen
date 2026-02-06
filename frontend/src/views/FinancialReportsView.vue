@@ -40,6 +40,7 @@
       <div class="flex-spacer"></div>
       
       <button class="btn btn-primary" @click="loadReports">🔄 Refresh Data</button>
+      <button v-if="compAuth.isAdmin" class="btn btn-secondary" @click="debugDB">🔍 Debug DB</button>
     </div>
 
     <!-- Main Content Area -->
@@ -67,6 +68,8 @@
                 :period="period"
                 :is-expanded="expandedPeriodId === period.id"
                 :is-generating="generationStatus[period.id]"
+                :is-normalizing="normalizationStatus[period.id]"
+                :show-company="selectedCompany === 'all'"
                 @toggle="togglePeriod"
                 @generate-ai="generateInsight"
             />
@@ -78,7 +81,7 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { supabase, COMPANY_TABLES, TABLES } from '@/services/supabase'
+import { supabase, COMPANY_TABLES, TABLES, VIEWS, getFinanceDocs } from '@/services/supabase'
 import { aiService } from '@/services/ai'
 import { groupChunksToDocuments, parseRefNumber } from '@/utils/financialUtils'
 import PeriodInsightCard from '@/components/PeriodInsightCard.vue'
@@ -98,6 +101,7 @@ const customEndDate = ref('')
 const consolidatedPeriods = ref([])
 const expandedPeriodId = ref(null)
 const generationStatus = ref({}) // Track loading per card
+const normalizationStatus = ref({}) // Track AI normalization progress
 
 // Constants
 const periodTypes = [
@@ -105,6 +109,7 @@ const periodTypes = [
     { value: '3weeks', label: '3 Mingguan' },
     { value: '2weeks', label: '2 Mingguan' },
     { value: 'weekly', label: 'Mingguan' },
+    { value: 'daily', label: 'Harian' },
     { value: 'custom', label: 'Custom' }
 ]
 
@@ -138,48 +143,50 @@ function togglePeriod(id) {
 }
 
 // Data Fetching
+const debugDB = async () => {
+    console.log('--- DB DEBUG START ---')
+    const tables = ['finance_epanen', 'finance_kaja', 'finance_lyori', 'finance_moafarm']
+    for (const t of tables) {
+        const { count, error } = await supabase.from(t).select('*', { count: 'exact', head: true })
+        console.log(`Table ${t}:`, count, error || 'OK')
+    }
+    const { data: viewData, error: viewError } = await supabase.from(VIEWS.ALL_FINANCE_DOCS).select('*').limit(5)
+    console.log('View v_all_finance_docs sample:', viewData?.length, viewError || 'OK')
+    console.log('--- DB DEBUG END ---')
+    alert('Debug info sent to console (F12)')
+}
+
 async function loadReports() {
   loading.value = true
   consolidatedPeriods.value = []
-  reports.value = [] // Reset raw data
+  reports.value = []
   
   try {
-    // 1. Determine Date Range based on Period Type
-    const { start, end } = calculateDateRange(selectedPeriodType.value)
+    // 1. Fetch all docs from unified view
+    const data = await getFinanceDocs({})
     
-    // 2. Fetch Raw Financial Reports
-    let companiesToFetch = []
-    if (selectedCompany.value === 'all') {
-        companiesToFetch = companyOptions.value
-    } else {
-        companiesToFetch = [selectedCompany.value]
+    if (!data || data.length === 0) {
+        console.warn('No financial docs found in v_all_finance_docs')
+        return
     }
-
-    const allData = []
     
-    for (const company of companiesToFetch) {
-        const tableInfo = COMPANY_TABLES[company]
-        if (!tableInfo?.finance) continue
-
-        let query = supabase
-            .from(tableInfo.finance)
-            .select('*')
-            .order('created_at', { ascending: false })
-        
-        if (start) query = query.gte('created_at', start)
-        if (end) query = query.lte('created_at', end)
-            
-        const { data, error } = await query
-        
-        if (!error && data) {
-            allData.push(...data.map(item => ({...item, _company: company})))
-        }
-    }
+    const allData = data.map(item => ({
+        ...item,
+        _company: item.company_name 
+    }))
     
     reports.value = allData
+    
+    // 2. Filter by selected company if applicable
+    let displayData = allData
+    if (selectedCompany.value !== 'all') {
+        displayData = allData.filter(d => d._company === selectedCompany.value)
+    }
 
-    // 3. Consolidate/Group Logic
-    await consolidateData(allData, start, end)
+    // 3. Process data
+    if (displayData.length > 0) {
+        await consolidateData(displayData)
+    }
 
   } catch (err) {
     console.error('Failed to load reports:', err)
@@ -188,96 +195,173 @@ async function loadReports() {
   }
 }
 
-// --- REFACTORED: Helper functions now imported from @/utils/financialUtils ---
-// parseRefNumber, extractFinancialsFromText, groupChunksToDocuments
-
-// Core Logic: Grouping & AI Summary Integration
-async function consolidateData(rawData, globalStart, globalEnd) {
+async function consolidateData(rawData) {
     const buckets = []
-    const now = new Date()
     
-    // Define bucket size in days
-    let daysPerBucket = 30
-    if (selectedPeriodType.value === 'weekly') daysPerBucket = 7
-    if (selectedPeriodType.value === '2weeks') daysPerBucket = 14
-    if (selectedPeriodType.value === '3weeks') daysPerBucket = 21
+    // Group by Company Name
+    const companyGroups = {}
+    rawData.forEach(r => {
+        const cName = r._company || 'Unknown'
+        if (!companyGroups[cName]) companyGroups[cName] = []
+        companyGroups[cName].push(r)
+    })
 
-    // Generate buckets going BACKWARDS from today (or endDate)
-    let currentCursor = new Date(now)
-    if (customEndDate.value) currentCursor = new Date(customEndDate.value)
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
 
-    // Limit lookback
-    const stopDate = new Date()
-    stopDate.setFullYear(stopDate.getFullYear() - 1) 
-    
-    while (currentCursor > stopDate) {
-        const bucketEnd = new Date(currentCursor)
-        const bucketStart = new Date(currentCursor)
-        bucketStart.setDate(bucketStart.getDate() - daysPerBucket + 1)
+    for (const company of Object.keys(companyGroups)) {
+        if (selectedCompany.value !== 'all' && selectedCompany.value !== company) continue
+
+        const companyData = companyGroups[company]
         
-        // 1. Filter raw chunks for this timeframe
-        const rawBucketChunks = rawData.filter(r => {
-            const rDate = new Date(r.metadata?.date || r.created_at)
-            return rDate >= bucketStart && rDate <= bucketEnd
+        // Group reports by Month & Year
+        const monthlyBuckets = {} // key: "YYYY-MM"
+        
+        companyData.forEach(r => {
+            const date = new Date(r.metadata?.date || r.created_at)
+            const year = date.getFullYear()
+            const month = date.getMonth()
+            const key = `${year}-${String(month + 1).padStart(2, '0')}`
+            
+            if (!monthlyBuckets[key]) {
+                monthlyBuckets[key] = {
+                    year,
+                    month,
+                    reports: []
+                }
+            }
+            monthlyBuckets[key].reports.push(r)
         })
 
-        if (rawBucketChunks.length > 0) {
-            // 2. GROUP CHUNKS into Logical Documents
-            const uniqueDocs = groupChunksToDocuments(rawBucketChunks)
-            
-            // 3. Aggregate metrics based on UNIQUE DOCUMENTS (using strict parsing)
+        // Create period items for each month
+        for (const [key, meta] of Object.entries(monthlyBuckets)) {
+            const uniqueDocs = groupChunksToDocuments(meta.reports)
             const revenue = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.revenue), 0)
             const expenses = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.expenses), 0)
+            const explicitNet = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.netProfit), 0)
             
-            // Build daily trend using Unique Docs
-            const dailyTrends = new Array(daysPerBucket).fill(0)
-            uniqueDocs.forEach(r => {
+            // First and Last day of the month
+            const firstDay = new Date(meta.year, meta.month, 1)
+            const lastDay = new Date(meta.year, meta.month + 1, 0)
+            const daysInMonth = lastDay.getDate()
+            
+            // Populate actual daily trend
+            const trend = new Array(daysInMonth).fill(0)
+            meta.reports.forEach(r => {
                 const rDate = new Date(r.metadata?.date || r.created_at)
-                const diffDays = Math.floor((rDate - bucketStart) / (1000 * 60 * 60 * 24))
-                if (diffDays >= 0 && diffDays < daysPerBucket) {
-                    dailyTrends[diffDays] += parseRefNumber(r.metadata?.revenue)
+                // Only if it's actually in our target month/year
+                if (rDate.getFullYear() === meta.year && rDate.getMonth() === meta.month) {
+                    const dayIdx = rDate.getDate() - 1 // 0-indexed day
+                    if (dayIdx >= 0 && dayIdx < daysInMonth) {
+                        const net = parseRefNumber(r.metadata?.netProfit) || (parseRefNumber(r.metadata?.revenue) - parseRefNumber(r.metadata?.expenses))
+                        trend[dayIdx] += net
+                    }
                 }
             })
 
-            const startDateStr = bucketStart.toISOString().split('T')[0]
-            const endDateStr = bucketEnd.toISOString().split('T')[0]
-            
-            // Fetch saved AI Summary
-            const savedSummary = await aiService.fetchSavedSummary({
-                startDate: startDateStr,
-                endDate: endDateStr,
-                periodType: selectedPeriodType.value,
-                companyId: selectedCompany.value === 'all' ? null : COMPANY_TABLES[selectedCompany.value]?.id
-            })
-
             buckets.push({
-                id: `${startDateStr}_${endDateStr}`,
-                startDate: startDateStr,
-                endDate: endDateStr,
-                label: `${formatDateShort(bucketStart)} - ${formatDateShort(bucketEnd)}`,
-                reports: uniqueDocs, // Pass the UNIQUE docs
-                chunkCount: rawBucketChunks.length, 
+                id: `${company}_${key}`,
+                company,
+                startDate: firstDay.toISOString().split('T')[0],
+                endDate: lastDay.toISOString().split('T')[0],
+                label: `${monthNames[meta.month]} ${meta.year}`,
+                reports: uniqueDocs,
+                chunkCount: meta.reports.length,
                 revenue,
                 expenses,
-                netProfit: revenue - expenses,
-                dailyTrend: dailyTrends,
-                aiSummary: savedSummary
+                netProfit: explicitNet || (revenue - expenses),
+                dailyTrend: trend,
+                aiSummary: null,
+                isNormalizing: false,
+                isNormalized: uniqueDocs.every(d => d.metadata.is_ai_normalized)
             })
         }
-        
-        currentCursor.setDate(currentCursor.getDate() - daysPerBucket)
-        if (customStartDate.value && currentCursor < new Date(customStartDate.value)) break
     }
 
+    // Sort buckets: Most recent company/month first
+    buckets.sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+
     consolidatedPeriods.value = buckets
+
+    // Automatically trigger normalization if needed
+    consolidatedPeriods.value.forEach(p => {
+        // If it's empty, we might want to check DB first, which summarizeFinancialPeriod already does.
+        // For normalization (numbers), we usually want them fixed if they were already parsed.
+        runAINormalization(p)
+    })
 }
 
-
 // --- AI Generation ---
+async function runAINormalization(period, force = false) {
+    if (normalizationStatus.value[period.id]) return
+    
+    // Lazy check: If all reports already have AI-verified data, skip call UNLESS forced
+    const allNormalized = period.reports.every(r => 
+        r.metadata?.revenue !== undefined && 
+        r.metadata?.revenue !== 0 && 
+        r.metadata?.is_ai_normalized // Require AI verification to skip
+    )
+    
+    if (allNormalized && !force) {
+        console.log(`[AI] Skipping normalization for ${period.company}, data already exists.`)
+        return
+    }
+
+    normalizationStatus.value[period.id] = true
+
+    try {
+        console.log(`[AI] Normalizing financials for ${period.company}...`)
+        const normalizedList = await aiService.extractFinancialDataWithAI(period.reports, force)
+        
+        if (normalizedList && Array.isArray(normalizedList)) {
+            // Update the period and its reports
+            const idx = consolidatedPeriods.value.findIndex(p => p.id === period.id)
+            if (idx !== -1) {
+                const target = consolidatedPeriods.value[idx]
+                
+                // Track totals
+                let totalRev = 0
+                let totalExp = 0
+                let totalNet = 0
+
+                normalizedList.forEach(item => {
+                    const doc = target.reports.find(r => r.id === item.id)
+                    if (doc) {
+                        // Math safety: ensure netProfit is calculated if missing
+                        const extractedNet = (item.netProfit !== undefined && item.netProfit !== null) ? item.netProfit : (item.revenue - item.expenses)
+
+                        doc.metadata.revenue = item.revenue
+                        doc.metadata.expenses = item.expenses
+                        doc.metadata.netProfit = extractedNet
+                        doc.metadata.aiReasoning = item.reasoning
+                        doc.metadata.is_ai_normalized = true 
+                        
+                        totalRev += item.revenue
+                        totalExp += item.expenses
+                        totalNet += extractedNet
+                    }
+                })
+
+                target.revenue = totalRev
+                target.expenses = totalExp
+                target.netProfit = totalNet
+                target.isNormalized = true
+            }
+        }
+    } catch (err) {
+        console.error('Normalization failed:', err)
+    } finally {
+        normalizationStatus.value[period.id] = false
+    }
+}
+
 async function generateInsight(period) {
     if (generationStatus.value[period.id]) return
-    generationStatus.value[period.id] = true
     
+    // For manual triggers (button clicks), we ALWAYS want to force a re-normalization 
+    // to ensure accuracy, especially if the initial auto-run extracted garbage data.
+    await runAINormalization(period, true)
+    
+    generationStatus.value[period.id] = true
     try {
         const result = await aiService.summarizeFinancialPeriod(period.reports, period.label, {
             startDate: period.startDate,
@@ -287,16 +371,14 @@ async function generateInsight(period) {
             totalRevenue: period.revenue,
             totalExpenses: period.expenses,
             reportCount: period.reports.length
-        })
+        }, true) // Force true for manual triggers
         
-        // Update local state
         const idx = consolidatedPeriods.value.findIndex(p => p.id === period.id)
         if (idx !== -1) {
             consolidatedPeriods.value[idx].aiSummary = result
         }
-        
     } catch (err) {
-        alert('Gagal generate AI')
+        console.error('AI Insight Error:', err)
     } finally {
         generationStatus.value[period.id] = false
     }

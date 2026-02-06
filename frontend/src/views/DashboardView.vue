@@ -96,7 +96,7 @@
         </template>
         <template v-else>
           <div 
-            v-for="(data, company) in (stats?.byCompany || {})" 
+            v-for="(data, company) in Object.fromEntries(Object.entries(stats?.byCompany || {}).filter(([k]) => k !== 'Owner'))" 
             :key="company"
             class="company-card card glass-premium"
             :class="{ 'no-click': !authStore.isOwner && !authStore.isAdmin }"

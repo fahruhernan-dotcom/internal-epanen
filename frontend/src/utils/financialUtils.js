@@ -7,88 +7,100 @@
 export function parseRefNumber(val) {
     if (typeof val === 'number') return val
     if (!val) return 0
-    // Remove "Rp", spaces, and non-numeric chars except . and ,
-    let str = String(val).replace(/Rp|\s/g, '')
 
-    // Check format: "1.000.000" (ID) vs "1,000,000" (US)
-    // Assumption: reports are in ID format (dot = thousands, comma = decimal)
-    if (str.includes('.') && !str.includes(',')) {
-        // e.g. "1.000.000" -> "1000000"
-        return parseFloat(str.replace(/\./g, ''))
+    // Cleanup: remove Rp, spaces, percent, and parentheses
+    let str = String(val).replace(/Rp|\s|%|#|[-()]/g, '').trim()
+    if (!str) return 0
+
+    // Logic: 
+    // Indonesian format: 1.000.000,50 (dots are thousands, comma is decimal)
+    // English format: 1,000,000.50 (commas are thousands, dot is decimal)
+
+    const dots = (str.match(/\./g) || []).length
+    const commas = (str.match(/,/g) || []).length
+
+    if (dots > 0 && commas > 0) {
+        // Both exist: usually 1.000,00 or 1,000.00
+        if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+            // ID pattern: 1.000,00 -> remove dots, comma to dot
+            str = str.replace(/\./g, '').replace(',', '.')
+        } else {
+            // EN pattern: 1,000.00 -> remove commas
+            str = str.replace(/,/g, '')
+        }
+    } else if (dots > 0) {
+        // Only dots: check if it looks like thousands (e.g. 1.000, 16.000.000)
+        // If multiple dots, or one dot with 3 digits after it, treat as thousands
+        const parts = str.split('.')
+        if (dots > 1 || (dots === 1 && parts[parts.length - 1].length === 3)) {
+            str = str.replace(/\./g, '')
+        }
+        // else: 1.5 -> keep it as 1.5 (decimal)
+    } else if (commas > 0) {
+        // Only commas: 1,000 or 1,5
+        const parts = str.split(',')
+        if (commas > 1 || (commas === 1 && parts[parts.length - 1].length === 3)) {
+            str = str.replace(/,/g, '')
+        } else {
+            str = str.replace(',', '.')
+        }
     }
 
-    if (str.includes('.') && str.includes(',')) {
-        // e.g. "1.000.000,50" -> "1000000.50"
-        return parseFloat(str.replace(/\./g, '').replace(',', '.'))
-    }
-
-    // Fallback cleanup
-    return parseFloat(str.replace(/[^0-9.-]/g, '')) || 0
+    return parseFloat(str) || 0
 }
 
 // Helper: Extract financial data from text content (Fallback)
 export function extractFinancialsFromText(text) {
-    if (!text) return { revenue: 0, expenses: 0 }
+    if (!text) return { revenue: 0, expenses: 0, netProfit: null }
 
-    const parseValue = (patterns) => {
-        for (const regex of patterns) {
-            const match = text.match(regex)
-            if (match) {
-                let cleanStr = match[1]
-                const multiplierStr = (match[2] || match[3] || '').trim().toLowerCase()
+    // Broad pattern for numbers
+    const numPattern = `([\\d.,]+)`
 
-                // --- Smart Number Parsing ---
+    const parseValue = (patterns, sumAll = false) => {
+        let values = []
+        for (const p of patterns) {
+            const regex = new RegExp(p.source.replace('NUM', numPattern), 'gi')
+            const matches = text.matchAll(regex)
+            for (const match of matches) {
+                if (!match) continue
+                // Clean the captured number string from trailing dots/commas
+                let cleanNum = match[1].replace(/[.,]$/, '')
+                // Basic heuristic: if it's a tiny number like 56.3 without context, it might be a %
+                // But we'll let AI handle the heavy lifting.
+                let val = parseRefNumber(cleanNum)
 
-                // Case 1: English-style decimals with suffix "M"/"K" often use dot as decimal "7.91M"
-                // Heuristic: If it has a dot, and that dot is followed by 1 or 2 digits ONLY (at end), treat as decimal.
-                // e.g. "7.91" -> Decimal. "7.910" -> Thousands.
-                const decimalLookalike = /\.(\d{1,2})$/.test(cleanStr)
+                // Multiplier is usually the next group
+                const multiplierStr = (match[2] || '').trim().toLowerCase()
 
-                if (decimalLookalike) {
-                    // "7.91" -> "7.91" (keep dot)
-                    // If mixed "1,000.50" -> "1000.50"
-                    cleanStr = cleanStr.replace(/,/g, '')
-                } else {
-                    // Standard ID format: "11.200.000" -> remove dots
-                    // "11,2" -> replace comma with dot
-                    if (cleanStr.includes('.') && !cleanStr.includes(',')) {
-                        cleanStr = cleanStr.replace(/\./g, '')
-                    } else if (cleanStr.includes(',')) {
-                        cleanStr = cleanStr.replace(/\./g, '').replace(',', '.')
-                    }
-                }
-
-                let val = parseFloat(cleanStr)
-
-                // --- Multiplier Handling ---
                 if (multiplierStr.includes('juta') || multiplierStr.includes('jt') || multiplierStr === 'm') val *= 1000000
                 if (multiplierStr.includes('milyar') || multiplierStr.includes('mn') || multiplierStr === 'b') val *= 1000000000
                 if (multiplierStr === 'k' || multiplierStr === 'rb') val *= 1000
 
-                if (val > 0) return val
+                if (val > 0) values.push(val)
             }
         }
-        return 0
+
+        if (values.length === 0) return 0
+        if (sumAll) return values.reduce((a, b) => a + b, 0)
+        return Math.max(...values)
     }
 
-    // Patterns for REVENUE
+    // Capture Revenue - updated context to avoid generic decimals
     const revRaw = parseValue([
-        // "Revenue: Rp 11,2 juta" or "Rp 7.91M"
-        /(?:Revenue|Omzet|Pendapatan|Pemasukan)[\s\S]{0,20}Rp\s*([\d.,]+)\s*([MmKk]|juta|milyar|jt|rb)?/i,
-        // "Total Revenue ... 11.200.000" (Table format)
-        /(?:Total\s+Revenue|Total\s+Pendapatan|Total\s+Omzet)[\s\S]{0,30}?([\d.,]+)\s*([MmKk]|juta|milyar|jt|rb)?/i
+        /(?:Total\s+)?(?:Revenue|Omzet|Pendapatan|Pemasukan)[\s\S]{0,25}?(?:Rp)?\s*NUM\s*([MmKk]|juta|milyar|jt|rb)?/i
     ])
 
-    // Patterns for EXPENSES
+    // 2. EXPENSES: Sum the major "Total Beban" lines
     const expRaw = parseValue([
-        // "Costs: Rp 7.91M"
-        /(?:Expenses|Pengeluaran|Biaya\s+Produksi)[\s\S]{0,20}Rp\s*([\d.,]+)\s*([MmKk]|juta|milyar|jt|rb)?/i,
-        // "Total Costs ... 7.910.000"
-        // "Total Biaya ... 7.91M"
-        /(?:Total\s+Costs|Total\s+Biaya|Total\s+Pengeluaran)[\s\S]{0,30}?([\d.,]+)\s*([MmKk]|juta|milyar|jt|rb)?/i
+        /Total\s+(?:Expenses|Pengeluaran|Biaya\s+Produksi|Beban)[\s\S]{0,25}?(?:Rp)?\s*\(?NUM\)?/i
+    ], true)
+
+    // 3. NET PROFIT: Search for explicit labels
+    const netProfitRaw = parseValue([
+        /(?:Laba\s+Bersih|Laba\s+Tahun\s+Berjalan|Laba\s+Sebelum\s+Pajak|Net\s+Profit|Net\s+Income)[\s\S]{0,25}?(?:Rp)?\s*\(?NUM\)?\s*([MmKk]|juta|milyar|jt|rb)?/i
     ])
 
-    return { revenue: revRaw, expenses: expRaw }
+    return { revenue: revRaw, expenses: expRaw, netProfit: netProfitRaw || null }
 }
 
 // Helper: Group RAG chunks into logical documents
@@ -108,33 +120,42 @@ export function groupChunksToDocuments(rawChunks) {
                 id: chunk.id,
                 _company: company,
                 created_at: chunk.created_at,
-                metadata: { ...chunk.metadata }, // Start with first chunk's metadata
+                metadata: { ...chunk.metadata },
                 chunks: []
             }
         }
 
-        // Merge Logic: If this new chunk has better metadata, overwrite!
         const doc = grouped[key]
-        let currentRev = parseRefNumber(doc.metadata.revenue)
-        let currentExp = parseRefNumber(doc.metadata.expenses)
 
         // 1. Try Metadata from chunk
         let newRev = parseRefNumber(chunk.metadata?.revenue)
         let newExp = parseRefNumber(chunk.metadata?.expenses)
+        let newNet = parseRefNumber(chunk.metadata?.netProfit)
 
-        // 2. Fallback: Parse from Content if metadata is missing
-        if (!newRev && !newExp && chunk.content) {
+        // 2. Fallback: Parse from Content if metadata is missing or partial
+        if ((!newRev || !newExp) && chunk.content) {
             const extracted = extractFinancialsFromText(chunk.content)
-            newRev = extracted.revenue
-            newExp = extracted.expenses
+            if (!newRev) newRev = extracted.revenue
+            if (!newExp) newExp = extracted.expenses
+            if (!newNet) newNet = extracted.netProfit
         }
 
-        // Update if better
+        // Update if better (already existing in doc might be 0)
+        let currentRev = parseRefNumber(doc.metadata.revenue)
+        let currentExp = parseRefNumber(doc.metadata.expenses)
+        let currentNet = parseRefNumber(doc.metadata.netProfit)
+
         if (!currentRev && newRev) doc.metadata.revenue = newRev
         if (!currentExp && newExp) doc.metadata.expenses = newExp
+        if (!currentNet && newNet) doc.metadata.netProfit = newNet
 
+        if (!grouped[key].content) grouped[key].content = ''
+        grouped[key].content += chunk.content + '\n'
         grouped[key].chunks.push(chunk)
     })
 
+    // Final Pass: If netProfit was found explicitly, and it differs from rev-exp, 
+    // we can either trust it or keep it as metadata. 
+    // For now, we'll keep it as metadata and let the UI handle the "Truth".
     return Object.values(grouped)
 }

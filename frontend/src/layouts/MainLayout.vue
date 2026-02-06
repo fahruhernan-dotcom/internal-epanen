@@ -331,9 +331,10 @@ onMounted(async () => {
     const allCompanies = await getCompanies()
     if (authStore.user?.role === 'ceo' || authStore.user?.role === 'farmer') {
       const userCompany = authStore.user?.companies?.name
-      companies.value = allCompanies.filter(c => c.name === userCompany)
+      companies.value = allCompanies.filter(c => c.name === userCompany && c.name !== 'Owner')
     } else {
-      companies.value = allCompanies
+      // Filter out 'Owner' role from the companies list
+      companies.value = allCompanies.filter(c => c.name !== 'Owner' && c.code !== 'OWNER')
     }
   } catch (err) {
     console.error('Failed to load companies:', err)
