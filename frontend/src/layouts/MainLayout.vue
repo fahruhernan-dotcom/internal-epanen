@@ -1,6 +1,6 @@
 <template>
   <div class="main-layout">
-    <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+    <aside v-if="authStore.user?.role !== 'farmer'" class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar-header">
         <div class="logo">
           <span class="logo-icon">🌿</span>
@@ -18,7 +18,7 @@
           <span v-if="!sidebarCollapsed" class="nav-text">Dashboard</span>
         </router-link>
         
-        <!-- Reports View for Owner/Admin and CEO (Farmers only submit) -->
+        <!-- Reports View for Owner/Admin and CEO -->
         <router-link 
           v-if="['owner', 'admin', 'ceo'].includes(authStore.user?.role)"
           to="/reports" 
@@ -39,7 +39,7 @@
           <span v-if="!sidebarCollapsed" class="nav-text">Monitoring Keuangan</span>
         </router-link>
 
-        <!-- AI Intelligence & Analytics - Only for Owner and Admin -->
+        <!-- Intelligence Section -->
         <template v-if="authStore.isAdmin || authStore.isOwner">
           <div v-if="!sidebarCollapsed" class="nav-section">Intelligence</div>
           <router-link to="/ai-intelligence" class="nav-item" :class="{ active: $route.path === '/ai-intelligence' }">
@@ -56,14 +56,14 @@
           </router-link>
         </template>
 
-        <!-- SOP Reference - For All Roles -->
+        <!-- Support Section -->
         <div v-if="!sidebarCollapsed" class="nav-section">Support</div>
         <router-link to="/sop-reference" class="nav-item" :class="{ active: $route.path === '/sop-reference' }">
           <span class="nav-icon">📖</span>
           <span v-if="!sidebarCollapsed" class="nav-text">Buku Saku SOP</span>
         </router-link>
 
-        <!-- Root Access & Logs - Only for Admin -->
+        <!-- Admin Section -->
         <template v-if="authStore.isAdmin">
           <div v-if="!sidebarCollapsed" class="nav-section">System Admin</div>
           <router-link to="/admin" class="nav-item" :class="{ active: $route.path === '/admin' }">
@@ -76,7 +76,7 @@
           </router-link>
         </template>
 
-        <!-- CEO Submission (Submit Finance) -->
+        <!-- CEO Actions -->
         <template v-if="authStore.user?.role === 'ceo'">
           <div v-if="!sidebarCollapsed" class="nav-section">CEO Actions</div>
           <router-link to="/submit-report" class="nav-item" :class="{ active: $route.path === '/submit-report' }">
@@ -85,16 +85,7 @@
           </router-link>
         </template>
 
-        <!-- Farmer Submission (Submit Daily) -->
-        <template v-if="authStore.user?.role === 'farmer'">
-          <div v-if="!sidebarCollapsed" class="nav-section">Farmer Actions</div>
-          <router-link to="/submit-daily" class="nav-item" :class="{ active: $route.path === '/submit-daily' }">
-            <span class="nav-icon">📝</span>
-            <span v-if="!sidebarCollapsed" class="nav-text">Isi Laporan</span>
-          </router-link>
-        </template>
-
-        <!-- Companies (Only for Owner/Admin/CEO) -->
+        <!-- Company Links -->
         <template v-if="['owner', 'admin', 'ceo'].includes(authStore.user?.role)">
           <div v-if="!sidebarCollapsed" class="nav-section">Perusahaan</div>
           <router-link 
@@ -128,30 +119,26 @@
       </div>
     </aside>
 
-    <main class="main-content">
-      <header class="top-header">
+    <main class="main-content" :class="{ 'no-sidebar': authStore.user?.role === 'farmer' }">
+      <header v-if="authStore.user?.role !== 'farmer'" class="top-header">
         <div class="header-left">
           <h2 class="page-title">{{ pageTitle }}</h2>
         </div>
         <div class="header-right">
-          <!-- Notifications Bell -->
           <div class="header-action-group">
             <div class="notification-wrapper" v-click-outside="closeNotifications">
               <button class="btn-icon bell-btn" @click="toggleNotifications" :class="{ 'has-unread': notificationStore.unreadCount > 0 }">
                 🔔
                 <span v-if="notificationStore.unreadCount > 0" class="unread-badge">{{ notificationStore.unreadCount }}</span>
               </button>
-              
               <div v-if="showNotifications" class="notification-dropdown glass-premium animate-slide-down">
                 <div class="dropdown-header">
                   <h3>Notifikasi</h3>
                   <button v-if="notificationStore.unreadCount > 0" class="btn-text" @click="notificationStore.markAllAsRead">Tandai semua dibaca</button>
                 </div>
-                
                 <div class="notification-list">
                   <div v-if="notificationStore.loading" class="empty-state">Loading...</div>
                   <div v-else-if="notificationStore.notifications.length === 0" class="empty-state">Tidak ada notifikasi</div>
-                  
                   <div 
                     v-for="n in notificationStore.notifications" 
                     :key="n.id" 
@@ -169,7 +156,6 @@
                 </div>
               </div>
             </div>
-
             <div class="current-date">
               <span class="date-icon">📅</span>
               <span>{{ currentDate }}</span>
@@ -178,7 +164,7 @@
         </div>
       </header>
 
-      <div class="content-area">
+      <div class="content-area" :class="{ 'no-padding': authStore.user?.role === 'farmer' }">
         <router-view />
       </div>
     </main>
@@ -267,6 +253,7 @@ const pageTitle = computed(() => {
     '/financial-reports': 'Database Keuangan',
     '/admin': 'Manajemen User',
     '/ai-intelligence': 'AI Orchestrator Intelligence',
+    '/farmer-chat': 'Chat Laporan Harian',
   }
   if (route.path.startsWith('/companies/')) {
     const company = companies.value.find(c => c.id === route.params.id)
@@ -531,6 +518,14 @@ onUnmounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.main-content.no-sidebar {
+  margin-left: 0 !important;
+}
+
+.content-area.no-padding {
+  padding: 0 !important;
 }
 
 .sidebar.collapsed + .main-content,

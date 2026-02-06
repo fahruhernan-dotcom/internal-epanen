@@ -37,7 +37,13 @@ const routes = [
             {
                 path: 'submit-daily',
                 name: 'FarmerSubmit',
-                component: () => import('@/views/FarmerSubmitView.vue'),
+                component: () => import('@/views/FarmerDashboardView.vue'),
+                meta: { roles: ['farmer', 'owner', 'admin'] }
+            },
+            {
+                path: 'farmer-chat',
+                name: 'FarmerChat',
+                component: () => import('@/views/FarmerChatView.vue'),
                 meta: { roles: ['farmer', 'owner', 'admin'] }
             },
             {

@@ -38,19 +38,22 @@ export const COMPANY_TABLES = {
         id: '53af2fd7-685d-41b5-8daa-265fe3db9b46',
         code: 'Lyori',
         dailyReports: 'daily_reports_lyori',
-        finance: 'finance_lyori'
+        finance: 'finance_lyori',
+        sopTable: 'sop_farmer_lyori'
     },
     'Moafarm': {
         id: '5236043f-a9ce-498c-84c4-c5de16893ccd',
         code: 'moafarm',
         dailyReports: 'daily_reports_moafarm',
-        finance: 'finance_moafarm'
+        finance: 'finance_moafarm',
+        sopTable: 'sop_farmer_moafarm'
     },
     'Kaja': {
         id: '8523f28b-7f12-4455-a8a8-015d2a826d5c',
         code: 'Kaja',
         dailyReports: 'daily_reports_kaja',
-        finance: 'finance_kaja'
+        finance: 'finance_kaja',
+        sopTable: 'sop_farmer_kaja'
     },
     'ePanen': {
         id: '3d0e89d1-76f5-421b-ba7b-c2c0dea6ebf0',
@@ -70,7 +73,8 @@ export const COMPANY_TABLES = {
         id: 'fef23b03-fe98-4a56-9cbc-64e1d21845fb',
         code: 'OWNER',
         dailyReports: 'daily_reports_owner', // might be unused or aggregation
-        finance: 'finance_epanen' // Fallback or specific?
+        finance: 'finance_epanen', // Fallback or specific?
+        sopTable: 'sop_farmer_moafarm' // Default for Owner/General
     }
 }
 

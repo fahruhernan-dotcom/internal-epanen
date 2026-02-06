@@ -184,7 +184,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useReportsStore } from '@/stores/reports'
 import { useAuthStore } from '@/stores/auth'
 import { COMPANY_TABLES, supabase } from '@/services/supabase'
@@ -192,6 +192,7 @@ import { aiService } from '@/services/ai'
 import { groupChunksToDocuments, parseRefNumber } from '@/utils/financialUtils'
 
 const router = useRouter()
+const route = useRoute()
 const reportsStore = useReportsStore()
 const authStore = useAuthStore()
 
@@ -349,6 +350,13 @@ const formattedAISummary = computed(() => {
 
 onMounted(async () => {
   loading.value = true
+  
+  // Redirect farmers to their specialized mobile dashboard
+  if (authStore.user?.role === 'farmer' && route.path === '/') {
+    router.push('/submit-daily')
+    return
+  }
+
   try {
     stats.value = await reportsStore.getReportStats()
     await reportsStore.fetchAllDailyReports({ limit: 5 })

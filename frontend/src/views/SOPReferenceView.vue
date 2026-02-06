@@ -1,14 +1,14 @@
 <template>
-  <div class="sop-page animate-fade-in">
-    <header class="dashboard-header mb-lg">
+  <div class="sop-page animate-fade-in" :class="{ 'embedded-mode': embedded }">
+    <header v-if="!embedded" class="dashboard-header mb-lg">
       <span class="section-label">Farmer Support</span>
       <h2 class="gradient-text">Buku Saku SOP</h2>
       <p class="text-muted">Panduan standar operasional untuk memastikan kualitas terbaik di setiap panen SmartFarm.</p>
     </header>
 
-    <div class="sop-grid">
+    <div class="sop-grid" :class="{ 'single-col': embedded }">
       <!-- SOP List Sidebar -->
-      <div class="sop-list card glass-premium">
+      <div v-if="!selectedSOP || !embedded" class="sop-list card glass-premium">
         <div class="search-box mb-md">
           <input type="text" v-model="searchQuery" placeholder="Cari SOP..." class="form-input" />
         </div>
@@ -29,8 +29,12 @@
       </div>
 
       <!-- SOP Content Viewer -->
-      <div class="sop-content card-nature glass-premium">
-        <div v-if="selectedSOP" class="sop-viewer">
+      <div v-if="selectedSOP" class="sop-content card-nature glass-premium">
+        <div class="back-btn-wrapper mb-md" v-if="embedded">
+            <button class="btn-text" @click="selectedSOP = null">← Kembali ke Daftar</button>
+        </div>
+
+        <div class="sop-viewer">
           <div class="sop-header">
             <div class="flex justify-between items-start">
               <div>
@@ -53,11 +57,11 @@
             </div>
           </div>
         </div>
-        
-        <div v-else class="empty-state">
-          <span class="empty-icon">📖</span>
-          <p>Pilih salah satu SOP di sebelah kiri untuk membaca detailnya.</p>
-        </div>
+      </div>
+      
+      <div v-else-if="!embedded" class="empty-state">
+        <span class="empty-icon">📖</span>
+        <p>Pilih salah satu SOP di sebelah kiri untuk membaca detailnya.</p>
       </div>
     </div>
   </div>
@@ -65,6 +69,10 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+
+const props = defineProps({
+    embedded: { type: Boolean, default: false }
+})
 
 const searchQuery = ref('')
 const selectedSOP = ref(null)
@@ -122,6 +130,10 @@ function printSOP() {
   flex-direction: column;
   height: calc(100vh - 120px);
 }
+.sop-page.embedded-mode {
+    height: auto;
+    padding-bottom: 80px;
+}
 
 .sop-grid {
   display: grid;
@@ -130,14 +142,9 @@ function printSOP() {
   flex: 1;
   min-height: 0;
 }
-
-.sop-list {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-md);
-  overflow-y: auto;
+.sop-grid.single-col {
+    display: block;
 }
-
 .list-container {
   display: flex;
   flex-direction: column;
