@@ -1,0 +1,95 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          WEBSITE DATABASE LAYER - QUICK START                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📍 FILE LOCATION:
+   C:\Users\ASUS TUF A15\InternalSystem-web\backend\sql\
+
+📄 FILES:
+   1. STEP_BY_STEP_SETUP.md         ← DETAILED GUIDE (READ THIS!)
+   2. website_layer_setup.sql        ← SQL CODE TO RUN
+   3. README_WEBSITE_LAYER.md        ← DOCUMENTATION
+
+════════════════════════════════════════════════════════════════════
+
+🚀 QUICK INSTRUCTIONS:
+
+1. Open: https://supabase.com/dashboard
+
+2. Click your project: dmbrjsegxbjeafzgalny
+
+3. Click SQL Editor (icon: </>)
+
+4. Click "New query"
+
+5. Open the file: website_layer_setup.sql
+   Copy everything (Ctrl+A, Ctrl+C)
+
+6. Paste in Supabase SQL Editor (Ctrl+V)
+
+7. Click RUN (or Ctrl+Enter)
+
+8. Look for: ✅ TABLES CREATED | 7
+
+════════════════════════════════════════════════════════════════════
+
+✅ SUCCESS SIGNS:
+
+• "✅ TABLES CREATED | 7"
+• "✅ VIEWS CREATED | 4"
+• "✅ ADMIN USER | 628999999999"
+• "WEBSITE LAYER SETUP COMPLETE!"
+
+════════════════════════════════════════════════════════════════════
+
+🔐 LOGIN CREDENTIALS:
+
+   URL:      http://localhost:3000
+   Phone:    628999999999
+   Password: smartfarm2026
+
+════════════════════════════════════════════════════════════════════
+
+🆘 IF ERROR:
+
+1. Scroll to see the error message
+2. Open STEP_BY_STEP_SETUP.md
+3. Go to "🆘 TROUBLESHOOTING" section
+4. Or send me the error message
+
+════════════════════════════════════════════════════════════════════
+
+📊 WHAT THIS CREATES:
+
+   7 New Tables:
+   • audit_logs           - Track data changes
+   • website_sessions     - Login sessions
+   • notifications        - In-app alerts
+   • draft_daily_reports  - Auto-save drafts
+   • user_preferences     - User settings
+   • analytics_snapshots  - Trend data
+   • whatsapp_logs        - N8N WhatsApp tracking
+
+   4 New Views:
+   • v_all_daily_reports      - All reports in one query
+   • v_user_details           - Users with company info
+   • v_financial_reports      - Reports with details
+   • v_sop_violations         - Violations with details
+
+   6 New Functions:
+   • create_notification()     - Create alerts
+   • n8n_log_whatsapp()        - Log WhatsApp messages
+   • n8n_create_sop_violation() - Create violations
+   • + 3 helper functions
+
+════════════════════════════════════════════════════════════════════
+
+✓ READY TO TEST!
+
+After SQL runs successfully:
+1. Start frontend: npm run dev
+2. Login with admin account
+3. Go to Admin page
+4. Try adding users
+
+════════════════════════════════════════════════════════════════════
