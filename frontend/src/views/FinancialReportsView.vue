@@ -2,15 +2,21 @@
   <div class="finance-page animate-fade-in">
     <!-- Filters & Controls -->
     <div class="filters-bar card">
-      <div class="filter-group" v-if="compAuth.isAdmin || compAuth.isOwner">
-        <label class="form-label">Perusahaan</label>
-        <select v-model="selectedCompany" class="form-input" @change="loadReports">
-          <option value="all">Semua Perusahaan</option>
-          <option v-for="company in companyOptions" :key="company" :value="company">
-            {{ company }}
-          </option>
-        </select>
+    <div class="filter-group" v-if="compAuth.isAdmin || compAuth.isOwner">
+      <label class="form-label">Perusahaan</label>
+      <select v-model="selectedCompany" class="form-input" @change="loadReports">
+        <option value="all">Semua Perusahaan</option>
+        <option v-for="company in companyOptions" :key="company" :value="company">
+          {{ company }}
+        </option>
+      </select>
+    </div>
+    <div class="filter-group" v-else-if="authStore.user?.companies?.name">
+      <label class="form-label">Perusahaan</label>
+      <div class="company-badge-static">
+        🏢 {{ authStore.user.companies.name }}
       </div>
+    </div>
 
       <!-- New: Period Type Selector -->
       <div class="period-tabs-container">
@@ -79,17 +85,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
-import { supabase, COMPANY_TABLES, TABLES, VIEWS, getFinanceDocs } from '@/services/supabase'
+import { useReportsStore } from '@/stores/reports'
+import { supabase, COMPANY_TABLES, VIEWS } from '@/services/supabase'
 import { aiService } from '@/services/ai'
-import { groupChunksToDocuments, parseRefNumber } from '@/utils/financialUtils'
 import PeriodInsightCard from '@/components/PeriodInsightCard.vue'
 
 // --- State ---
 const authStore = useAuthStore()
-const loading = ref(true)
-const reports = ref([])
+const reportsStore = useReportsStore()
+const { loading, consolidatedPeriods, error } = storeToRefs(reportsStore)
 
 // Filters
 const selectedCompany = ref('all')
@@ -97,8 +104,7 @@ const selectedPeriodType = ref('monthly') // monthly, 3weeks, 2weeks, weekly, cu
 const customStartDate = ref('')
 const customEndDate = ref('')
 
-// Consolidated Data
-const consolidatedPeriods = ref([])
+// UI state
 const expandedPeriodId = ref(null)
 const generationStatus = ref({}) // Track loading per card
 const normalizationStatus = ref({}) // Track AI normalization progress
@@ -156,139 +162,28 @@ const debugDB = async () => {
     alert('Debug info sent to console (F12)')
 }
 
-async function loadReports() {
-  loading.value = true
-  consolidatedPeriods.value = []
-  reports.value = []
+async function loadReports(force = false) {
+  const { start, end } = calculateDateRange(selectedPeriodType.value)
   
-  try {
-    // 1. Fetch all docs from unified view
-    const data = await getFinanceDocs({})
+  reportsStore.setSelectedCompany(selectedCompany.value)
+  
+  const data = await reportsStore.fetchFinanceDocs({
+    startDate: start,
+    endDate: end,
+    company_id: selectedCompany.value === 'all' ? null : COMPANY_TABLES[selectedCompany.value]?.id
+  })
+  
+  if (data) {
+    await reportsStore.consolidateFinanceData(data, force, selectedPeriodType.value)
     
-    if (!data || data.length === 0) {
-        console.warn('No financial docs found in v_all_finance_docs')
-        return
-    }
-    
-    const allData = data.map(item => ({
-        ...item,
-        _company: item.company_name 
-    }))
-    
-    reports.value = allData
-    
-    // 2. Filter by selected company if applicable
-    let displayData = allData
-    if (selectedCompany.value !== 'all') {
-        displayData = allData.filter(d => d._company === selectedCompany.value)
-    }
-
-    // 3. Process data
-    if (displayData.length > 0) {
-        await consolidateData(displayData)
-    }
-
-  } catch (err) {
-    console.error('Failed to load reports:', err)
-  } finally {
-    loading.value = false
+    // Auto-normalize periods that aren't yet
+    consolidatedPeriods.value.forEach(p => {
+        runAINormalization(p)
+    })
   }
 }
 
-async function consolidateData(rawData) {
-    const buckets = []
-    
-    // Group by Company Name
-    const companyGroups = {}
-    rawData.forEach(r => {
-        const cName = r._company || 'Unknown'
-        if (!companyGroups[cName]) companyGroups[cName] = []
-        companyGroups[cName].push(r)
-    })
-
-    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
-
-    for (const company of Object.keys(companyGroups)) {
-        if (selectedCompany.value !== 'all' && selectedCompany.value !== company) continue
-
-        const companyData = companyGroups[company]
-        
-        // Group reports by Month & Year
-        const monthlyBuckets = {} // key: "YYYY-MM"
-        
-        companyData.forEach(r => {
-            const date = new Date(r.metadata?.date || r.created_at)
-            const year = date.getFullYear()
-            const month = date.getMonth()
-            const key = `${year}-${String(month + 1).padStart(2, '0')}`
-            
-            if (!monthlyBuckets[key]) {
-                monthlyBuckets[key] = {
-                    year,
-                    month,
-                    reports: []
-                }
-            }
-            monthlyBuckets[key].reports.push(r)
-        })
-
-        // Create period items for each month
-        for (const [key, meta] of Object.entries(monthlyBuckets)) {
-            const uniqueDocs = groupChunksToDocuments(meta.reports)
-            const revenue = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.revenue), 0)
-            const expenses = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.expenses), 0)
-            const explicitNet = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.netProfit), 0)
-            
-            // First and Last day of the month
-            const firstDay = new Date(meta.year, meta.month, 1)
-            const lastDay = new Date(meta.year, meta.month + 1, 0)
-            const daysInMonth = lastDay.getDate()
-            
-            // Populate actual daily trend
-            const trend = new Array(daysInMonth).fill(0)
-            meta.reports.forEach(r => {
-                const rDate = new Date(r.metadata?.date || r.created_at)
-                // Only if it's actually in our target month/year
-                if (rDate.getFullYear() === meta.year && rDate.getMonth() === meta.month) {
-                    const dayIdx = rDate.getDate() - 1 // 0-indexed day
-                    if (dayIdx >= 0 && dayIdx < daysInMonth) {
-                        const net = parseRefNumber(r.metadata?.netProfit) || (parseRefNumber(r.metadata?.revenue) - parseRefNumber(r.metadata?.expenses))
-                        trend[dayIdx] += net
-                    }
-                }
-            })
-
-            buckets.push({
-                id: `${company}_${key}`,
-                company,
-                startDate: firstDay.toISOString().split('T')[0],
-                endDate: lastDay.toISOString().split('T')[0],
-                label: `${monthNames[meta.month]} ${meta.year}`,
-                reports: uniqueDocs,
-                chunkCount: meta.reports.length,
-                revenue,
-                expenses,
-                netProfit: explicitNet || (revenue - expenses),
-                dailyTrend: trend,
-                aiSummary: null,
-                isNormalizing: false,
-                isNormalized: uniqueDocs.every(d => d.metadata.is_ai_normalized)
-            })
-        }
-    }
-
-    // Sort buckets: Most recent company/month first
-    buckets.sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
-
-    consolidatedPeriods.value = buckets
-
-    // Automatically trigger normalization if needed
-    consolidatedPeriods.value.forEach(p => {
-        // If it's empty, we might want to check DB first, which summarizeFinancialPeriod already does.
-        // For normalization (numbers), we usually want them fixed if they were already parsed.
-        runAINormalization(p)
-    })
-}
+// No longer needed here, moved to reports.js
 
 // --- AI Generation ---
 async function runAINormalization(period, force = false) {
@@ -367,7 +262,7 @@ async function generateInsight(period) {
             startDate: period.startDate,
             endDate: period.endDate,
             periodType: selectedPeriodType.value,
-            companyId: selectedCompany.value === 'all' ? null : COMPANY_TABLES[selectedCompany.value]?.id,
+            companyId: COMPANY_TABLES[period.company]?.id || null,
             totalRevenue: period.revenue,
             totalExpenses: period.expenses,
             reportCount: period.reports.length
@@ -388,18 +283,31 @@ async function generateInsight(period) {
 // --- Helpers ---
 function calculateDateRange(type) {
     const today = new Date()
-    const start = new Date()
+    const end = today
+    let start = new Date()
     
     if (type === 'custom') {
         return { 
-            start: customStartDate.value || null, 
-            end: customEndDate.value || null 
+            start: customStartDate.value ? new Date(customStartDate.value).toISOString() : null, 
+            end: customEndDate.value ? new Date(customEndDate.value).toISOString() : null 
         }
     }
     
-    // Default fetch range: Last 90 days to capture a few periods
-    start.setDate(today.getDate() - 90) 
-    return { start: start.toISOString(), end: today.toISOString() }
+    // Logic for presets
+    let daysBack = 30 // monthly as default
+    if (type === 'weekly') daysBack = 7
+    if (type === '2weeks') daysBack = 14
+    if (type === '3weeks') daysBack = 21
+    if (type === 'daily') daysBack = 1
+    
+    // We fetch a bit more than the period to ensure overlap/consolidation
+    // So if user wants "weekly", we fetch last 14 days etc.
+    start.setDate(today.getDate() - (daysBack * 1.5 + 7))
+    
+    return { 
+        start: start.toISOString(), 
+        end: end.toISOString() 
+    }
 }
 
 function formatDateShort(date) {
@@ -412,6 +320,14 @@ onMounted(() => {
     customEndDate.value = today.toISOString().split('T')[0]
     today.setMonth(today.getMonth() - 1)
     customStartDate.value = today.toISOString().split('T')[0]
+
+    // Set initial company based on user role
+    if (!compAuth.value.isAdmin && !compAuth.value.isOwner) {
+        const userCompany = authStore.user?.companies?.name
+        if (userCompany) {
+            selectedCompany.value = userCompany
+        }
+    }
 
     loadReports()
 })
@@ -443,6 +359,18 @@ onMounted(() => {
 }
 
 .tab-btn.active { background: var(--bg-primary); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
+
+.company-badge-static {
+    padding: 8px 16px;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    border: 1px solid var(--primary-100);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
 
 .flex-spacer { flex: 1; }
 

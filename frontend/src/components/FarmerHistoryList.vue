@@ -19,7 +19,12 @@
 
     <!-- Report List -->
     <div v-else class="reports-container">
-      <div v-for="report in reports" :key="report.id" class="report-card card animate-slide-up">
+      <div 
+        v-for="report in reports" 
+        :key="report.id" 
+        class="report-card card animate-slide-up"
+        @click="showReportDetail(report)"
+      >
         
         <!-- Header: Date & Weather -->
         <div class="report-header">
@@ -51,22 +56,28 @@
         </div>
       </div>
     </div>
+
+    <!-- Report Detail Modal -->
+    <ReportDetailModal 
+      :report="selectedReport" 
+      @close="selectedReport = null" 
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useSupabaseReports } from '@/composables/useSupabaseReports'
+import { ref, onMounted, defineAsyncComponent } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useReportsStore } from '@/stores/reports'
 
-const { getReportHistory } = useSupabaseReports()
-const reports = ref([])
-const loading = ref(true)
+const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
+
+const reportsStore = useReportsStore()
+const { reportHistory: reports, loading } = storeToRefs(reportsStore)
+const selectedReport = ref(null)
 
 onMounted(async () => {
-  loading.value = true
-  const data = await getReportHistory(20) // Fetch last 20 reports
-  if (data) reports.value = data
-  loading.value = false
+  await reportsStore.fetchReportHistory(20)
 })
 
 // Helpers
@@ -89,6 +100,13 @@ function getSeverityClass(sev) {
   if (sev === 'medium') return 'warning'
   return 'low'
 }
+
+function showReportDetail(report) {
+  selectedReport.value = {
+    ...report,
+    _company: report.company_name // Ensure consistent property name for modal
+  }
+}
 </script>
 
 <style scoped>
@@ -102,7 +120,14 @@ function getSeverityClass(sev) {
 }
 .subtitle { opacity: 0.9; font-size: 0.9rem; }
 
-.report-card { margin-bottom: var(--space-md); padding: var(--space-md); border-left: 4px solid var(--primary); }
+.report-card { 
+  margin-bottom: var(--space-md); 
+  padding: var(--space-md); 
+  border-left: 4px solid var(--primary); 
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.report-card:active { transform: scale(0.98); }
 
 .report-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-sm); }
 

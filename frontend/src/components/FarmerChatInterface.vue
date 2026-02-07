@@ -164,7 +164,7 @@ async function handleSubmit() {
   // Check for quick confirm
   if (hasConfirmation.value) {
     const lowerMsg = message.toLowerCase()
-    const confirmWords = ['ya', 'yes', 'benar', 'ok', 'siap', 'lanjut']
+    const confirmWords = ['ya', 'yes', 'benar', 'ok', 'siap', 'lanjut', 'woke', 'sip', 'mantap', 'gas']
     const rejectWords = ['tidak', 'no', 'salah', 'revisi', 'ubah']
     
     if (confirmWords.some(w => lowerMsg.includes(w))) {

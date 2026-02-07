@@ -241,6 +241,42 @@ export function useSupabaseReports() {
   }
 
   /**
+   * Delete a daily report
+   */
+  async function deleteDailyReport(reportId, companyName) {
+    isSaving.value = true
+    saveError.value = null
+    saveSuccess.value = false
+
+    try {
+      if (!reportId) throw new Error('ID Laporan tidak valid')
+
+      let tableName = ''
+      if (companyName && COMPANY_TABLES[companyName]) {
+        tableName = COMPANY_TABLES[companyName].dailyReports
+      } else {
+        tableName = getDailyReportsTable()
+      }
+
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', reportId)
+
+      if (error) throw error
+
+      saveSuccess.value = true
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to delete report:', error)
+      saveError.value = error.message || 'Gagal menghapus laporan'
+      return { success: false, error: saveError.value }
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  /**
    * Reset state
    */
   function reset() {
@@ -260,6 +296,7 @@ export function useSupabaseReports() {
     checkTodaySubmission,
     getTodayReport,
     getReportHistory,
+    deleteDailyReport,
     validateReportData,
     reset
   }

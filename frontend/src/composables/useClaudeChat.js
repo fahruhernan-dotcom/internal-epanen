@@ -1,4 +1,6 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useChatStore } from '@/stores/chat'
 import { supabase, COMPANY_TABLES } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
 
@@ -7,11 +9,22 @@ import { useAuthStore } from '@/stores/auth'
  * Handles conversation flow, data extraction, and multilingual support
  */
 export function useClaudeChat() {
-  const messages = ref([])
+  const chatStore = useChatStore()
+  const {
+    messages,
+    conversationPhase,
+    extractedData,
+    activities,
+    issues,
+    weather,
+    notes,
+    sopContent,
+    isFirstLoad
+  } = storeToRefs(chatStore)
+
   const isLoading = ref(false)
   const isTyping = ref(false)
-  const extractedData = ref(null)
-  const conversationPhase = ref('greeting') // greeting, activities, issues, confirmation, complete
+
   const configuration = {
     url: import.meta.env.VITE_AI_API_URL || 'https://openrouter.ai/api/v1',
     key: import.meta.env.VITE_AI_API_KEY || '',
@@ -19,13 +32,6 @@ export function useClaudeChat() {
     maxTokens: parseInt(import.meta.env.VITE_AI_MAX_TOKENS) || 1024,
     temperature: parseFloat(import.meta.env.VITE_AI_TEMPERATURE) || 0.7
   }
-
-  // Conversation state
-  const activities = ref([])
-  const issues = ref([])
-  const weather = ref(null)
-  const notes = ref(null)
-  const sopContent = ref('')
 
   // System prompt for the farming assistant - Focused on high-quality technical synthesis
   const getSystemPrompt = () => `You are "Mandor Teman", an expert and friendly farming supervisor. Your goal is to help farmers report their daily work through natural chat while subtly ensuring they follow Standard Operating Procedures (SOPs).
@@ -35,8 +41,11 @@ CORE STRATEGY:
 2. SOP GUIDANCE: Subtly check if their work matches the SOPs provided below. 
    - If their activity matches an SOP, verify they followed the technical details (dosages, timing, etc.).
    - Example: "Sip Pak! Dosis mupuknya sudah sesuai standar SOP kan ya? Jaraknya aman dari batang?"
-3. PROACTIVE FIELD PROBING: If CUACA or LOKASI are missing, ask for them naturally.
-4. PROBLEM DETECTION: Always probe for issues (Hama/Kendala) if not mentioned.
+3. ONE-BY-ONE RULE: NEVER ask more than one question at a time. This is critical for natural conversation.
+   - Wrong: "Cuacanya gimana Pak? Ada kendala gak? Terus tadi mupuknya berapa gram?"
+   - Right: "Cuacanya gimana Pak di sana sekarang?" (Wait for answer before asking about SOP or issues).
+4. PROACTIVE FIELD PROBING: If CUACA or LOKASI are missing, ask for them naturally, one by one.
+5. PROBLEM DETECTION: Always probe for issues (Hama/Kendala) if not mentioned, one by one.
 
 ${sopContent.value ? `### SOP REFERENCES FOR THIS COMPANY ###\n${sopContent.value}\n` : ''}
 
@@ -66,13 +75,11 @@ LANGUAGE: Professional but warm Bahasa Indonesia (Pak/Bu). Expert but humble tea
    * Initialize chat with greeting message
    */
   function initChat() {
-    messages.value = []
-    conversationPhase.value = 'greeting'
-    activities.value = []
-    issues.value = []
-    weather.value = null
-    notes.value = null
-    extractedData.value = null
+    if (!isFirstLoad.value) return // Don't reset if already loaded in this session
+
+    chatStore.resetStore()
+    isFirstLoad.value = false
+
     fetchSOPs()
 
     // Get time-appropriate greeting
@@ -141,9 +148,10 @@ LANGUAGE: Professional but warm Bahasa Indonesia (Pak/Bu). Expert but humble tea
       const response = await callAI(apiMessages)
       const confirmationData = parseConfirmationData(response)
 
-      // Always update extractedData if present, but don't change phase immediately
+      // Always update extractedData if present
       if (confirmationData) {
         extractedData.value = confirmationData
+        conversationPhase.value = 'confirmation' // Set to confirmation phase so UI can catch 'ya/ok'
       }
 
       // Remove the confirmation block and JSON from the display response
@@ -237,13 +245,13 @@ LANGUAGE: Professional but warm Bahasa Indonesia (Pak/Bu). Expert but humble tea
         ? `Siap Pak! Saya bantu catat: ${reportProgress.join(', ')}. `
         : `Sip Pak, kegiatannya sudah saya pantau. `
 
-      // Proactive SOP / Mission Critical Checks
+      // 1. Weather Check (Priority)
       if (!weather.value) {
         addMessage('assistant', ack + "Oh iya Pak, cuaca di sana gimana sekarang? Aman buat lanjut?")
         return
       }
 
-      // Check if fertilizer was mentioned
+      // 2. SOP Check (Mission Critical)
       const fertilizationMentioned = activities.value.some(a => a.toLowerCase().includes('pupuk') || a.toLowerCase().includes('mupuk'))
       const hasConfirmedValue = msg.includes('50g') || msg.includes('gram') || msg.includes('iyo') || msg.includes(' ya') || msg === 'ya' || msg.includes('sudah')
 
@@ -252,7 +260,7 @@ LANGUAGE: Professional but warm Bahasa Indonesia (Pak/Bu). Expert but humble tea
         return
       }
 
-      // Probe for problems if not mentioned
+      // 3. Problem Probe
       const isNegativeConfirmation = msg.includes('aman') || msg.includes('tidak') || msg.includes('gaada') || msg.includes('ngga') || msg.includes('gak ada') || msg.includes('iyo')
 
       if (issues.value.length === 0 && !isNegativeConfirmation) {

@@ -7,6 +7,8 @@ export const useReportsStore = defineStore('reports', () => {
     const authStore = useAuthStore()
     // State
     const dailyReports = ref([])
+    const consolidatedPeriods = ref([])
+    const reportHistory = ref([])
     const loading = ref(false)
     const error = ref(null)
     const selectedCompany = ref('all')
@@ -151,13 +153,232 @@ export const useReportsStore = defineStore('reports', () => {
         selectedCompany.value = company
     }
 
+    /**
+     * Consolidate raw finance docs into periods (Moved from FinancialReportsView.vue)
+     */
+    async function consolidateFinanceData(rawData, forceRefresh = false, periodType = 'monthly') {
+        if (consolidatedPeriods.value.length > 0 && !forceRefresh) return consolidatedPeriods.value
+
+        loading.value = true
+        try {
+            const { groupChunksToDocuments, parseRefNumber } = await import('@/utils/financialUtils')
+            const { aiService } = await import('@/services/ai')
+
+            const buckets = []
+            const companyGroups = {}
+
+            rawData.forEach(r => {
+                const cName = r.company_name || 'Unknown'
+                if (!companyGroups[cName]) companyGroups[cName] = []
+                companyGroups[cName].push(r)
+            })
+
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+
+            for (const company of Object.keys(companyGroups)) {
+                const companyData = companyGroups[company]
+                const monthlyBuckets = {}
+
+                companyData.forEach(r => {
+                    const date = new Date(r.metadata?.date || r.created_at)
+                    const year = date.getFullYear()
+                    const month = date.getMonth()
+                    const key = `${year}-${String(month + 1).padStart(2, '0')}`
+
+                    if (!monthlyBuckets[key]) {
+                        monthlyBuckets[key] = { year, month, reports: [] }
+                    }
+                    monthlyBuckets[key].reports.push(r)
+                })
+
+                for (const [key, meta] of Object.entries(monthlyBuckets)) {
+                    const uniqueDocs = groupChunksToDocuments(meta.reports)
+                    const revenue = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.revenue), 0)
+                    const expenses = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.expenses), 0)
+                    const explicitNet = uniqueDocs.reduce((acc, r) => acc + parseRefNumber(r.metadata?.netProfit), 0)
+
+                    const firstDay = new Date(meta.year, meta.month, 1)
+                    const lastDay = new Date(meta.year, meta.month + 1, 0)
+                    const daysInMonth = lastDay.getDate()
+
+                    const trend = new Array(daysInMonth).fill(0)
+                    meta.reports.forEach(r => {
+                        const rDate = new Date(r.metadata?.date || r.created_at)
+                        if (rDate.getFullYear() === meta.year && rDate.getMonth() === meta.month) {
+                            const dayIdx = rDate.getDate() - 1
+                            if (dayIdx >= 0 && dayIdx < daysInMonth) {
+                                const net = parseRefNumber(r.metadata?.netProfit) || (parseRefNumber(r.metadata?.revenue) - parseRefNumber(r.metadata?.expenses))
+                                trend[dayIdx] += net
+                            }
+                        }
+                    })
+
+                    buckets.push({
+                        id: `${company}_${key}`,
+                        company,
+                        startDate: firstDay.toISOString().split('T')[0],
+                        endDate: lastDay.toISOString().split('T')[0],
+                        label: `${monthNames[meta.month]} ${meta.year}`,
+                        reports: uniqueDocs,
+                        chunkCount: meta.reports.length,
+                        revenue,
+                        expenses,
+                        netProfit: explicitNet || (revenue - expenses),
+                        dailyTrend: trend,
+                        aiSummary: null,
+                        isNormalizing: false,
+                        isNormalized: uniqueDocs.every(d => d.metadata.is_ai_normalized)
+                    })
+                }
+            }
+
+            buckets.sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+
+            // --- NEW: Load saved AI Summaries and Standardized Data in parallel ---
+            const { supabase, TABLES } = await import('@/services/supabase')
+
+            // 1. Get all report IDs for bulk financial data pre-loading
+            const allReportIds = buckets.flatMap(b => b.reports.map(r => String(r.id)))
+            let standardizedMap = {}
+
+            if (allReportIds.length > 0) {
+                const { data: stdData } = await supabase
+                    .from(TABLES.STANDARDIZED_FINANCIALS)
+                    .select('*')
+                    .in('source_id', allReportIds)
+
+                if (stdData) {
+                    stdData.forEach(s => { standardizedMap[s.source_id] = s })
+                }
+            }
+
+            // 2. Load summaries and merge standardized data
+            const summaryPromises = buckets.map(async (bucket) => {
+                // Determine company UUID
+                const config = COMPANY_TABLES[bucket.company]
+                const companyId = config?.id || null
+
+                // Fetch Summary with strict company filtering
+                let query = supabase
+                    .from('financial_period_summaries')
+                    .select('summary_text')
+                    .eq('start_date', bucket.startDate)
+                    .eq('end_date', bucket.endDate)
+                    .eq('period_type', periodType)
+
+                if (companyId) {
+                    query = query.eq('company_id', companyId)
+                } else {
+                    query = query.is('company_id', null)
+                }
+
+                const { data: summaryData } = await query.maybeSingle()
+                if (summaryData) bucket.aiSummary = summaryData.summary_text
+
+                // Merge pre-loaded standardized data into bucket reports
+                let totalRev = 0
+                let totalExp = 0
+                let totalNet = 0
+                let normalizedCount = 0
+
+                bucket.reports.forEach(report => {
+                    const cached = standardizedMap[String(report.id)]
+                    if (cached) {
+                        report.metadata.revenue = parseFloat(cached.revenue)
+                        report.metadata.expenses = parseFloat(cached.expenses)
+                        report.metadata.netProfit = parseFloat(cached.net_profit)
+                        report.metadata.aiReasoning = cached.ai_reasoning
+                        report.metadata.is_ai_normalized = true
+
+                        totalRev += report.metadata.revenue
+                        totalExp += report.metadata.expenses
+                        totalNet += report.metadata.netProfit
+                        normalizedCount++
+                    }
+                })
+
+                // If some reports were pre-normalized, update the bucket totals
+                if (normalizedCount > 0) {
+                    bucket.revenue = totalRev
+                    bucket.expenses = totalExp
+                    bucket.netProfit = totalNet
+                    bucket.isNormalized = normalizedCount === bucket.reports.length
+                }
+            })
+
+            await Promise.allSettled(summaryPromises)
+
+            consolidatedPeriods.value = buckets
+            return buckets
+        } catch (err) {
+            console.error('Consolidation failed:', err)
+            return []
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Fetch report history for a specific user (Farmer perspective)
+     */
+    async function fetchReportHistory(limit = 20) {
+        if (reportHistory.value.length > 0) return reportHistory.value
+
+        loading.value = true
+        try {
+            const { getReportHistory } = await import('@/composables/useSupabaseReports')
+            const data = await getReportHistory(limit)
+            if (data) reportHistory.value = data
+            return reportHistory.value
+        } catch (err) {
+            console.error('Failed to fetch history:', err)
+            return []
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Delete a report and update local state
+     */
+    async function deleteReport(reportId, companyName) {
+        loading.value = true
+        try {
+            const { useSupabaseReports } = await import('@/composables/useSupabaseReports')
+            const { deleteDailyReport } = useSupabaseReports()
+
+            const result = await deleteDailyReport(reportId, companyName)
+
+            if (result.success) {
+                // Remove from dailyReports
+                dailyReports.value = dailyReports.value.filter(r => r.id !== reportId)
+                // Remove from history
+                reportHistory.value = reportHistory.value.filter(r => r.id !== reportId)
+                return true
+            }
+            return false
+        } catch (err) {
+            console.error('Store: Failed to delete report:', err)
+            error.value = err.message
+            return false
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         dailyReports,
+        consolidatedPeriods,
+        reportHistory,
         loading,
         error,
         selectedCompany,
         fetchAllDailyReports,
+        fetchFinanceDocs,
+        fetchReportHistory,
+        consolidateFinanceData,
         getReportStats,
-        setSelectedCompany
+        setSelectedCompany,
+        deleteReport
     }
 })

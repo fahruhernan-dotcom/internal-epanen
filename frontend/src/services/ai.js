@@ -132,6 +132,23 @@ export class AIService {
 
         try {
             const { supabase, TABLES } = await import('./supabase')
+
+            // First, check if record exists for this EXACT company/period/type
+            let query = supabase
+                .from(TABLES.PERIOD_SUMMARIES)
+                .select('id')
+                .eq('start_date', metadata.startDate)
+                .eq('end_date', metadata.endDate)
+                .eq('period_type', metadata.periodType || 'custom')
+
+            if (metadata.companyId) {
+                query = query.eq('company_id', metadata.companyId)
+            } else {
+                query = query.is('company_id', null)
+            }
+
+            const { data: existing } = await query.limit(1).maybeSingle()
+
             const payload = {
                 start_date: metadata.startDate,
                 end_date: metadata.endDate,
@@ -147,14 +164,24 @@ export class AIService {
                 }
             }
 
-            const { error } = await supabase
-                .from(TABLES.PERIOD_SUMMARIES)
-                .upsert(payload, {
-                    onConflict: 'start_date,end_date,period_type,company_id'
-                })
+            let error
+            if (existing) {
+                // Update existing record
+                const result = await supabase
+                    .from(TABLES.PERIOD_SUMMARIES)
+                    .update(payload)
+                    .eq('id', existing.id)
+                error = result.error
+            } else {
+                // Insert new record
+                const result = await supabase
+                    .from(TABLES.PERIOD_SUMMARIES)
+                    .insert(payload)
+                error = result.error
+            }
 
             if (error) throw error
-            console.log('AI Summary upserted to DB')
+            console.log('AI Summary saved to DB')
         } catch (err) {
             console.error('Failed to save summary to DB:', err.message || err)
         }

@@ -339,11 +339,16 @@ function handleRoleChange() {
   if (formData.value.role === 'admin') {
     formData.value.company_id = ''
   } 
-  // Automatically select 'Holding' company for Owner
+  // Automatically select 'Owner' company for Owner role
   else if (formData.value.role === 'owner') {
-    const holdingCompany = companies.value.find(c => c.code === 'HD' || c.name.toLowerCase().includes('holding'))
-    if (holdingCompany) {
-      formData.value.company_id = holdingCompany.id
+    // Try to find the company with code 'Owner' or name 'Owner'
+    // Fallback to the known hardcoded ID if not found in reactive list
+    const ownerCompany = companies.value.find(c => c.code === 'Owner' || c.name === 'Owner')
+    if (ownerCompany) {
+      formData.value.company_id = ownerCompany.id
+    } else {
+      // Direct assignment as backup
+      formData.value.company_id = 'fef23b03-fe98-4a56-9ebc-64e1d21845fb'
     }
   }
 }

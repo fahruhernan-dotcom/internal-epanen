@@ -11,6 +11,12 @@
           </option>
         </select>
       </div>
+      <div class="filter-group" v-else-if="authStore.user?.companies?.name">
+        <label class="form-label">Perusahaan</label>
+        <div class="company-badge-static">
+          🏢 {{ authStore.user.companies.name }}
+        </div>
+      </div>
 
       <!-- Period Tabs -->
       <div class="period-tabs-container">
@@ -83,30 +89,54 @@
               v-for="report in reportsStore.dailyReports" 
               :key="report.id"
               @click="showReportDetail(report)"
-              class="clickable-row"
+              class="clickable-row rich-row"
             >
-              <td>
-                <strong>{{ formatDate(report.report_date) }}</strong>
+              <td class="col-date">
+                <div class="flex flex-col">
+                  <span class="day-label">{{ getRelativeDate(report.report_date) }}</span>
+                  <span class="date-sub">{{ formatDateShort(report.report_date) }}</span>
+                </div>
               </td>
-              <td>
-                <span class="badge" :class="getCompanyBadgeClass(report._company)">
+              <td class="col-company">
+                <span class="badge badge-outline" :class="getCompanyBadgeClass(report._company)">
                   {{ report._company }}
                 </span>
               </td>
-              <td>{{ report.user_id || '-' }}</td>
-              <td>{{ truncate(getActivitiesSummary(report.activities), 40) }}</td>
-              <td>
-                <span v-if="hasIssues(report.issues)" class="badge badge-warning">
-                  {{ getIssueCount(report.issues) }} masalah
-                </span>
-                <span v-else class="text-muted">-</span>
+              <td class="col-user">
+                <div class="user-info">
+                  <span class="avatar-mini">👤</span>
+                  <span class="user-name">{{ report.user_id || '-' }}</span>
+                </div>
               </td>
-              <td>
-                <span class="weather-badge">
-                  {{ getWeatherIcon(report.weather) }} {{ report.weather || '-' }}
+              <td class="col-activity">
+                <div class="activity-rich-content">
+                  <span class="activity-main-text">{{ getActivitiesSummary(report.activities) }}</span>
+                  <p v-if="getActivityDetails(report.activities)" class="activity-snippet">
+                    {{ truncate(getActivityDetails(report.activities), 80) }}
+                  </p>
+                </div>
+              </td>
+              <td class="col-issues">
+                <div v-if="hasIssues(report.issues)" class="issue-rich-content">
+                  <span class="badge badge-warning mb-xs">
+                    {{ getIssueCount(report.issues) }} Masalah
+                  </span>
+                  <p class="issue-snippet">{{ truncate(getIssuePreview(report.issues), 60) }}</p>
+                </div>
+                <span v-else class="text-success text-sm font-semibold">✓ Aman</span>
+              </td>
+              <td class="col-weather">
+                <span class="weather-badge-rich" :title="report.weather">
+                  <span class="weather-icon-lg">{{ getWeatherIcon(report.weather) }}</span>
+                  <span class="weather-text-sm">{{ report.weather || '-' }}</span>
                 </span>
               </td>
-              <td>{{ truncate(report.notes, 30) || '-' }}</td>
+              <td class="col-notes">
+                <span class="notes-preview" v-if="report.notes">
+                  {{ truncate(report.notes, 40) }}
+                </span>
+                <span v-else class="text-muted italic text-xs">Tidak ada catatan</span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -114,56 +144,20 @@
     </div>
 
     <!-- Report Detail Modal -->
-    <div v-if="selectedReport" class="modal-overlay" @click.self="selectedReport = null">
-      <div class="modal-content card">
-        <div class="modal-header">
-          <h3>Detail Laporan</h3>
-          <button class="btn-close" @click="selectedReport = null">✕</button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="detail-row">
-            <span class="detail-label">Tanggal:</span>
-            <span class="detail-value">{{ formatDate(selectedReport.report_date) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Perusahaan:</span>
-            <span class="detail-value">{{ selectedReport._company }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Pelapor:</span>
-            <span class="detail-value">{{ selectedReport.user_id || '-' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Cuaca:</span>
-            <span class="detail-value">{{ selectedReport.weather || '-' }}</span>
-          </div>
-          
-          <div class="detail-section">
-            <h4>Aktivitas</h4>
-            <pre class="detail-json">{{ formatJSON(selectedReport.activities) }}</pre>
-          </div>
-          
-          <div class="detail-section">
-            <h4>Masalah</h4>
-            <pre class="detail-json">{{ formatJSON(selectedReport.issues) }}</pre>
-          </div>
-          
-          <div class="detail-section">
-            <h4>Catatan</h4>
-            <p>{{ selectedReport.notes || 'Tidak ada catatan' }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ReportDetailModal 
+      :report="selectedReport" 
+      @close="selectedReport = null" 
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { useReportsStore } from '@/stores/reports'
 import { useAuthStore } from '@/stores/auth'
 import { COMPANY_TABLES } from '@/services/supabase'
+
+const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
 
 const reportsStore = useReportsStore()
 const authStore = useAuthStore()
@@ -228,16 +222,42 @@ function formatDate(dateStr) {
   })
 }
 
+function formatDateShort(dateStr) {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short'
+  })
+}
+
+function getRelativeDate(dateStr) {
+    if (!dateStr) return '-'
+    const date = new Date(dateStr)
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(today.getDate() - 1)
+    
+    if (date.toDateString() === today.toDateString()) return 'Hari Ini'
+    if (date.toDateString() === yesterday.toDateString()) return 'Kemarin'
+    
+    return date.toLocaleDateString('id-ID', { weekday: 'long' })
+}
+
 function truncate(text, length) {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
 }
 
 function getActivitiesSummary(activities) {
-  if (!activities) return '-'
+  if (!activities) return 'Laporan Tanpa Judul'
   if (typeof activities === 'string') return activities
   if (activities.summary) return activities.summary
-  return JSON.stringify(activities).replace(/[{}"]/g, '').substring(0, 80)
+  return 'Aktivitas Harian'
+}
+
+function getActivityDetails(activities) {
+    if (!activities || typeof activities === 'string') return null
+    return activities.details || null
 }
 
 function hasIssues(issues) {
@@ -249,7 +269,22 @@ function hasIssues(issues) {
 
 function getIssueCount(issues) {
   if (Array.isArray(issues)) return issues.length
+  if (typeof issues === 'object') return Object.keys(issues).length
   return 1
+}
+
+function getIssuePreview(issues) {
+    if (!issues) return ''
+    if (Array.isArray(issues) && issues.length > 0) {
+        const first = issues[0]
+        return typeof first === 'string' ? first : (first.description || first.content || '')
+    }
+    if (typeof issues === 'object') {
+        const first = Object.values(issues)[0]
+        if (typeof first === 'string') return first
+        return first?.description || first?.content || ''
+    }
+    return String(issues)
 }
 
 function getWeatherIcon(weather) {
@@ -286,6 +321,8 @@ function showReportDetail(report) {
   selectedReport.value = report
 }
 
+// Redundant normalizeIssues helper removed
+
 async function loadReports() {
   const { start, end } = calculateDateRange()
   
@@ -302,6 +339,14 @@ onMounted(() => {
     customEndDate.value = today.toISOString().split('T')[0]
     today.setDate(today.getDate() - 7)
     customStartDate.value = today.toISOString().split('T')[0]
+
+    // Set initial company based on user role
+    if (!authStore.isAdmin && !authStore.isOwner) {
+        const userCompany = authStore.user?.companies?.name
+        if (userCompany) {
+            selectedCompany.value = userCompany
+        }
+    }
     
     loadReports()
 })
@@ -338,6 +383,18 @@ onMounted(() => {
 }
 
 .tab-btn.active { background: var(--bg-primary); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
+
+.company-badge-static {
+    padding: 8px 16px;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    border: 1px solid var(--primary-100);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
 
 .flex-spacer { flex: 1; }
 
@@ -409,112 +466,127 @@ onMounted(() => {
   font-size: 0.875rem;
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: var(--space-lg);
+
+/* Rich Table Styles */
+.rich-row {
+  border-bottom: 8px solid transparent; /* Spacing between rows */
+  background-clip: padding-box;
 }
 
-.modal-content {
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
+.rich-row td {
+  padding: var(--space-lg) var(--space-md);
+  vertical-align: top;
 }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.modal-header h3 {
-  margin: 0;
-}
-
-.btn-close {
+.rich-row:hover {
   background: var(--bg-tertiary);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
+  transform: scale(1.002);
 }
 
-.btn-close:hover {
-  background: var(--error);
-  color: white;
+.day-label {
+    display: block;
+    font-weight: 700;
+    color: var(--primary-600);
+    font-size: 0.95rem;
 }
 
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+.date-sub {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
 }
 
-.detail-row {
-  display: flex;
-  gap: var(--space-md);
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
 }
 
-.detail-label {
-  font-weight: 500;
-  color: var(--text-secondary);
-  min-width: 100px;
+.avatar-mini {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border-radius: 50%;
+    font-size: 0.75rem;
 }
 
-.detail-value {
-  color: var(--text-primary);
+.user-name {
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 
-.detail-section {
-  margin-top: var(--space-md);
-}
-
-.detail-section h4 {
-  font-size: 0.875rem;
-  margin-bottom: var(--space-sm);
-  color: var(--text-secondary);
-}
-
-.detail-json {
-  background: var(--bg-tertiary);
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
-  font-family: monospace;
-  font-size: 0.8rem;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .filters-bar {
+.activity-rich-content {
+    display: flex;
     flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .filter-group {
-    width: 100%;
-  }
-  
-  .period-tabs {
-    overflow-x: auto;
-  }
+    gap: 4px;
+}
+
+.activity-main-text {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.activity-snippet {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.issue-rich-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.issue-snippet {
+    font-size: 0.8rem;
+    color: var(--error);
+    margin: 0;
+    font-style: italic;
+}
+
+.weather-badge-rich {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg-tertiary);
+    padding: 6px 12px;
+    border-radius: var(--radius-lg);
+    min-width: 60px;
+}
+
+.weather-icon-lg {
+    font-size: 1.25rem;
+}
+
+.weather-text-sm {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+}
+
+.notes-preview {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    display: block;
+}
+
+.badge-outline {
+    background: transparent !important;
+    border: 1px solid currentColor;
+}
+
+.mb-xs { margin-bottom: 4px; }
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .col-notes { display: none; }
+  .col-weather { display: none; }
 }
 </style>

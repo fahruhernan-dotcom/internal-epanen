@@ -77,10 +77,9 @@
       </div>
     </div>
 
-    <!-- Company Cards Section -->
     <div class="mt-xl">
       <div class="flex justify-between items-center mb-md">
-        <h3 class="section-title">Ringkasan Perusahaan</h3>
+        <h3 class="section-title">{{ authStore.isAdmin || authStore.isOwner ? 'Ringkasan Perusahaan' : 'Perusahaan Saya' }}</h3>
         <span v-if="authStore.isAdmin || authStore.isOwner" class="badge badge-info">Master Access Control</span>
       </div>
       
@@ -96,10 +95,18 @@
         </template>
         <template v-else>
           <div 
-            v-for="(data, company) in Object.fromEntries(Object.entries(stats?.byCompany || {}).filter(([k]) => k !== 'Owner'))" 
+            v-for="(data, company) in Object.fromEntries(Object.entries(stats?.byCompany || {}).filter(([k]) => {
+              // Hide 'Owner' company from grid
+              if (k === 'Owner') return false;
+              // If CEO/Farmer, only show their own company
+              if (!authStore.isAdmin && !authStore.isOwner) {
+                return k === authStore.user?.companies?.name;
+              }
+              return true;
+            }))" 
             :key="company"
             class="company-card card glass-premium"
-            :class="{ 'no-click': !authStore.isOwner && !authStore.isAdmin }"
+            :class="{ 'single-company': !authStore.isOwner && !authStore.isAdmin, 'no-click': !authStore.isOwner && !authStore.isAdmin }"
             @click="goToCompany(company)"
           >
             <div class="company-header">
@@ -156,7 +163,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="report in recentReports" :key="report.id">
+              <tr 
+                v-for="report in recentReports" 
+                :key="report.id"
+                @click="showReportDetail(report)"
+                class="clickable-row"
+              >
                 <td>{{ formatDate(report.report_date) }}</td>
                 <td>
                   <span class="badge" :class="getCompanyBadgeClass(report._company)">{{ report._company }}</span>
@@ -179,17 +191,25 @@
         </div>
       </div>
     </div>
+
+    <!-- Report Detail Modal -->
+    <ReportDetailModal 
+      :report="selectedReport" 
+      @close="selectedReport = null" 
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useReportsStore } from '@/stores/reports'
 import { useAuthStore } from '@/stores/auth'
 import { COMPANY_TABLES, supabase } from '@/services/supabase'
 import { aiService } from '@/services/ai'
 import { groupChunksToDocuments, parseRefNumber } from '@/utils/financialUtils'
+
+const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
 
 const router = useRouter()
 const route = useRoute()
@@ -206,6 +226,7 @@ const stats = ref({
   byCompany: {}
 })
 const recentReports = ref([])
+const selectedReport = ref(null)
 
 const roleLabel = computed(() => {
   const roles = {
@@ -280,6 +301,10 @@ function goToCompany(companyName) {
   }
 }
 
+function showReportDetail(report) {
+  selectedReport.value = report
+}
+
 async function generateAutoInsight() {
   aiLoading.value = true
   try {
@@ -300,13 +325,18 @@ async function generateAutoInsight() {
         // Let's use the unified view for simplicity and accuracy.
 
     
-    // Fetch from Unified View 'v_all_finance_docs' (defined in services/supabase.js as ALL_FINANCE_DOCS logic ideally)
-    // But since we don't have a direct helper for it here, let's use supabase direct.
-    
-    const { data: unifiedData } = await supabase
+    // Fetch from Unified View 'v_all_finance_docs'
+    let query = supabase
       .from('v_all_finance_docs')
       .select('*')
-      .gte('created_at', firstDay) // Optimistic filter, metadata.date is better but requires raw check
+      .gte('created_at', firstDay)
+
+    // Role-based filtering for AI Insight
+    if (!authStore.isAdmin && !authStore.isOwner && authStore.user?.company_id) {
+        query = query.eq('company_id', authStore.user.company_id)
+    }
+      
+    const { data: unifiedData } = await query
       
     if (unifiedData) {
         // Apply Smart Grouping to fix "10 chunks vs 1 doc" and extract financial usage
@@ -463,6 +493,10 @@ onMounted(async () => {
   transform: none !important;
   box-shadow: none !important;
   border-color: var(--border-color) !important;
+}
+
+.company-card.single-company {
+  max-width: 400px;
 }
 
 .company-card.no-click .view-more {

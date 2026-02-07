@@ -24,64 +24,66 @@
 
       <!-- Fallback if not using router-view for tabs yet, though we are switching to components based on activeTab -->
       <transition name="slide-fade" mode="out-in">
-        <div :key="activeTab" class="content-container">
-          <!-- Tab: Home (Report Form) -->
-          <div v-if="activeTab === 'home'">
-            <FarmerReportForm />
-          </div>
+        <KeepAlive :max="5">
+          <div :key="activeTab" class="content-container">
+            <!-- Tab: Home (Report Form) -->
+            <div v-if="activeTab === 'home'">
+              <FarmerReportForm />
+            </div>
 
-          <!-- Tab: AI Chat -->
-          <div v-else-if="activeTab === 'ai'">
-            <FarmerChatView :embedded="true" />
-          </div>
+            <!-- Tab: AI Chat -->
+            <div v-else-if="activeTab === 'ai'">
+              <FarmerChatView :embedded="true" />
+            </div>
 
-          <!-- Tab: History -->
-          <div v-else-if="activeTab === 'history'">
-            <FarmerHistoryList />
-          </div>
+            <!-- Tab: History -->
+            <div v-else-if="activeTab === 'history'">
+              <FarmerHistoryList />
+            </div>
 
-          <!-- Tab: SOP -->
-          <div v-else-if="activeTab === 'sop'">
-            <SOPReferenceView :embedded="true" />
-          </div>
+            <!-- Tab: SOP -->
+            <div v-else-if="activeTab === 'sop'">
+              <SOPReferenceView :embedded="true" />
+            </div>
 
-          <!-- Tab: Profile -->
-          <div v-else-if="activeTab === 'profile'">
-            <div class="profile-card card shadow-xl animate-slide-up">
-              <div class="profile-header">
-                <div class="avatar-gradient">
-                  <span class="avatar-text">{{ userInitials }}</span>
+            <!-- Tab: Profile -->
+            <div v-else-if="activeTab === 'profile'">
+              <div class="profile-card card shadow-xl animate-slide-up">
+                <div class="profile-header">
+                  <div class="avatar-gradient">
+                    <span class="avatar-text">{{ userInitials }}</span>
+                  </div>
+                  <div class="profile-info">
+                    <h3>{{ authStore.user?.full_name || 'Petani' }}</h3>
+                    <p class="text-muted">{{ authStore.user?.role?.toUpperCase() }} • {{ userCompany }}</p>
+                  </div>
                 </div>
-                <div class="profile-info">
-                  <h3>{{ authStore.user?.full_name || 'Petani' }}</h3>
-                  <p class="text-muted">{{ authStore.user?.role?.toUpperCase() }} • {{ userCompany }}</p>
+                
+                <div class="profile-stats">
+                  <div class="stat-box">
+                    <span class="stat-count">24</span>
+                    <span class="stat-meta">Laporan</span>
+                  </div>
+                  <div class="stat-box">
+                    <span class="stat-count">98%</span>
+                    <span class="stat-meta">SOP</span>
+                  </div>
                 </div>
-              </div>
-              
-              <div class="profile-stats">
-                <div class="stat-box">
-                  <span class="stat-count">24</span>
-                  <span class="stat-meta">Laporan</span>
-                </div>
-                <div class="stat-box">
-                  <span class="stat-count">98%</span>
-                  <span class="stat-meta">SOP</span>
-                </div>
-              </div>
 
-              <div class="action-list">
-                <button class="action-item">
-                  <span class="action-icon">⚙️</span>
-                  <span>Pengaturan Akun</span>
-                </button>
-                <button class="action-item text-error" @click="handleLogout">
-                  <span class="action-icon">🚪</span>
-                  <span>Keluar Aplikasi</span>
-                </button>
+                <div class="action-list">
+                  <button class="action-item">
+                    <span class="action-icon">⚙️</span>
+                    <span>Pengaturan Akun</span>
+                  </button>
+                  <button class="action-item text-error" @click="handleLogout">
+                    <span class="action-icon">🚪</span>
+                    <span>Keluar Aplikasi</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </KeepAlive>
       </transition>
     </main>
 
@@ -134,7 +136,7 @@ const userInitials = computed(() => {
 const userCompany = computed(() => authStore.user?.companies?.name || 'SmartFarm')
 
 async function handleLogout() {
-  await authStore.signOut()
+  authStore.logout()
   router.push('/login')
 }
 </script>
