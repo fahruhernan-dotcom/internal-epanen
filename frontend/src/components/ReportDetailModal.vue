@@ -74,7 +74,7 @@
                 <div class="issue-header">
                   <span class="issue-severity-badge">{{ (issue.severity || 'Normal').toUpperCase() }}</span>
                 </div>
-                <p class="issue-desc">{{ issue.description || issue.content || issue }}</p>
+                <p class="issue-desc">{{ issue.description || issue.content || issue.notes || issue }}</p>
               </div>
             </div>
             <div v-else class="empty-state-p">
@@ -190,11 +190,49 @@ function hasIssues(issues) {
 
 function normalizeIssues(issues) {
   if (!issues) return []
-  if (Array.isArray(issues)) return issues
-  if (typeof issues === 'object') {
-    if (issues.description || issues.content) return [issues]
-    return Object.values(issues)
+  
+  // 1. Handle String (JSON or Plain Text)
+  if (typeof issues === 'string') {
+    const trimmed = issues.trim()
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(issues)
+        return normalizeIssues(parsed) // Recursively normalize
+      } catch (e) {
+        // Not valid JSON, treat as plain text
+        return [{ description: issues, severity: 'low' }]
+      }
+    }
+    return [{ description: issues, severity: 'low' }]
   }
+
+  // 2. Handle Array
+  if (Array.isArray(issues)) {
+    return issues.map(i => {
+      if (typeof i === 'string') return { description: i, severity: 'low' }
+      return {
+        description: i.description || i.content || i.notes || JSON.stringify(i),
+        severity: (i.severity || 'low').toLowerCase(),
+        status: (i.status || 'ongoing').toLowerCase()
+      }
+    })
+  }
+
+  // 3. Handle Object
+  if (typeof issues === 'object') {
+    // Check if it's a single issue object
+    const desc = issues.description || issues.content || issues.notes
+    if (desc) {
+      return [{
+        description: desc,
+        severity: (issues.severity || 'low').toLowerCase(),
+        status: (issues.status || 'ongoing').toLowerCase()
+      }]
+    }
+    // Fallback: try to use values if it's a map of issues
+    return Object.values(issues).flatMap(v => normalizeIssues(v))
+  }
+  
   return [{ description: String(issues), severity: 'low' }]
 }
 

@@ -47,12 +47,6 @@ const routes = [
                 meta: { roles: ['farmer', 'owner', 'admin'] }
             },
             {
-                path: 'submit-report',
-                name: 'CEOSubmit',
-                component: () => import('@/views/CEOSubmitView.vue'),
-                meta: { roles: ['ceo', 'owner', 'admin'] }
-            },
-            {
                 path: 'financial-reports',
                 name: 'FinancialReports',
                 component: () => import('@/views/FinancialReportsView.vue'),

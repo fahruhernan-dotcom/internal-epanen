@@ -120,7 +120,7 @@
                             <thead>
                                 <tr>
                                     <th>Kategori</th>
-                                    <th>Nilai</th>
+                                    <th>Nilai / Status</th>
                                     <th>Analisa Audit AI</th>
                                 </tr>
                             </thead>
@@ -131,9 +131,17 @@
                                         <span v-if="item.type === 'minus'" class="l-icon text-danger">⊖</span>
                                         <span v-if="item.type === 'total'" class="l-icon text-primary">∑</span>
                                         <span v-if="item.type === 'status'" class="l-icon">⚖️</span>
+                                        <span v-if="item.type === 'score'" class="l-icon">🩺</span>
                                         <strong>{{ item.label }}</strong>
                                     </td>
-                                    <td class="l-val">{{ item.val !== null ? formatCurrency(item.val) : '-' }}</td>
+                                    <td class="l-val">
+                                        <span v-if="item.type === 'score'" :class="getScoreClass(item.val)">
+                                            {{ item.val }}%
+                                        </span>
+                                        <span v-else>
+                                            {{ item.val !== null ? formatCurrency(item.val) : '-' }}
+                                        </span>
+                                    </td>
                                     <td class="l-note">{{ item.note }}</td>
                                 </tr>
                             </tbody>
@@ -238,8 +246,17 @@ const healthStatus = computed(() => {
 })
 
 function getDocLogic(rep) {
-    const reasoning = rep.metadata?.aiReasoning
+    let reasoning = rep.metadata?.aiReasoning
     if (!reasoning) return []
+    
+    // NEW: Auto-parse JSON string if detected
+    if (typeof reasoning === 'string' && reasoning.trim().startsWith('{')) {
+        try {
+            reasoning = JSON.parse(reasoning)
+        } catch (e) {
+            console.warn('Failed to parse AI reasoning JSON:', e)
+        }
+    }
     
     // If it's the new structured object
     if (typeof reasoning === 'object' && !Array.isArray(reasoning)) {
@@ -256,6 +273,13 @@ function getDocLogic(rep) {
     return [
         { label: 'Analisa Terpadu', val: rep.metadata?.netProfit, type: 'total', note: reasoning }
     ]
+}
+
+function getScoreClass(score) {
+    if (!score) return ''
+    if (score >= 90) return 'text-success'
+    if (score >= 70) return 'text-warning'
+    return 'text-danger'
 }
 
 function formatCurrency(val) {

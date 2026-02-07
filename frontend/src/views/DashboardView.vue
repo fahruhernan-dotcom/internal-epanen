@@ -53,6 +53,19 @@
       </template>
     </div>
 
+    <!-- CEO Quick Actions -->
+    <div v-if="authStore.user?.role === 'ceo'" class="mt-lg animate-slide-up">
+      <div class="card glass-premium p-lg flex justify-between items-center">
+        <div>
+          <h3 class="mb-xs">📂 Submit Laporan Keuangan</h3>
+          <p class="text-muted text-sm">Upload PDF laporan keuangan untuk analisis AI & Embedding RAG.</p>
+        </div>
+        <button @click="openUploadForm" class="btn btn-primary">
+          ✨ Upload PDF Sekarang
+        </button>
+      </div>
+    </div>
+
     <!-- AI Executive Summary Widget -->
     <div v-if="authStore.isAdmin || authStore.isOwner" class="mt-lg animate-slide-up">
       <div class="card glass-premium ai-insight-card">
@@ -211,6 +224,12 @@ import { groupChunksToDocuments, parseRefNumber } from '@/utils/financialUtils'
 
 const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
 
+const DOC_FORMS = {
+    'Lyori': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/72b3dbbe-34c7-48f0-b7de-f2e7c017d519',
+    'moafarm': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/4a20bcf8-ed90-4910-9451-45631fc26fe5',
+    'Kaja': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/ea756b54-6155-4de3-be2a-415bb3cd769e'
+}
+
 const router = useRouter()
 const route = useRoute()
 const reportsStore = useReportsStore()
@@ -303,6 +322,25 @@ function goToCompany(companyName) {
 
 function showReportDetail(report) {
   selectedReport.value = report
+}
+
+function openUploadForm() {
+    const userCompany = authStore.user?.companies?.name
+    if (!userCompany) return
+    
+    // Exact match or contains
+    let url = DOC_FORMS[userCompany]
+    if (!url) {
+        if (userCompany.includes('Lyori')) url = DOC_FORMS['Lyori']
+        if (userCompany.toLowerCase().includes('moafarm')) url = DOC_FORMS['moafarm']
+        if (userCompany.includes('Kaja')) url = DOC_FORMS['Kaja']
+    }
+    
+    if (url) {
+        window.open(url, '_blank')
+    } else {
+        alert('Form upload untuk perusahaan Anda belum tersedia.')
+    }
 }
 
 async function generateAutoInsight() {

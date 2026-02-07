@@ -157,7 +157,10 @@ export const useReportsStore = defineStore('reports', () => {
      * Consolidate raw finance docs into periods (Moved from FinancialReportsView.vue)
      */
     async function consolidateFinanceData(rawData, forceRefresh = false, periodType = 'monthly') {
-        if (consolidatedPeriods.value.length > 0 && !forceRefresh) return consolidatedPeriods.value
+        // Only return cached if no new data provided and not forced
+        if ((!rawData || rawData.length === 0) && consolidatedPeriods.value.length > 0 && !forceRefresh) {
+            return consolidatedPeriods.value
+        }
 
         loading.value = true
         try {
@@ -264,7 +267,7 @@ export const useReportsStore = defineStore('reports', () => {
                     .select('summary_text')
                     .eq('start_date', bucket.startDate)
                     .eq('end_date', bucket.endDate)
-                    .eq('period_type', periodType)
+                    .eq('period_type', 'monthly') // Always 'monthly' for month cards
 
                 if (companyId) {
                     query = query.eq('company_id', companyId)
@@ -326,7 +329,8 @@ export const useReportsStore = defineStore('reports', () => {
 
         loading.value = true
         try {
-            const { getReportHistory } = await import('@/composables/useSupabaseReports')
+            const { useSupabaseReports } = await import('@/composables/useSupabaseReports')
+            const { getReportHistory } = useSupabaseReports()
             const data = await getReportHistory(limit)
             if (data) reportHistory.value = data
             return reportHistory.value

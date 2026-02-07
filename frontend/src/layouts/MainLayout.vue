@@ -76,14 +76,6 @@
           </router-link>
         </template>
 
-        <!-- CEO Actions -->
-        <template v-if="authStore.user?.role === 'ceo'">
-          <div v-if="!sidebarCollapsed" class="nav-section">CEO Actions</div>
-          <router-link to="/submit-report" class="nav-item" :class="{ active: $route.path === '/submit-report' }">
-            <span class="nav-icon">📤</span>
-            <span v-if="!sidebarCollapsed" class="nav-text">Upload Finance</span>
-          </router-link>
-        </template>
 
         <!-- Company Links -->
         <template v-if="['owner', 'admin', 'ceo'].includes(authStore.user?.role)">

@@ -305,9 +305,9 @@ const loadCompanyData = async () => {
 }
 
 const DOC_FORMS = {
-    'Lyori': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/d0a6df0b-84ff-48e7-9eec-914cda1580f1',
-    'moafarm': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/7347fab7-4ffe-4b82-b81d-db4521338ae1',
-    'Kaja': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/c1ece8ff-c967-4845-a85a-c8b4a83ac896'
+    'Lyori': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/72b3dbbe-34c7-48f0-b7de-f2e7c017d519',
+    'moafarm': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/4a20bcf8-ed90-4910-9451-45631fc26fe5',
+    'Kaja': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/ea756b54-6155-4de3-be2a-415bb3cd769e'
 }
 
 const getSubmissionUrl = () => {

@@ -45,7 +45,12 @@
 
       <div class="flex-spacer"></div>
       
-      <button class="btn btn-primary" @click="loadReports">🔄 Refresh Data</button>
+      <button v-if="compAuth.isAdmin || compAuth.isOwner || authStore.user?.role === 'ceo'" 
+        class="btn btn-secondary mr-sm" @click="openUploadForm">
+        📂 Upload PDF Finance
+      </button>
+
+      <button class="btn btn-primary" @click="loadReports(true)">🔄 Refresh Data</button>
       <button v-if="compAuth.isAdmin" class="btn btn-secondary" @click="debugDB">🔍 Debug DB</button>
     </div>
 
@@ -111,11 +116,10 @@ const normalizationStatus = ref({}) // Track AI normalization progress
 
 // Constants
 const periodTypes = [
+    { value: '1year', label: '1 Tahun' },
+    { value: '3months', label: '3 Bulanan' },
+    { value: '2months', label: '2 Bulanan' },
     { value: 'monthly', label: 'Bulanan' },
-    { value: '3weeks', label: '3 Mingguan' },
-    { value: '2weeks', label: '2 Mingguan' },
-    { value: 'weekly', label: 'Mingguan' },
-    { value: 'daily', label: 'Harian' },
     { value: 'custom', label: 'Custom' }
 ]
 
@@ -132,6 +136,42 @@ const companyOptions = computed(() => {
   const userCompany = authStore.user?.companies?.name
   return userCompany ? [userCompany] : []
 })
+
+const DOC_FORMS = {
+    'Lyori': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/72b3dbbe-34c7-48f0-b7de-f2e7c017d519',
+    'moafarm': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/4a20bcf8-ed90-4910-9451-45631fc26fe5',
+    'Kaja': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/ea756b54-6155-4de3-be2a-415bb3cd769e'
+}
+
+function openUploadForm() {
+    // If admin/owner and 'all' is selected, we need to know WHICH company.
+    // For simplicity, if 'all' is selected, we can't open a specific form.
+    let companyName = selectedCompany.value
+    
+    // If it's a CEO, they only have one company anyway
+    if (authStore.user?.role === 'ceo') {
+        companyName = authStore.user?.companies?.name
+    }
+
+    if (!companyName || companyName === 'all') {
+        alert('Silakan pilih salah satu perusahaan terlebih dahulu untuk melakukan upload.')
+        return
+    }
+    
+    // Exact match or contains
+    let url = DOC_FORMS[companyName]
+    if (!url) {
+        if (companyName.includes('Lyori')) url = DOC_FORMS['Lyori']
+        if (companyName.toLowerCase().includes('moafarm')) url = DOC_FORMS['moafarm']
+        if (companyName.includes('Kaja')) url = DOC_FORMS['Kaja']
+    }
+    
+    if (url) {
+        window.open(url, '_blank')
+    } else {
+        alert('Form upload untuk perusahaan ini belum tersedia.')
+    }
+}
 
 // --- Logic ---
 
@@ -176,9 +216,11 @@ async function loadReports(force = false) {
   if (data) {
     await reportsStore.consolidateFinanceData(data, force, selectedPeriodType.value)
     
-    // Auto-normalize periods that aren't yet
+    // Only auto-normalize if not already normalized in this session
     consolidatedPeriods.value.forEach(p => {
-        runAINormalization(p)
+        if (!p.isNormalized) {
+            runAINormalization(p)
+        }
     })
   }
 }
@@ -261,7 +303,7 @@ async function generateInsight(period) {
         const result = await aiService.summarizeFinancialPeriod(period.reports, period.label, {
             startDate: period.startDate,
             endDate: period.endDate,
-            periodType: selectedPeriodType.value,
+            periodType: 'monthly', // HARDCODE: month cards always use monthly index regardless of view tab
             companyId: COMPANY_TABLES[period.company]?.id || null,
             totalRevenue: period.revenue,
             totalExpenses: period.expenses,
@@ -293,16 +335,26 @@ function calculateDateRange(type) {
         }
     }
     
-    // Logic for presets
-    let daysBack = 30 // monthly as default
-    if (type === 'weekly') daysBack = 7
-    if (type === '2weeks') daysBack = 14
-    if (type === '3weeks') daysBack = 21
-    if (type === 'daily') daysBack = 1
+    // Strict calendar-based ranges
+    if (type === 'monthly') {
+        // Start of current month
+        start = new Date(today.getFullYear(), today.getMonth(), 1)
+    } else if (type === '2months') {
+        // Start of previous month (Total 2 calendar months)
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    } else if (type === '3months') {
+        // Start of 2 months ago (Total 3 calendar months)
+        start = new Date(today.getFullYear(), today.getMonth() - 2, 1)
+    } else if (type === '1year') {
+        // Start of 11 months ago (Total 12 calendar months)
+        start = new Date(today.getFullYear(), today.getMonth() - 11, 1)
+    } else {
+        // Fallback to start of current month
+        start = new Date(today.getFullYear(), today.getMonth(), 1)
+    }
     
-    // We fetch a bit more than the period to ensure overlap/consolidation
-    // So if user wants "weekly", we fetch last 14 days etc.
-    start.setDate(today.getDate() - (daysBack * 1.5 + 7))
+    // Set time to start of day for consistency
+    start.setHours(0, 0, 0, 0)
     
     return { 
         start: start.toISOString(), 

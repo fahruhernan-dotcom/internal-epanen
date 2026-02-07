@@ -198,12 +198,17 @@ function calculateDateRange() {
     }
     
     // Logic for presets
-    let daysBack = 7
-    if (selectedPeriodType.value === '2weeks') daysBack = 14
-    if (selectedPeriodType.value === '3weeks') daysBack = 21
-    if (selectedPeriodType.value === 'monthly') daysBack = 30
+    if (selectedPeriodType.value === 'monthly') {
+        // Strict start of month
+        start = new Date(today.getFullYear(), today.getMonth(), 1)
+    } else {
+        let daysBack = 7
+        if (selectedPeriodType.value === '2weeks') daysBack = 14
+        if (selectedPeriodType.value === '3weeks') daysBack = 21
+        start.setDate(today.getDate() - daysBack)
+    }
     
-    start.setDate(today.getDate() - daysBack)
+    start.setHours(0, 0, 0, 0)
     
     return { 
         start: start.toISOString().split('T')[0], 

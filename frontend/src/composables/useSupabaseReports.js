@@ -27,18 +27,20 @@ export function useSupabaseReports() {
       errors.push('Kegiatan tidak boleh kosong')
     }
 
-    // Validate issues array if present
-    if (data.issues && Array.isArray(data.issues)) {
+    // Validate issues array if present - MORE LENIENT
+    if (data.issues && Array.isArray(data.issues) && data.issues.length > 0) {
       data.issues.forEach((issue, index) => {
         const issueText = issue.notes || issue.description || ''
-        if (!issueText || issueText.trim().length === 0) {
-          errors.push(`Masalah #${index + 1} harus memiliki deskripsi`)
-        }
-        if (!['low', 'medium', 'high'].includes(issue.severity)) {
-          errors.push(`Masalah #${index + 1} severity tidak valid`)
-        }
-        if (!['ongoing', 'resolved'].includes(issue.status)) {
-          errors.push(`Masalah #${index + 1} status tidak valid`)
+        if (issueText && issueText.trim().length > 0) {
+          // Only validate severity/status if the issue has text
+          if (issue.severity && !['low', 'medium', 'high', 'Low', 'Medium', 'High', 'LOW', 'MEDIUM', 'HIGH'].includes(issue.severity)) {
+            console.warn(`Issue #${index + 1} severity invalid, defaulting to 'low'`)
+            issue.severity = 'low'
+          }
+          if (issue.status && !['ongoing', 'resolved', 'Ongoing', 'Resolved', 'ONGOING', 'RESOLVED'].includes(issue.status)) {
+            console.warn(`Issue #${index + 1} status invalid, defaulting to 'ongoing'`)
+            issue.status = 'ongoing'
+          }
         }
       })
     }
@@ -88,14 +90,16 @@ export function useSupabaseReports() {
       }
     }
 
-    // Transform issues
+    // Transform issues - normalize severity and status to lowercase
     let issues = null
     if (extractedData.issues && Array.isArray(extractedData.issues) && extractedData.issues.length > 0) {
-      issues = extractedData.issues.map(issue => ({
-        severity: issue.severity || 'low',
-        notes: issue.notes || issue.description || '',
-        status: issue.status || 'ongoing'
-      }))
+      issues = extractedData.issues
+        .filter(issue => issue.notes || issue.description) // Skip empty issues
+        .map(issue => ({
+          severity: (issue.severity || 'low').toString().toLowerCase(),
+          notes: issue.notes || issue.description || '',
+          status: (issue.status || 'ongoing').toString().toLowerCase()
+        }))
     }
 
     return {
