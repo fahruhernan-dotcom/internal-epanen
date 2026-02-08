@@ -15,7 +15,10 @@
         </div>
         <div class="message-meta">
           <span class="time">{{ formatTime(message.timestamp) }}</span>
-          <span v-if="message.role === 'user'" class="read-receipt">✓✓</span>
+          <span v-if="message.role === 'user'" class="read-receipt">
+            <AppIcon name="check-circle-2" :size="12" />
+            <AppIcon name="check-circle-2" :size="12" />
+          </span>
         </div>
       </div>
     </div>
@@ -24,6 +27,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   message: {
@@ -178,14 +182,14 @@ function formatMessage(content) {
   color: var(--text-secondary);
   background: var(--bg-tertiary);
   padding: var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   margin: 0;
 }
 
 .summary-section.technical {
   background: var(--bg-tertiary);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   border: 1px dashed var(--border-color);
   display: grid;
   grid-template-columns: repeat(3, 1fr);

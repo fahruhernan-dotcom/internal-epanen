@@ -19,8 +19,8 @@ onMounted(() => {
 <style>
 #app {
   min-height: 100vh;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: transparent;
+  color: var(--text-main);
   transition: background 0.3s ease, color 0.3s ease;
 }
 </style>

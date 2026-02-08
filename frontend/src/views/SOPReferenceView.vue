@@ -41,7 +41,10 @@
                 <span class="badge badge-success mb-sm">{{ selectedSOP.category }}</span>
                 <h3>{{ selectedSOP.title }}</h3>
               </div>
-              <button class="btn btn-secondary btn-sm" @click="printSOP">🖨️ Cetak</button>
+              <button class="btn btn-secondary btn-sm" @click="printSOP" aria-label="Print SOP">
+                <AppIcon name="printer" :size="16" />
+                <span class="ml-sm">Cetak</span>
+              </button>
             </div>
             <div class="sop-meta mt-sm text-tiny">
               Diterbitkan: {{ selectedSOP.date }} • Penulis: {{ selectedSOP.author }}
@@ -60,7 +63,7 @@
       </div>
       
       <div v-else-if="!embedded" class="empty-state">
-        <span class="empty-icon">📖</span>
+        <AppIcon name="book-open" :size="48" />
         <p>Pilih salah satu SOP di sebelah kiri untuk membaca detailnya.</p>
       </div>
     </div>
@@ -69,6 +72,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
     embedded: { type: Boolean, default: false }
@@ -231,4 +235,6 @@ function printSOP() {
     grid-template-columns: 1fr;
   }
 }
+
+.ml-sm { margin-left: var(--space-sm); }
 </style>

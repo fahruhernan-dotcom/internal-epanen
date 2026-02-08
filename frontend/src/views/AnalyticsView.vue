@@ -96,6 +96,7 @@ import {
   Filler
 } from 'chart.js'
 import { Line, Pie } from 'vue-chartjs'
+import { defaultChartOptions, pieChartOptions, formatCurrency, MONTHS, chartColors } from '@/utils/chartConfig'
 
 ChartJS.register(
   CategoryScale,
@@ -122,7 +123,7 @@ const totalStats = computed(() => {
 })
 
 const chartData = computed(() => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const months = MONTHS
   const revenueByMonth = new Array(12).fill(0)
   const expenseByMonth = new Array(12).fill(0)
 
@@ -155,23 +156,7 @@ const chartData = computed(() => {
   }
 })
 
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { labels: { color: '#94a3b8' } }
-  },
-  scales: {
-    y: {
-      grid: { color: 'rgba(148, 163, 184, 0.1)' },
-      ticks: { color: '#94a3b8' }
-    },
-    x: {
-      grid: { display: false },
-      ticks: { color: '#94a3b8' }
-    }
-  }
-}
+const chartOptions = defaultChartOptions
 
 const pieData = computed(() => ({
   labels: companyStats.value.map(c => c.name),
@@ -183,22 +168,9 @@ const pieData = computed(() => ({
   ]
 }))
 
-const pieOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'bottom',
-      labels: { color: '#94a3b8' }
-    }
-  }
-}
+const pieOptions = pieChartOptions
 
-function formatCurrency(val) {
-  if (!val) return '0'
-  if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M'
-  return val.toLocaleString('id-ID')
-}
+// formatCurrency is now imported from chartConfig
 
 async function fetchFinancialData() {
   loading.value = true

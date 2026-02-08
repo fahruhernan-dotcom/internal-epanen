@@ -305,7 +305,7 @@ onMounted(() => {
   padding: var(--space-md);
   background: var(--bg-tertiary);
   border: 2px solid transparent;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   cursor: pointer;
   transition: all var(--transition-fast);
 }

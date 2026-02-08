@@ -13,21 +13,27 @@
         <!-- Summary Header -->
         <div class="summary-grid mb-lg">
           <div class="summary-item card">
-            <span class="summary-icon">🏢</span>
+            <span class="summary-icon">
+              <AppIcon name="building-2" :size="24" />
+            </span>
             <div class="summary-text">
               <span class="label">Perusahaan</span>
               <span class="value">{{ report._company || report.company_name || 'SmartFarm' }}</span>
             </div>
           </div>
           <div class="summary-item card">
-            <span class="summary-icon">👤</span>
+            <span class="summary-icon">
+              <AppIcon name="user" :size="24" />
+            </span>
             <div class="summary-text">
               <span class="label">Pelapor</span>
               <span class="value">{{ report.user_id || '-' }}</span>
             </div>
           </div>
           <div class="summary-item card">
-            <span class="summary-icon">{{ getWeatherIcon(report.weather) }}</span>
+            <span class="summary-icon">
+              <AppIcon :name="getWeatherIconName(report.weather)" :size="24" />
+            </span>
             <div class="summary-text">
               <span class="label">Cuaca</span>
               <span class="value">{{ report.weather || '-' }}</span>
@@ -38,7 +44,9 @@
         <!-- Activities Section -->
         <div class="detail-section card mb-md">
           <div class="section-header">
-            <span class="section-icon">📝</span>
+            <span class="section-icon">
+              <AppIcon name="file-text" :size="20" />
+            </span>
             <h4>Aktivitas & Pekerjaan</h4>
           </div>
           
@@ -59,7 +67,9 @@
         <!-- Issues Section -->
         <div class="detail-section card mb-md" :class="{ 'has-issues': hasIssues(report.issues) }">
           <div class="section-header">
-            <span class="section-icon">⚠️</span>
+            <span class="section-icon">
+              <AppIcon name="alert-triangle" :size="20" />
+            </span>
             <h4>Kendala & Masalah</h4>
           </div>
           
@@ -78,7 +88,10 @@
               </div>
             </div>
             <div v-else class="empty-state-p">
-              <span class="text-success">✅ Tidak ada kendala atau hama yang dilaporkan.</span>
+              <span class="text-success">
+                <AppIcon name="check-circle" :size="16" />
+                <span class="ml-sm">Tidak ada kendala atau hama yang dilaporkan.</span>
+              </span>
             </div>
           </div>
         </div>
@@ -86,7 +99,9 @@
         <!-- Notes Section -->
         <div class="detail-section card">
           <div class="section-header">
-            <span class="section-icon">📒</span>
+            <span class="section-icon">
+              <AppIcon name="book" :size="20" />
+            </span>
             <h4>Catatan Tambahan</h4>
           </div>
           <p class="notes-text">{{ report.notes || 'Tidak ada catatan tambahan.' }}</p>
@@ -95,13 +110,16 @@
       
       <div class="modal-footer">
         <div class="flex gap-md w-full">
-          <button 
-            v-if="canDelete" 
-            class="btn btn-outline-danger" 
+          <button
+            v-if="canDelete"
+            class="btn btn-outline-danger"
             :disabled="isDeleting"
             @click="handleDelete"
+            aria-label="Delete report"
           >
-            {{ isDeleting ? 'Menghapus...' : '🗑️ Hapus Laporan' }}
+            {{ isDeleting ? 'Menghapus...' : '' }}
+            <AppIcon v-if="!isDeleting" name="trash-2" :size="16" />
+            <span class="ml-sm">{{ isDeleting ? '' : 'Hapus Laporan' }}</span>
           </button>
           <button class="btn btn-secondary flex-1" @click="$emit('close')">Tutup</button>
         </div>
@@ -114,6 +132,7 @@
 import { ref, computed } from 'vue'
 import { useReportsStore } from '@/stores/reports'
 import { useAuthStore } from '@/stores/auth'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   report: {
@@ -171,14 +190,14 @@ function formatDate(dateStr) {
   })
 }
 
-function getWeatherIcon(weather) {
-  if (!weather) return '🌡️'
+function getWeatherIconName(weather) {
+  if (!weather) return 'thermometer'
   const w = weather.toLowerCase()
-  if (w.includes('rain') || w.includes('hujan')) return '🌧️'
-  if (w.includes('cloud') || w.includes('mendung')) return '☁️'
-  if (w.includes('hot') || w.includes('panas')) return '☀️'
-  if (w.includes('clear') || w.includes('cerah')) return '🌤️'
-  return '🌡️'
+  if (w.includes('rain') || w.includes('hujan')) return 'cloud-rain'
+  if (w.includes('cloud') || w.includes('mendung')) return 'cloud'
+  if (w.includes('hot') || w.includes('panas')) return 'sun'
+  if (w.includes('clear') || w.includes('cerah')) return 'cloud-sun'
+  return 'thermometer'
 }
 
 function hasIssues(issues) {
@@ -341,7 +360,7 @@ function formatJSON(data) {
 
 .issue-card {
   padding: var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   border-left: 4px solid var(--text-tertiary);
   background: var(--bg-tertiary);
 }
@@ -402,4 +421,6 @@ function formatJSON(data) {
   .summary-grid { grid-template-columns: 1fr; }
   .modal-content { max-height: 100vh; border-radius: 0; }
 }
+
+.ml-sm { margin-left: var(--space-sm); }
 </style>

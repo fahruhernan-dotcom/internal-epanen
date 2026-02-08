@@ -346,7 +346,7 @@ onMounted(() => loadDraft())
   padding: var(--space-md) var(--space-xs);
   background: var(--bg-tertiary);
   border: 2px solid transparent;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -391,7 +391,7 @@ onMounted(() => loadDraft())
   padding: var(--space-md);
   background: var(--bg-tertiary);
   border: 1px solid transparent;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.2s;
@@ -409,7 +409,7 @@ onMounted(() => loadDraft())
   margin-top: var(--space-md);
   padding: var(--space-md);
   background: var(--bg-tertiary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   border: 1px dashed var(--border-color);
 }
 
@@ -565,7 +565,7 @@ onMounted(() => loadDraft())
 
 .status-toast {
   padding: var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   display: flex;
   align-items: center;
   gap: var(--space-sm);

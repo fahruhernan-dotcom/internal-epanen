@@ -1,47 +1,78 @@
 <template>
-  <div class="admin-page animate-fade-in">
-    <!-- Header -->
-    <div class="page-header">
+  <div class="admin-page animate-fade-in-up">
+    <!-- Header Section -->
+    <div class="page-header mb-2xl">
       <div>
-        <h2>Website Administration</h2>
-        <p class="text-muted">Manage all users, companies, and system settings</p>
+        <h2 class="text-gradient-emerald text-3xl font-bold mb-xs">Administrasi Sistem</h2>
+        <p class="text-muted">Kelola pengguna, akses role, dan konfigurasi sistem ekosistem.</p>
       </div>
-      <button class="btn btn-primary" @click="openAddModal">
-        ➕ Add New User
+      <button class="btn-primary-new hover-lift" @click="openAddModal" aria-label="Tambah user baru">
+        <AppIcon name="plus" :size="20" />
+        <span class="ml-sm font-semibold">Tambah User Baru</span>
       </button>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="stats-row">
-      <div class="mini-stat card">
-        <span class="stat-value">{{ users.length }}</span>
-        <span class="stat-label">Total Users</span>
+    <!-- Stats Grid -->
+    <div class="stats-grid mb-2xl">
+      <!-- Total Users -->
+      <div class="premium-card stat-card hover-glow">
+        <div class="icon-pod emerald">
+          <AppIcon name="users" :size="24" />
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Total Pengguna</span>
+          <span class="stat-value tabular-nums">{{ users.length }}</span>
+        </div>
       </div>
-      <div class="mini-stat card">
-        <span class="stat-value">{{ usersByRole.admin }}</span>
-        <span class="stat-label">Admins</span>
+
+      <!-- Admins -->
+      <div class="premium-card stat-card hover-glow delay-1">
+        <div class="icon-pod red">
+          <AppIcon name="shield" :size="24" />
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Administrator</span>
+          <span class="stat-value tabular-nums">{{ usersByRole.admin }}</span>
+        </div>
       </div>
-      <div class="mini-stat card">
-        <span class="stat-value">{{ usersByRole.owner }}</span>
-        <span class="stat-label">Owners</span>
+
+      <!-- Owners/CEOs -->
+      <div class="premium-card stat-card hover-glow delay-2">
+        <div class="icon-pod purple">
+          <AppIcon name="briefcase" :size="24" />
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Eksekutif (Owner/CEO)</span>
+          <span class="stat-value tabular-nums">{{ usersByRole.owner + usersByRole.ceo }}</span>
+        </div>
       </div>
-      <div class="mini-stat card">
-        <span class="stat-value">{{ usersByRole.ceo }}</span>
-        <span class="stat-label">CEOs</span>
-      </div>
-      <div class="mini-stat card">
-        <span class="stat-value">{{ usersByRole.farmer }}</span>
-        <span class="stat-label">Farmers</span>
+
+      <!-- Farmers -->
+      <div class="premium-card stat-card hover-glow delay-3">
+        <div class="icon-pod amber">
+          <AppIcon name="sun" :size="24" />
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Petani (Farmers)</span>
+          <span class="stat-value tabular-nums">{{ usersByRole.farmer }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- Users Table -->
-    <div class="card">
-      <div class="card-header">
-        <h3>Daftar User</h3>
-        <div class="filter-group">
-          <select v-model="filterRole" class="form-input">
-            <option value="">All Roles</option>
+    <!-- Users Table Section -->
+    <div class="premium-card overflow-hidden">
+      <div class="card-header-flex p-lg border-b border-glass">
+        <div class="flex items-center gap-md">
+          <div class="icon-box-sm">
+             <AppIcon name="list" :size="18" />
+          </div>
+          <h3 class="font-bold text-lg">Direktori Pengguna</h3>
+        </div>
+        
+        <div class="filter-wrapper">
+          <AppIcon name="filter" :size="16" class="filter-icon" />
+          <select v-model="filterRole" class="elite-select">
+            <option value="">Semua Role</option>
             <option value="admin">Admin</option>
             <option value="owner">Owner</option>
             <option value="ceo">CEO</option>
@@ -50,51 +81,57 @@
         </div>
       </div>
 
-      <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
-        <span>Memuat data...</span>
+      <div v-if="loading" class="p-2xl flex flex-col items-center justify-center text-muted">
+        <div class="spinner-premium mb-md"></div>
+        <span>Menyinkronkan data pengguna...</span>
       </div>
 
-      <div v-else class="table-container">
-        <table class="table">
+      <div v-else class="table-responsive">
+        <table class="elite-table">
           <thead>
             <tr>
-              <th>Nama</th>
-              <th>Nomor Telepon</th>
-              <th>Role</th>
-              <th>Company</th>
+              <th>Identitas Pengguna</th>
+              <th>Kontak</th>
+              <th>Role & Akses</th>
+              <th>Entitas</th>
               <th>Status</th>
-              <th>Aksi</th>
+              <th class="text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id">
+            <tr v-for="user in filteredUsers" :key="user.id" class="hover-row">
               <td>
-                <strong>{{ user.full_name }}</strong>
+                <div class="user-cell">
+                  <div class="avatar-circle">{{ user.full_name.charAt(0).toUpperCase() }}</div>
+                  <span class="font-semibold">{{ user.full_name }}</span>
+                </div>
               </td>
-              <td>{{ formatPhone(user.phone_number) }}</td>
+              <td class="text-sm font-mono text-muted">{{ formatPhone(user.phone_number) }}</td>
               <td>
-                <span class="badge" :class="getRoleBadgeClass(user.role)">
+                <span class="role-badge" :class="user.role">
                   {{ user.role }}
                 </span>
               </td>
-              <td>
-                <span v-if="user.role === 'admin'" class="badge badge-error">Website Admin</span>
-                <span v-else>{{ user.companies?.name || '-' }}</span>
+              <td class="text-sm">
+                <span v-if="user.role === 'admin'" class="text-muted italic">System Global</span>
+                <span v-else class="font-medium text-main">{{ user.companies?.name || '-' }}</span>
               </td>
               <td>
-                <span class="badge" :class="user.is_active ? 'badge-success' : 'badge-error'">
-                  {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
-                </span>
+                <div class="status-indicator">
+                  <span class="status-dot" :class="user.is_active ? 'active' : 'inactive'"></span>
+                  <span class="text-xs font-medium">{{ user.is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                </div>
               </td>
               <td>
-                <div class="action-buttons">
-                  <button class="btn-icon" @click="openEditModal(user)" title="Edit">✏️</button>
-                  <button class="btn-icon" @click="toggleUserStatus(user)" :title="user.is_active ? 'Nonaktifkan' : 'Aktifkan'">
-                    {{ user.is_active ? '🔒' : '🔓' }}
+                <div class="flex items-center justify-end gap-sm">
+                  <button class="action-btn" @click="openEditModal(user)" title="Edit">
+                    <AppIcon name="edit-2" :size="16" />
                   </button>
-                  <button class="btn-icon btn-delete" @click="confirmDeleteUser(user)" title="Hapus User">
-                    🗑️
+                  <button class="action-btn" @click="toggleUserStatus(user)" :title="user.is_active ? 'Nonaktifkan' : 'Aktifkan'">
+                    <AppIcon :name="user.is_active ? 'lock' : 'unlock'" :size="16" />
+                  </button>
+                  <button class="action-btn danger" @click="confirmDeleteUser(user)" title="Hapus Permanen">
+                    <AppIcon name="trash-2" :size="16" />
                   </button>
                 </div>
               </td>
@@ -105,146 +142,159 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-content card">
-        <div class="modal-header">
-          <h3>{{ editingUser ? 'Edit User' : 'Tambah User Baru' }}</h3>
-          <button class="btn-close" @click="closeModal">✕</button>
+    <div v-if="showModal" class="modal-backdrop animate-fade-in" @click.self="closeModal">
+      <div class="premium-card modal-card animate-scale-up">
+        <div class="modal-header border-b border-glass p-lg flex justify-between items-center bg-glass-accent">
+          <h3 class="text-xl font-bold">{{ editingUser ? 'Edit Profil Pengguna' : 'Registrasi User Baru' }}</h3>
+          <button class="close-btn" @click="closeModal">
+            <AppIcon name="x" :size="20" />
+          </button>
         </div>
 
-        <form @submit.prevent="saveUser" class="modal-body">
+        <form @submit.prevent="saveUser" class="p-lg flex flex-col gap-lg">
           <div class="form-group">
-            <label class="form-label">Nama Lengkap *</label>
+            <label class="input-label">Nama Lengkap</label>
             <input 
               type="text" 
               v-model="formData.full_name" 
-              class="form-input" 
-              placeholder="Nama lengkap user"
+              class="elite-input" 
+              placeholder="Contoh: Budi Santoso"
               required
             />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Nomor Telepon *</label>
+            <label class="input-label">Nomor Telepon (WhatsApp)</label>
             <input 
               type="tel" 
               v-model="formData.phone_number" 
-              class="form-input" 
+              class="elite-input" 
               placeholder="628xxxxxxxxxx"
               required
             />
-            <small class="form-hint">Format: 628xxxxxxxxxx (tanpa + atau spasi)</small>
+            <small class="text-xs text-muted mt-xs">Akan digunakan untuk login dan notifikasi WA.</small>
           </div>
 
-          <div class="form-row">
+          <div class="grid grid-cols-2 gap-md">
             <div class="form-group">
-              <label class="form-label">Role *</label>
-              <select v-model="formData.role" class="form-input" required @change="handleRoleChange">
-                <option value="">Select Role</option>
-                <option value="admin">Admin (Website Super-User)</option>
-                <option value="owner">Owner</option>
-                <option value="ceo">CEO</option>
-                <option value="farmer">Farmer</option>
-              </select>
+              <label class="input-label">Role Akses</label>
+              <div class="select-wrapper">
+                <select v-model="formData.role" class="elite-input" required @change="handleRoleChange">
+                  <option value="">Pilih Role...</option>
+                  <option value="admin">⭐ Admin (Super User)</option>
+                  <option value="owner">👔 Owner</option>
+                  <option value="ceo">💼 CEO</option>
+                  <option value="farmer">🌾 Farmer</option>
+                </select>
+                <AppIcon name="chevron-down" :size="16" class="select-icon" />
+              </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">
-                Company *
-                <small v-if="formData.role === 'admin'" class="text-muted">(Not required for Admin)</small>
+              <label class="input-label">
+                Entitas Perusahaan
+                <span v-if="formData.role === 'admin'" class="text-xs text-muted font-normal">(Tidak Perlu)</span>
               </label>
-              <select
-                v-model="formData.company_id"
-                class="form-input"
-                :required="!['admin', 'owner'].includes(formData.role)"
-                :disabled="['admin', 'owner'].includes(formData.role)"
-              >
-                <option value="">Select Company</option>
-                <option v-for="company in companies" :key="company.id" :value="company.id">
-                  {{ company.name }}
-                </option>
-              </select>
-              <small v-if="formData.role !== 'admin' && !formData.company_id" class="form-hint text-error">
-                Company is required for {{ formData.role }} role
-              </small>
+              <div class="select-wrapper">
+                <select
+                  v-model="formData.company_id"
+                  class="elite-input"
+                  :required="!['admin', 'owner'].includes(formData.role)"
+                  :disabled="['admin', 'owner'].includes(formData.role)"
+                >
+                  <option value="">Pilih Perusahaan...</option>
+                  <option v-for="company in companies" :key="company.id" :value="company.id">
+                    {{ company.name }}
+                  </option>
+                </select>
+                <AppIcon name="chevron-down" :size="16" class="select-icon" />
+              </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Password (Sistem Website)</label>
+            <label class="input-label">Password Sistem</label>
             <input 
               type="text" 
               v-model="formData.password" 
-              class="form-input" 
-              placeholder="smartfarm2026"
+              class="elite-input font-mono" 
+              placeholder="Default: smartfarm2026"
             />
-            <small class="form-hint">Kosongkan jika ingin menggunakan default "smartfarm2026"</small>
+             <small class="text-xs text-muted mt-xs">Biarkan kosong untuk menggunakan password default.</small>
           </div>
 
           <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="formData.is_active" />
-              <span>User Aktif</span>
+            <label class="flex items-center gap-md cursor-pointer p-sm rounded-lg hover:bg-white/5 transition-colors">
+              <div class="toggle-switch">
+                <input type="checkbox" v-model="formData.is_active" class="toggle-input" />
+                <div class="toggle-slider"></div>
+              </div>
+              <span class="font-medium">Status Akun Aktif</span>
             </label>
           </div>
 
-          <div v-if="formError" class="error-message">
-            ⚠️ {{ formError }}
+          <div v-if="formError" class="alert-box error">
+            <AppIcon name="alert-circle" :size="18" />
+            <span>{{ formError }}</span>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeModal">Batal</button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">
-              <span v-if="saving" class="spinner"></span>
-              <span v-else>{{ editingUser ? 'Simpan Perubahan' : 'Tambah User' }}</span>
+          <div class="flex justify-end gap-md mt-md pt-md border-t border-glass">
+            <button type="button" class="btn-ghost" @click="closeModal">Batal</button>
+            <button type="submit" class="btn-primary-new" :disabled="saving">
+              <template v-if="saving">
+                 <div class="spinner-sm text-white"></div>
+              </template>
+              <template v-else>
+                 <span>{{ editingUser ? 'Simpan Perubahan' : 'Buat User' }}</span>
+              </template>
             </button>
           </div>
         </form>
       </div>
     </div>
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
-      <div class="modal-content card border-error shadow-xl animate-shake">
-        <div class="modal-header border-none bg-error-light text-error">
-          <h3>⚠️ Konfirmasi Penghapusan Permanen</h3>
-          <button class="btn-close" @click="closeDeleteModal">✕</button>
-        </div>
-        
-        <div class="modal-body p-lg">
-          <p>Anda akan menghapus user <strong>{{ userToDelete?.full_name }}</strong> secara permanen.</p>
-          <p class="text-sm text-muted mb-md">Seluruh data akses user ini akan dicabut. Ketik <strong>{{ userToDelete?.full_name }}</strong> di bawah untuk melanjutkan:</p>
-          
+
+    <!-- Delete Confirmation Modal (Premium Style) -->
+    <div v-if="showDeleteModal" class="modal-backdrop animate-fade-in" @click.self="closeDeleteModal">
+      <div class="premium-card modal-card animate-shake max-w-md border-error-soft">
+        <div class="p-xl text-center">
+          <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-lg text-red-600">
+             <AppIcon name="alert-triangle" :size="32" />
+          </div>
+          <h3 class="text-xl font-bold mb-sm text-main">Konfirmasi Penghapusan</h3>
+          <p class="text-muted mb-lg">
+            Anda akan menghapus user <strong class="text-main">{{ userToDelete?.full_name }}</strong>. 
+            Tindakan ini tidak dapat dibatalkan. Ketik nama user untuk konfirmasi.
+          </p>
+
           <input 
             type="text" 
             v-model="deleteConfirmationText" 
-            class="form-input border-error mb-md" 
+            class="elite-input border-red-300 focus:border-red-500 mb-lg text-center" 
             :placeholder="userToDelete?.full_name"
           />
 
-          <div v-if="userToDelete?.role === 'owner'" class="warning-banner mb-md">
-            <strong>PERINGATAN:</strong> Ini adalah akun OWNER. Pastikan ada akun Owner lain sebelum menghapus akun ini agar sistem tidak terkunci.
+          <div class="flex gap-md">
+            <button class="btn-ghost flex-1" @click="closeDeleteModal">Batalkan</button>
+            <button
+              @click="executeDeleteUser"
+              class="btn-danger flex-1"
+              :disabled="deleteConfirmationText !== userToDelete?.full_name || deleting"
+            >
+              <span v-if="deleting">Menghapus...</span>
+              <span v-else>Hapus Permanen</span>
+            </button>
           </div>
-        </div>
-
-        <div class="modal-footer bg-gray-50">
-          <button class="btn btn-secondary" @click="closeDeleteModal">Batal</button>
-          <button 
-            @click="executeDeleteUser" 
-            class="btn btn-error" 
-            :disabled="deleteConfirmationText !== userToDelete?.full_name || deleting"
-          >
-            <span v-if="deleting" class="spinner"></span>
-            <span v-else>🔥 Ya, Hapus Permanen</span>
-          </button>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
+import AppIcon from '@/components/AppIcon.vue'
 
 const users = ref([])
 const companies = ref([])
@@ -290,16 +340,6 @@ function formatPhone(phone) {
   return str
 }
 
-function getRoleBadgeClass(role) {
-  const classes = {
-    admin: 'badge-error',
-    owner: 'badge-info',
-    ceo: 'badge-warning',
-    farmer: 'badge-success'
-  }
-  return classes[role] || 'badge-info'
-}
-
 function openAddModal() {
   editingUser.value = null
   formData.value = {
@@ -335,19 +375,13 @@ function closeModal() {
 }
 
 function handleRoleChange() {
-  // Clear company_id when admin is selected (admin doesn't belong to any company)
   if (formData.value.role === 'admin') {
     formData.value.company_id = ''
-  } 
-  // Automatically select 'Owner' company for Owner role
-  else if (formData.value.role === 'owner') {
-    // Try to find the company with code 'Owner' or name 'Owner'
-    // Fallback to the known hardcoded ID if not found in reactive list
+  } else if (formData.value.role === 'owner') {
     const ownerCompany = companies.value.find(c => c.code === 'Owner' || c.name === 'Owner')
     if (ownerCompany) {
       formData.value.company_id = ownerCompany.id
     } else {
-      // Direct assignment as backup
       formData.value.company_id = 'fef23b03-fe98-4a56-9ebc-64e1d21845fb'
     }
   }
@@ -356,16 +390,10 @@ function handleRoleChange() {
 async function saveUser() {
   saving.value = true
   formError.value = ''
-
   try {
-    // Validate phone number
     let phone = formData.value.phone_number.replace(/\D/g, '')
-    if (phone.startsWith('0')) {
-      phone = '62' + phone.slice(1)
-    }
-    if (!phone.startsWith('62')) {
-      phone = '62' + phone
-    }
+    if (phone.startsWith('0')) phone = '62' + phone.slice(1)
+    if (!phone.startsWith('62')) phone = '62' + phone
 
     const userData = {
       full_name: formData.value.full_name,
@@ -377,22 +405,12 @@ async function saveUser() {
     }
 
     if (editingUser.value) {
-      // Update existing user
-      const { error } = await supabase
-        .from('users')
-        .update(userData)
-        .eq('id', editingUser.value.id)
-
+      const { error } = await supabase.from('users').update(userData).eq('id', editingUser.value.id)
       if (error) throw error
     } else {
-      // Insert new user
-      const { error } = await supabase
-        .from('users')
-        .insert(userData)
-
+      const { error } = await supabase.from('users').insert(userData)
       if (error) throw error
     }
-
     await loadUsers()
     closeModal()
   } catch (err) {
@@ -404,11 +422,7 @@ async function saveUser() {
 
 async function toggleUserStatus(user) {
   try {
-    const { error } = await supabase
-      .from('users')
-      .update({ is_active: !user.is_active })
-      .eq('id', user.id)
-
+    const { error } = await supabase.from('users').update({ is_active: !user.is_active }).eq('id', user.id)
     if (error) throw error
     await loadUsers()
   } catch (err) {
@@ -430,19 +444,12 @@ function closeDeleteModal() {
 
 async function executeDeleteUser() {
   if (deleteConfirmationText.value !== userToDelete.value.full_name) return
-  
   deleting.value = true
   try {
-    const { error } = await supabase
-      .from('users')
-      .delete()
-      .eq('id', userToDelete.value.id)
-
+    const { error } = await supabase.from('users').delete().eq('id', userToDelete.value.id)
     if (error) throw error
-    
     await loadUsers()
     closeDeleteModal()
-    alert('User berhasil dihapus secara permanen.')
   } catch (err) {
     alert('Gagal menghapus user: ' + err.message)
   } finally {
@@ -455,16 +462,8 @@ async function loadUsers() {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select(`
-        *,
-        companies (
-          id,
-          name,
-          code
-        )
-      `)
+      .select(`*, companies (id, name, code)`)
       .order('full_name')
-
     if (error) throw error
     users.value = data || []
   } catch (err) {
@@ -481,7 +480,6 @@ async function loadCompanies() {
       .select('id, name, code')
       .eq('is_active', true)
       .order('name')
-
     if (error) throw error
     companies.value = data || []
   } catch (err) {
@@ -496,264 +494,381 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Layout */
 .admin-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-bottom: 64px; /* Bottom spacing for page */
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-bottom: 48px; /* High separation for header */
 }
 
-.page-header h2 {
-  margin: 0;
-}
-
-/* Stats Row */
-.stats-row {
+/* Stats Grid */
+.stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 32px; /* Increased card gap */
+  margin-bottom: 48px; /* High separation for table */
 }
 
-.mini-stat {
-  text-align: center;
-  padding: var(--space-lg);
-}
-
-.mini-stat .stat-value {
-  display: block;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary-600);
-}
-
-.mini-stat .stat-label {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-}
-
-/* Card Header */
-.card-header {
+.stat-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--border-color);
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg); /* Reduced vertical padding */
+  position: relative;
+  overflow: hidden;
+  background: rgba(var(--bg-card-rgb), 0.5); /* Ensure glass effect */
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
 }
 
-.card-header h3 {
-  margin: 0;
-}
-
-.filter-group .form-input {
-  min-width: 150px;
-}
-
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.btn-icon {
-  background: var(--bg-tertiary);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: 0.875rem;
+.icon-pod {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  color: white;
+  box-shadow: 0 8px 16px -4px currentColor;
 }
 
-.btn-icon:hover {
-  background: var(--primary-100);
-  transform: scale(1.05);
+.icon-pod.emerald { background: linear-gradient(135deg, #10b981, #059669); color: rgba(16, 185, 129, 0.4); }
+.icon-pod.emerald svg { color: white; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+
+.icon-pod.red { background: linear-gradient(135deg, #ef4444, #b91c1c); color: rgba(239, 68, 68, 0.4); }
+.icon-pod.red svg { color: white; }
+
+.icon-pod.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: rgba(139, 92, 246, 0.4); }
+.icon-pod.purple svg { color: white; }
+
+.icon-pod.amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: rgba(245, 158, 11, 0.4); }
+.icon-pod.amber svg { color: white; }
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
 }
 
-.btn-delete:hover {
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+/* ELITE TABLE CONTAINER & STYLES */
+.premium-card.overflow-hidden {
+  background: rgba(var(--bg-card-rgb), 0.3); /* Distinct container bg */
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.elite-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* Slightly reduced gap for cohesiveness */
+  padding: 0 var(--space-md); /* Internal padding for the table within card */
+}
+
+.elite-table th {
+  text-align: left;
+  padding: var(--space-md);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: none;
+  background: rgba(255, 255, 255, 0.02); /* Subtle header highlight */
+  border-radius: 8px; /* Rounded headers */
+  margin-bottom: 8px;
+}
+
+.elite-table td {
+  padding: 16px var(--space-md); /* Balanced padding */
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.hover-row:hover td {
+  background: rgba(var(--text-main-rgb), 0.02);
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Badges & Status */
+.role-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.role-badge.admin { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+.role-badge.owner { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); }
+.role-badge.ceo { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+.role-badge.farmer { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.status-dot.active {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* Actions */
+.action-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(var(--text-main-rgb), 0.05);
+  color: var(--color-primary);
+}
+
+.action-btn.danger:hover {
   background: rgba(239, 68, 68, 0.1);
-  color: var(--error);
+  color: #ef4444;
+}
+
+/* Buttons */
+.btn-primary-new {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary-new:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
+}
+
+.btn-ghost {
+  padding: 10px 20px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-ghost:hover {
+  background: rgba(var(--text-main-rgb), 0.05);
+  color: var(--text-main);
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+/* Inputs */
+.elite-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: rgba(var(--text-main-rgb), 0.03);
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.elite-input:focus {
+  outline: none;
+  background: rgba(var(--text-main-rgb), 0.05);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
 }
 
 /* Modal */
-.modal-overlay {
+.modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: var(--space-lg);
+  padding: 20px;
 }
 
-.modal-content {
-  max-width: 500px;
+.modal-card {
   width: 100%;
+  max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+  border: 1px solid var(--glass-border);
 }
 
-.modal-header {
+.input-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+/* Animation Utilities */
+.hover-lift { transition: transform 0.3s ease; }
+.hover-lift:hover { transform: translateY(-2px); }
+.hover-glow:hover { box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+
+.animate-scale-up {
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+
+/* Filter Select */
+.elite-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(var(--bg-card-rgb), 0.5);
+  color: var(--text-main);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.card-header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--border-color);
 }
 
-.modal-header h3 {
-  margin: 0;
-}
-
-.btn-close {
-  background: var(--bg-tertiary);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  font-size: 1rem;
+.filter-wrapper {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
+  gap: 8px;
 }
 
-.btn-close:hover {
-  background: var(--error);
-  color: white;
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
 }
 
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+.toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
-}
-
-.form-hint {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  margin-top: var(--space-xs);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+.toggle-slider {
+  position: absolute;
   cursor: pointer;
+  inset: 0;
+  background-color: rgba(var(--text-main-rgb), 0.2);
+  transition: .4s;
+  border-radius: 34px;
 }
 
-.checkbox-label input {
-  width: 18px;
+.toggle-slider:before {
+  position: absolute;
+  content: "";
   height: 18px;
-  cursor: pointer;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
 }
 
-.error-message {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--error);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
+.toggle-input:checked + .toggle-slider {
+  background-color: var(--color-primary);
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-md);
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--border-color);
-}
-
-.border-error {
-  border: 1px solid var(--error) !important;
-}
-
-.bg-error-light {
-  background-color: rgba(239, 68, 68, 0.05);
-}
-
-.btn-error {
-  background: var(--error);
-  color: white;
-  border: none;
-}
-
-.btn-error:hover:not(:disabled) {
-  background: #dc2626;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.btn-error:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.warning-banner {
-  background: #fffbeb;
-  border-left: 4px solid #f59e0b;
-  color: #92400e;
-  padding: var(--space-md);
-  font-size: 0.875rem;
-  border-radius: var(--radius-sm);
-}
-
-.animate-shake {
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-}
-
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
-}
-
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2xl);
-  gap: var(--space-md);
-  color: var(--text-tertiary);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .page-header {
-    flex-direction: column;
-    gap: var(--space-md);
-    align-items: stretch;
-  }
+.toggle-input:checked + .toggle-slider:before {
+  transform: translateX(20px);
 }
 </style>

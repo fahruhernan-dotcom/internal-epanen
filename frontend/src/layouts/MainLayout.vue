@@ -1,81 +1,51 @@
 <template>
   <div class="main-layout">
+    <!-- Aurora Mesh Background Ambience -->
+    <div class="aurora-container">
+      <div class="aurora-blob blob-1"></div>
+      <div class="aurora-blob blob-2"></div>
+      <div class="aurora-blob blob-3"></div>
+    </div>
+
     <aside v-if="authStore.user?.role !== 'farmer'" class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-icon">🌿</span>
+          <AppIcon name="leaf" :size="24" class="logo-icon" />
           <span v-if="!sidebarCollapsed" class="logo-text">SmartFarm</span>
         </div>
         <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">
-          {{ sidebarCollapsed ? '→' : '←' }}
+          <AppIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" :size="16" />
         </button>
       </div>
 
       <nav class="sidebar-nav">
-        <!-- Dashboard for all -->
-        <router-link to="/" class="nav-item" :class="{ active: $route.path === '/' }">
-          <span class="nav-icon">📊</span>
-          <span v-if="!sidebarCollapsed" class="nav-text">Dashboard</span>
-        </router-link>
-        
-        <!-- Reports View for Owner/Admin and CEO -->
-        <router-link 
-          v-if="['owner', 'admin', 'ceo'].includes(authStore.user?.role)"
-          to="/reports" 
-          class="nav-item" 
-          :class="{ active: $route.path === '/reports' }"
-        >
-          <span class="nav-icon">📋</span>
-          <span v-if="!sidebarCollapsed" class="nav-text">Monitoring Harian</span>
-        </router-link>
-
-        <router-link 
-          v-if="['owner', 'admin', 'ceo'].includes(authStore.user?.role)"
-          to="/financial-reports" 
-          class="nav-item" 
-          :class="{ active: $route.path === '/financial-reports' }"
-        >
-          <span class="nav-icon">💰</span>
-          <span v-if="!sidebarCollapsed" class="nav-text">Monitoring Keuangan</span>
-        </router-link>
-
-        <!-- Intelligence Section -->
-        <template v-if="authStore.isAdmin || authStore.isOwner">
-          <div v-if="!sidebarCollapsed" class="nav-section">Intelligence</div>
-          <router-link to="/ai-intelligence" class="nav-item" :class="{ active: $route.path === '/ai-intelligence' }">
-            <span class="nav-icon">🧠</span>
-            <span v-if="!sidebarCollapsed" class="nav-text">Orchestrator Map</span>
-          </router-link>
-          <router-link to="/query" class="nav-item" :class="{ active: $route.path === '/query' }">
-            <span class="nav-icon">🔍</span>
-            <span v-if="!sidebarCollapsed" class="nav-text">RAG Intelligence</span>
-          </router-link>
-          <router-link to="/analytics" class="nav-item" :class="{ active: $route.path === '/analytics' }">
-            <span class="nav-icon">📈</span>
-            <span v-if="!sidebarCollapsed" class="nav-text">Trend Analytics</span>
+        <template v-for="(item, idx) in navigationItems" :key="idx">
+          <!-- Section Label -->
+          <div v-if="item.isSection && !sidebarCollapsed" class="nav-section">{{ item.label }}</div>
+          
+          <!-- Nav Link -->
+          <router-link
+            v-else-if="!item.isSection && (item.roles ? item.roles.includes(authStore.user?.role) : true)"
+            :to="item.to"
+            class="nav-item-v2"
+            :class="{ active: route.path === item.to }"
+          >
+            <!-- Physical Icon Pod -->
+            <div class="nav-icon-pod" :class="{ 'has-3d': item.customIcon }">
+              <div v-if="item.customIcon" class="nav-icon-3d">
+                <img :src="item.customIcon" :alt="item.label" class="icon-3d-img" />
+              </div>
+              <div v-else class="nav-icon-svg">
+                <AppIcon :name="item.icon" :size="18" stroke-width="2.5" />
+              </div>
+            </div>
+            
+            <span v-if="!sidebarCollapsed" class="nav-text">{{ item.label }}</span>
+            
+            <!-- Active Indicator Pill -->
+            <div v-if="route.path === item.to" class="active-indicator-pill"></div>
           </router-link>
         </template>
-
-        <!-- Support Section -->
-        <div v-if="!sidebarCollapsed" class="nav-section">Support</div>
-        <router-link to="/sop-reference" class="nav-item" :class="{ active: $route.path === '/sop-reference' }">
-          <span class="nav-icon">📖</span>
-          <span v-if="!sidebarCollapsed" class="nav-text">Buku Saku SOP</span>
-        </router-link>
-
-        <!-- Admin Section -->
-        <template v-if="authStore.isAdmin">
-          <div v-if="!sidebarCollapsed" class="nav-section">System Admin</div>
-          <router-link to="/admin" class="nav-item" :class="{ active: $route.path === '/admin' }">
-            <span class="nav-icon">👥</span>
-            <span v-if="!sidebarCollapsed" class="nav-text">Kelola User</span>
-          </router-link>
-          <router-link to="/logs" class="nav-item" :class="{ active: $route.path === '/logs' }">
-            <span class="nav-icon">🕵️</span>
-            <span v-if="!sidebarCollapsed" class="nav-text">Audit Logs</span>
-          </router-link>
-        </template>
-
 
         <!-- Company Links -->
         <template v-if="['owner', 'admin', 'ceo'].includes(authStore.user?.role)">
@@ -84,29 +54,36 @@
             v-for="company in companies" 
             :key="company.id"
             :to="`/companies/${company.id}`" 
-            class="nav-item"
+            class="nav-item-v2"
           >
-            <span class="nav-icon">{{ getCompanyIcon(company.code) }}</span>
+            <div class="nav-icon-pod company-icon">
+              <span>{{ getCompanyIcon(company.code) }}</span>
+            </div>
             <span v-if="!sidebarCollapsed" class="nav-text">{{ company.name }}</span>
           </router-link>
         </template>
       </nav>
 
       <div class="sidebar-footer">
-        <router-link to="/profile" class="user-info" v-if="!sidebarCollapsed" title="Buka Profil">
-          <span class="user-avatar">👤</span>
-          <div class="user-details">
-            <span class="user-name">{{ authStore.userName }}</span>
-            <span class="user-role">{{ capitalizeRole(authStore.user?.role) }}</span>
+        <div class="user-card-premium">
+          <router-link to="/profile" class="user-main-info" title="Buka Profil">
+            <div class="avatar-glow">
+              <AppIcon name="user" :size="20" />
+            </div>
+            <div class="user-meta-data" v-if="!sidebarCollapsed">
+              <span class="u-name">{{ authStore.userName }}</span>
+              <span class="u-role">{{ capitalizeRole(authStore.user?.role) }}</span>
+            </div>
+          </router-link>
+          
+          <div class="footer-actions-grid" v-if="!sidebarCollapsed">
+            <button class="action-btn-mini" @click="themeStore.toggleTheme" title="Toggle Theme">
+              <AppIcon :name="themeStore.isDarkMode ? 'sun' : 'moon'" :size="14" />
+            </button>
+            <button class="action-btn-mini logout" @click="handleLogout" title="Logout">
+              <AppIcon name="log-out" :size="14" />
+            </button>
           </div>
-        </router-link>
-        <div class="footer-actions">
-          <button class="btn-icon" @click="themeStore.toggleTheme" title="Toggle Theme">
-            {{ themeStore.isDarkMode ? '☀️' : '🌙' }}
-          </button>
-          <button class="btn-icon" @click="handleLogout" title="Logout">
-            🚪
-          </button>
         </div>
       </div>
     </aside>
@@ -114,13 +91,15 @@
     <main class="main-content" :class="{ 'no-sidebar': authStore.user?.role === 'farmer' }">
       <header v-if="authStore.user?.role !== 'farmer'" class="top-header">
         <div class="header-left">
+          <!-- Breadcrumbs Navigation -->
+          <Breadcrumbs />
           <h2 class="page-title">{{ pageTitle }}</h2>
         </div>
         <div class="header-right">
           <div class="header-action-group">
             <div class="notification-wrapper" v-click-outside="closeNotifications">
               <button class="btn-icon bell-btn" @click="toggleNotifications" :class="{ 'has-unread': notificationStore.unreadCount > 0 }">
-                🔔
+                <AppIcon name="bell" :size="20" class="bell-icon" />
                 <span v-if="notificationStore.unreadCount > 0" class="unread-badge">{{ notificationStore.unreadCount }}</span>
               </button>
               <div v-if="showNotifications" class="notification-dropdown glass-premium animate-slide-down">
@@ -131,14 +110,16 @@
                 <div class="notification-list">
                   <div v-if="notificationStore.loading" class="empty-state">Loading...</div>
                   <div v-else-if="notificationStore.notifications.length === 0" class="empty-state">Tidak ada notifikasi</div>
-                  <div 
-                    v-for="n in notificationStore.notifications" 
-                    :key="n.id" 
+                  <div
+                    v-for="n in notificationStore.notifications"
+                    :key="n.id"
                     class="notification-item"
                     :class="{ unread: !n.is_read }"
                     @click="handleNotificationClick(n)"
                   >
-                    <div class="item-icon" :class="n.type">{{ getNotificationIcon(n.type) }}</div>
+                    <div class="item-icon" :class="n.type">
+                      <AppIcon :name="getNotificationIconName(n.type)" :size="16" />
+                    </div>
                     <div class="item-body">
                       <div class="item-title">{{ n.title }}</div>
                       <div class="item-message">{{ n.message }}</div>
@@ -149,7 +130,7 @@
               </div>
             </div>
             <div class="current-date">
-              <span class="date-icon">📅</span>
+              <AppIcon name="calendar" :size="16" class="date-icon" />
               <span>{{ currentDate }}</span>
             </div>
           </div>
@@ -170,6 +151,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useNotificationStore } from '@/stores/notifications'
 import { getCompanies } from '@/services/supabase'
+import { navigationConfig } from '@/config/navigation'
+import AppIcon from '@/components/AppIcon.vue'
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -181,6 +165,23 @@ const sidebarCollapsed = ref(false)
 const showNotifications = ref(false)
 const companies = ref([])
 let notificationInterval = null
+
+const pageTitle = computed(() => {
+    const activeItem = navigationConfig.find(item => item.to === route.path)
+    if (activeItem) {
+      if (activeItem.label === 'Dashboard') return 'Dashboard Overview'
+      if (activeItem.label === 'Monitoring Keuangan') return 'Database Keuangan'
+      return activeItem.label
+    }
+    
+    if (route.path.startsWith('/companies/')) {
+        const company = companies.value.find(c => c.id === route.params.id)
+        return company?.name || 'Detail Perusahaan'
+    }
+    return 'SmartFarm'
+})
+
+const navigationItems = computed(() => navigationConfig)
 
 // Custom directive for clicking outside dropdown
 const vClickOutside = {
@@ -216,14 +217,14 @@ function handleNotificationClick(n) {
   }
 }
 
-function getNotificationIcon(type) {
-  const icons = {
-    info: 'ℹ️',
-    success: '✅',
-    warning: '⚠️',
-    error: '🚨'
+function getNotificationIconName(type) {
+  const iconMap = {
+    info: 'info',
+    success: 'check-circle',
+    warning: 'alert-triangle',
+    error: 'alert-octagon'
   }
-  return icons[type] || '🔔'
+  return iconMap[type] || 'bell'
 }
 
 function formatTimeAgo(dateStr) {
@@ -238,21 +239,6 @@ function formatTimeAgo(dateStr) {
   return date.toLocaleDateString('id-ID')
 }
 
-const pageTitle = computed(() => {
-  const titles = {
-    '/': 'Dashboard Overview',
-    '/reports': 'Laporan Harian',
-    '/financial-reports': 'Database Keuangan',
-    '/admin': 'Manajemen User',
-    '/ai-intelligence': 'AI Orchestrator Intelligence',
-    '/farmer-chat': 'Chat Laporan Harian',
-  }
-  if (route.path.startsWith('/companies/')) {
-    const company = companies.value.find(c => c.id === route.params.id)
-    return company?.name || 'Detail Perusahaan'
-  }
-  return titles[route.path] || 'SmartFarm'
-})
 
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('id-ID', {
@@ -334,16 +320,17 @@ onUnmounted(() => {
 /* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
-  transition: width var(--transition-normal);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: fixed;
-  top: 0;
   left: 0;
+  top: 0;
   bottom: 0;
   z-index: 100;
+  overflow: hidden; /* Container stay fixed, internal nav scrolls */
 }
 
 .sidebar.collapsed {
@@ -351,177 +338,337 @@ onUnmounted(() => {
 }
 
 .sidebar-header {
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--border-color);
+  padding: 0 var(--space-xl);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
+  text-decoration: none;
 }
 
 .logo-icon {
-  font-size: 1.5rem;
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.4));
+  transition: filter 0.3s ease;
+}
+
+.logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .logo-text {
   font-size: 1.25rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text-main);
 }
 
 .sidebar-toggle {
-  background: var(--bg-tertiary);
-  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.75rem;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: all 0.3s ease;
 }
 
 .sidebar-toggle:hover {
-  background: var(--primary-100);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-primary);
 }
 
-/* Navigation */
+/* Navigation Items - 3D Icon Overhaul */
 .sidebar-nav {
   flex: 1;
-  padding: var(--space-md);
-  overflow-y: auto;
-}
-
-.nav-section {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-tertiary);
-  padding: var(--space-lg) var(--space-md) var(--space-sm);
-  font-weight: 600;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  margin-bottom: var(--space-xs);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
-  text-decoration: none;
-}
-
-.nav-item:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.nav-item.active {
-  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
-  color: white;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
-}
-
-.nav-icon {
-  font-size: 1.125rem;
-  width: 24px;
-  text-align: center;
-}
-
-.nav-text {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* Sidebar Footer */
-.sidebar-footer {
-  padding: var(--space-md);
-  border-top: 1px solid var(--border-color);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-}
-
-.user-avatar {
-  font-size: 1.5rem;
-}
-
-.user-details {
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
+  gap: 8px; /* Increased gap for 3D weight */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.user-name {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-primary);
+/* Custom Sidebar Scrollbar */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
 }
 
-.user-role {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.footer-actions {
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(var(--bg-card-rgb), 0.1);
+  border-radius: 10px;
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.nav-item-v2 {
   display: flex;
-  gap: var(--space-sm);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  color: var(--text-dim);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.825rem;
+  border: 1px solid transparent;
+  position: relative;
+  margin-bottom: 2px;
 }
 
-.btn-icon {
-  background: var(--bg-tertiary);
-  border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: 1rem;
+/* physical Icon Pod - The 'Contrast Anchor' */
+.nav-icon-pod {
+    width: 40px; 
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px; /* Smooth rounded square */
+    background: rgba(var(--text-main-rgb), 0.06);
+    border: 1px solid rgba(var(--text-main-rgb), 0.08);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden; /* CRITICAL: Clips the square PNG backgrounds */
+}
+
+.dark-mode .nav-icon-pod {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-item-v2:hover .nav-icon-pod {
+    background: rgba(var(--text-main-rgb), 0.08);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.nav-icon-3d {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-icon:hover {
-  background: var(--primary-100);
-  transform: scale(1.05);
+.icon-3d-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Fill the rounded tile */
+    filter: saturate(1.2) contrast(1.05);
+    mix-blend-mode: multiply; /* Surgical fix: removes white background in Light Mode */
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.dark-mode .icon-3d-img {
+    mix-blend-mode: normal; /* Normal for dark mode as backgrounds are usually dark/translucent */
+}
+
+.nav-icon-svg {
+    opacity: 0.7;
+    color: var(--text-dim);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-item-v2:hover {
+  background: rgba(var(--bg-card-rgb), 0.25);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item-v2:hover .nav-icon-pod {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.nav-item-v2:hover .nav-icon-3d {
+    transform: scale(1.1) translateY(-2px);
+}
+
+.nav-item-v2:hover .nav-icon-svg {
+    opacity: 1;
+    color: var(--color-primary);
+}
+
+.nav-item-v2.active {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--color-primary);
+  box-shadow: 
+    inset 0 0 15px rgba(16, 185, 129, 0.05),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  font-weight: 700;
+}
+
+.nav-item-v2.active .nav-icon-pod {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 
+        0 4px 12px rgba(16, 185, 129, 0.2),
+        inset 0 0 10px rgba(16, 185, 129, 0.1);
+}
+
+.nav-item-v2.active .icon-3d-img {
+    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.6)) saturate(1.6) contrast(1.2);
+    transform: scale(1.1) rotate(-2deg);
+}
+
+.nav-item-v2.active .nav-icon-svg {
+    opacity: 1;
+    color: var(--color-primary);
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.5));
+    transform: scale(1.1);
+}
+
+.active-indicator-pill {
+    position: absolute;
+    right: 0;
+    width: 4px;
+    height: 16px;
+    background: var(--color-primary);
+    border-radius: 4px 0 0 4px;
+    box-shadow: -2px 0 8px var(--color-primary);
+}
+
+.nav-section {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 16px 16px 8px;
+  opacity: 0.7;
+}
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.user-card-premium {
+    background: rgba(var(--bg-card-rgb), 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.user-main-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.avatar-glow {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--color-primary), #10b981);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.user-meta-data {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.u-name {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: var(--text-main);
+    white-space: nowrap;
+}
+
+.u-role {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.footer-actions-grid {
+    display: flex;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.action-btn-mini {
+    flex: 1;
+    height: 32px;
+    background: rgba(var(--bg-card-rgb), 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.action-btn-mini:hover {
+    background: rgba(var(--bg-card-rgb), 0.5);
+    color: var(--text-main);
+    border-color: var(--text-dim);
+}
+
+.action-btn-mini.logout:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
 
 /* Main Content */
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
-  transition: margin-left var(--transition-normal);
+  transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: transparent; /* aurora mesh visible underneath */
 }
 
 .main-content.no-sidebar {
   margin-left: 0 !important;
 }
 
-.content-area.no-padding {
-  padding: 0 !important;
-}
-
-.sidebar.collapsed + .main-content,
-.sidebar.collapsed ~ .main-content {
+.sidebar.collapsed + .main-content {
   margin-left: var(--sidebar-collapsed-width);
 }
 
@@ -529,12 +676,30 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-lg) var(--space-xl);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  padding: 0 var(--space-2xl);
+  background: rgba(var(--bg-card-rgb), 0.35);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 999; /* Boosted to ensure it overlays all page content including filter bars */
+  height: 72px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.page-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.05em;
+  margin-top: -2px;
 }
 
 .header-right {
@@ -550,156 +715,223 @@ onUnmounted(() => {
 }
 
 /* Notifications */
-.notification-wrapper {
-  position: relative;
-}
-
-.bell-btn {
-  position: relative;
-  font-size: 1.25rem;
-}
-
 .unread-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  background: var(--error);
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
   color: white;
   font-size: 0.65rem;
-  font-weight: 700;
+  font-weight: 800;
   min-width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--bg-secondary);
+  border: 2px solid var(--bg-card);
 }
 
 .notification-dropdown {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 16px);
   right: 0;
-  width: 320px;
-  max-height: 400px;
-  display: flex;
-  flex-direction: column;
+  width: 360px;
+  background: var(--bg-card);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-main);
+  border: 1px solid var(--glass-border);
   overflow: hidden;
-  z-index: 1000;
-  box-shadow: var(--shadow-2xl);
-}
-
-.dropdown-header {
-  padding: var(--space-md);
-  background: rgba(var(--primary-rgb), 0.1);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dropdown-header h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.notification-list {
-  overflow-y: auto;
-  flex: 1;
-}
-
-.notification-item {
-  padding: var(--space-md);
-  display: flex;
-  gap: var(--space-md);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.notification-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.notification-item.unread {
-  background: rgba(var(--primary-rgb), 0.05);
-}
-
-.item-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.item-icon.success { background: rgba(34, 197, 94, 0.2); }
-.item-icon.error { background: rgba(239, 68, 68, 0.2); }
-.item-icon.warning { background: rgba(245, 158, 11, 0.2); }
-.item-icon.info { background: rgba(59, 130, 246, 0.2); }
-
-.item-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  margin-bottom: 2px;
-}
-
-.item-message {
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-time {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 600;
+  z-index: 2000 !important; /* Force high z-index to overlay filter bars */
 }
 
 .current-date {
+  background: rgba(var(--bg-card-rgb), 0.5);
+  padding: 8px 18px;
+  border-radius: 100px;
+  border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  gap: 10px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+  letter-spacing: 0.02em;
+}
+
+.date-icon {
+    color: var(--color-primary);
+}
+
+.bell-btn {
+    background: rgba(var(--bg-card-rgb), 0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+.bell-icon {
+    color: #d97706; /* Amber-600 for Light Mode contrast */
+    fill: rgba(217, 119, 6, 0.1);
+    filter: drop-shadow(0 0 8px rgba(217, 119, 6, 0.2));
+    transition: all 0.3s ease;
+}
+
+.dark-mode .bell-icon {
+    color: #FACC15; /* Yellow-400 for Dark Mode */
+    fill: rgba(250, 204, 21, 0.2);
+    filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.4));
+}
+
+.bell-btn:hover .bell-icon {
+    transform: scale(1.1) rotate(15deg);
+    filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.6));
+}
+
+.bell-btn.has-unread .bell-icon {
+    animation: bell-ring 4s ease-in-out infinite;
+}
+
+@keyframes bell-ring {
+    0%, 90% { transform: rotate(0); }
+    91% { transform: rotate(15deg); }
+    93% { transform: rotate(-10deg); }
+    95% { transform: rotate(5deg); }
+    97% { transform: rotate(-2deg); }
+    100% { transform: rotate(0); }
+}
+
+.bell-btn:hover {
+    background: rgba(var(--bg-card-rgb), 0.8);
+    border-color: var(--color-primary);
+}
+
+/* Notification Dropdown Content Styles */
+.dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(var(--bg-card-rgb), 0.5);
+    backdrop-filter: blur(10px);
+}
+
+.dropdown-header h3 {
+    font-size: 0.875rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.btn-text:hover {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.notification-list {
+    max-height: 360px;
+    overflow-y: auto;
+    background: rgba(var(--bg-card-rgb), 0.8);
+}
+
+.notification-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: rgba(var(--bg-card-rgb), 0.95);
+}
+
+.notification-item.unread {
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.item-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(var(--bg-card-rgb), 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    border: 1px solid var(--glass-border);
+}
+
+.item-icon.info { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+.item-icon.success { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+.item-icon.warning { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+.item-icon.error { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+.item-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.item-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.item-message {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.item-time {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+}
+
+.empty-state {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
 }
 
 .content-area {
   flex: 1;
-  padding: var(--space-xl);
+  padding: var(--space-2xl);
+  position: relative;
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .content-area { padding: var(--space-xl); }
+}
+
 @media (max-width: 768px) {
-  .sidebar {
-    width: var(--sidebar-collapsed-width);
-  }
-  
-  .sidebar-nav .nav-text,
-  .sidebar-nav .nav-section,
-  .user-info,
-  .logo-text {
-    display: none;
-  }
-  
-  .main-content {
-    margin-left: var(--sidebar-collapsed-width);
-  }
+  .sidebar { width: var(--sidebar-collapsed-width); }
+  .nav-text, .nav-section, .user-name, .user-role, .logo-text { display: none; }
+  .user-info { justify-content: center; }
+  .main-content { margin-left: var(--sidebar-collapsed-width); }
+  .top-header { padding: 0 var(--space-lg); }
 }
 </style>

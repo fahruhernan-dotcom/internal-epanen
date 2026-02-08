@@ -1,171 +1,190 @@
 <template>
-  <div class="insight-card animate-slide-up">
+  <div class="insight-card animate-fade-in-up">
     <!-- Card Header: Visual Health & Date -->
-    <div class="card-header" :class="profitClass" @click="toggleExpand">
+    <div class="card-header glass-header" :class="profitClass" @click="toggleExpand">
       <div class="header-main">
         <div class="period-badge">
-          <span class="period-icon">📅</span>
-          <span class="period-text">{{ period.label }}</span>
-          <span v-if="showCompany" class="company-tag">{{ period.company }}</span>
+          <div class="period-icon-box">
+            <AppIcon name="calendar" :size="18" />
+          </div>
+          <div class="period-info">
+            <span class="period-label-text">{{ period.label }}</span>
+            <span v-if="showCompany" class="company-subtag">{{ period.company }}</span>
+          </div>
         </div>
-        <div class="card-profit" :class="profitClass">
-        <div v-if="isNormalizing" class="ai-loader">
-            <div class="mini-spinner"></div>
-            <span>AI Mengkalibrasi...</span>
-        </div>
-        <template v-else>
-            <div class="profit-wrapper">
-                <span class="profit-amount" :class="{ 'pulse-text': isNormalizing }">{{ formatCurrency(period.netProfit) }}</span>
-                <div v-if="healthStatus" class="health-pill" :class="healthStatus.class">
-                    {{ healthStatus.label }} ({{ healthScore }}%)
+        
+        <div class="header-stats-row">
+            <!-- Executive Net Profit -->
+            <div class="h-stat-executive">
+                <div class="h-value-hero tabular-nums" :class="profitClass">
+                    {{ formatCurrency(period.netProfit) }}
+                </div>
+                <div class="h-label-row">
+                    <span class="h-label-muted">NET PROFIT</span>
+                    <div v-if="period.isNormalized" class="ai-pill-verified-premium pulse-purple-tight ml-md-plus">
+                        <AppIcon name="sparkles" :size="10" />
+                        <span>TERVERIFIKASI AI</span>
+                    </div>
+                    <div v-else-if="isNormalizing" class="ai-pill-loading-small ml-md-plus">
+                        <div class="mini-spinner-sage"></div>
+                        <span>KALIBRASI...</span>
+                    </div>
                 </div>
             </div>
-            <span class="profit-label">
-                NET PROFIT 
-                <span v-if="period.isNormalized" class="ai-badge" title="Data dikalibrasi ulang menggunakan AI">✨ Terverifikasi AI</span>
-                <span v-if="isNormalizing" class="ai-badge pulse-bg">✨ AI Sedang Menghitung...</span>
-            </span>
-        </template>
+            
+            <div v-if="healthStatus" class="h-stat-divider"></div>
+
+            <div v-if="healthStatus" class="h-stat-secondary">
+                <span class="h-label-muted">HEALTH</span>
+                <div class="health-indicator">
+                    <span class="indicator-dot" :class="healthStatus.class"></span>
+                    <span class="indicator-text">{{ healthStatus.label }}</span>
+                </div>
+            </div>
+        </div>
       </div>
+      <div class="expand-icon-box" :class="{ rotated: isExpanded }">
+        <AppIcon name="chevron-down" :size="18" />
       </div>
-      <div class="expand-icon" :class="{ rotated: isExpanded }">▼</div>
     </div>
 
     <!-- Card Body: Metrics, Sparkline, AI -->
     <div class="card-body">
       <!-- Left: Key Stats -->
-      <div class="stats-grid">
-        <div class="stat-item">
-          <span class="stat-label">Omzet</span>
-          <span class="stat-value text-success">{{ formatCurrency(period.revenue) }}</span>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <span class="m-label">TOTAL OMZET</span>
+          <span class="m-value text-emerald tabular-nums">{{ formatCurrency(period.revenue) }}</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Pengeluaran</span>
-          <span class="stat-value text-danger">{{ formatCurrency(period.expenses) }}</span>
+        <div class="metric-item">
+          <span class="m-label">PENGELUARAN</span>
+          <span class="m-value text-danger tabular-nums">{{ formatCurrency(period.expenses) }}</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Dokumen</span>
-          <span class="stat-value">{{ period.reports.length }} Dokumen</span>
+        <div class="metric-item">
+          <span class="m-label">AKTIVITAS</span>
+          <span class="m-value tabular-nums">{{ period.reports.length }} Dokumen</span>
         </div>
       </div>
 
-      <!-- Center: AI Insight -->
-      <div class="ai-insight-box" :class="{ 'is-loading': isGenerating }">
-        <!-- Premium Processing Overlay -->
-        <div v-if="isGenerating" class="premium-ai-overlay">
-          <div class="processing-content">
-            <div class="ai-orb"></div>
-            <div class="processing-text">
-               <span class="main-msg">AI Sedang Menganalisa...</span>
-               <span class="sub-msg">Mengevaluasi setiap baris laporan untuk akurasi maksimal</span>
-            </div>
-          </div>
+      <!-- Center: AI Executive Analysis (Now with Scrollable Minimalize feature) -->
+      <div class="executive-analysis" :class="{ 'is-loading': isGenerating }">
+        <div class="analysis-header">
+            <AppIcon name="brain-circuit" :size="16" class="text-emerald" />
+            <span class="analysis-title">EXECUTIVE BRIEF</span>
         </div>
 
-        <div v-if="period.aiSummary">
-          <div class="ai-content markdown-body" v-html="formattedAI"></div>
-          <button class="btn-regenerate" @click.stop="$emit('generate-ai', period)">
-            🔄 Regenerate Analysis
-          </button>
+        <div v-if="isGenerating" class="analysis-skeleton">
+            <div class="skeleton line-1"></div>
+            <div class="skeleton line-2"></div>
+            <div class="skeleton line-3"></div>
         </div>
-        <div v-else class="ai-placeholder">
-          <p>Belum ada analisis AI untuk periode ini.</p>
-          <button class="btn-generate" @click.stop="$emit('generate-ai', period)">
-             ✨ Analisa Sekarang
+
+        <div v-else-if="period.aiSummary" class="analysis-content scrollable-brief">
+          <div class="markdown-body-lite" v-html="formattedAI"></div>
+          <div class="analysis-footer">
+            <button class="btn-action-small" @click.stop="$emit('generate-ai', period)">
+                <AppIcon name="refresh-cw" :size="12" />
+                <span>Regenerate Analysis</span>
+            </button>
+          </div>
+        </div>
+        
+        <div v-else class="analysis-placeholder">
+          <p>Belum ada ringkasan eksekutif periode ini.</p>
+          <button class="btn-primary-small" @click.stop="$emit('generate-ai', period)">
+             <AppIcon name="sparkles" :size="14" />
+             <span>Analisa Sekarang</span>
           </button>
         </div>
       </div>
       
-      <!-- Right: Mini Chart (CSS Sparkline) -->
-       <div class="trend-box">
-        <span class="trend-label">Trend Harian</span>
-        <div class="sparkline-container">
-            <div 
-                v-for="(val, idx) in normalizedTrend" 
-                :key="idx" 
-                class="spark-bar"
-                :style="{ height: `${val}%` }"
-                :title="`Day ${idx+1}`"
-            ></div>
+      <!-- Right: Smooth Sparkline Curve -->
+       <div class="visual-trend">
+        <span class="v-label">TREND HARIAN</span>
+        <div class="curve-container">
+            <svg class="spark-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="curveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.2" />
+                        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0" />
+                    </linearGradient>
+                </defs>
+                <path :d="curveAreaPath" fill="url(#curveGradient)" />
+                <path :d="curveLinePath" fill="none" class="curve-line" stroke-width="2" />
+            </svg>
+        </div>
+        <div class="trend-meta">
+            <span class="meta-item">LOW</span>
+            <span class="meta-item">HIGH</span>
         </div>
        </div>
     </div>
 
     <!-- Expanded: Detailed List -->
-    <div v-if="isExpanded" class="card-details animate-fade-in">
-        <h4 class="details-title">Detail Transaksi & Chunks</h4>
-        <div class="transaction-list">
-            <div v-for="rep in period.reports" :key="rep.id" class="doc-item">
-                <div class="doc-header" @click="toggleDoc(rep.id)">
-                    <div class="doc-info">
-                        <span class="doc-date">{{ formatDate(rep.metadata?.date || rep.created_at) }}</span>
-                        <span class="doc-title">{{ rep.metadata?.title || 'Laporan' }}</span>
-                        <span class="chunk-badge">{{ rep.chunks?.length || 1 }} chunks</span>
-                    </div>
-                    <div class="doc-amount" :class="rep.metadata?.revenue ? 'text-success' : 'text-danger'">
-                        {{ rep.metadata?.revenue ? '+' + formatCurrency(rep.metadata.revenue) : '-' + formatCurrency(rep.metadata.expenses) }}
-                    </div>
-                    <span class="doc-arrow" :class="{ rotated: expandedDocId === rep.id }">▼</span>
-                </div>
-
-                <!-- AI Reasoning / Normalization Note -->
-                <div v-if="expandedDocId === rep.id" class="ai-reasoning-box animate-fade-in">
-                    <div class="ai-logic-header">
-                        <span class="sparkle-icon">🧠</span>
-                        <strong>AI Business Logic Analysis</strong>
-                    </div>
-                    <!-- New Audit Table UI -->
-                    <div class="logic-table-wrapper">
-                        <table class="logic-table">
-                            <thead>
-                                <tr>
-                                    <th>Kategori</th>
-                                    <th>Nilai / Status</th>
-                                    <th>Analisa Audit AI</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="item in getDocLogic(rep)" :key="item.label" :class="['l-row', item.type]">
-                                    <td class="l-label">
-                                        <span v-if="item.type === 'plus'" class="l-icon text-success">⊕</span>
-                                        <span v-if="item.type === 'minus'" class="l-icon text-danger">⊖</span>
-                                        <span v-if="item.type === 'total'" class="l-icon text-primary">∑</span>
-                                        <span v-if="item.type === 'status'" class="l-icon">⚖️</span>
-                                        <span v-if="item.type === 'score'" class="l-icon">🩺</span>
-                                        <strong>{{ item.label }}</strong>
-                                    </td>
-                                    <td class="l-val">
-                                        <span v-if="item.type === 'score'" :class="getScoreClass(item.val)">
-                                            {{ item.val }}%
-                                        </span>
-                                        <span v-else>
-                                            {{ item.val !== null ? formatCurrency(item.val) : '-' }}
-                                        </span>
-                                    </td>
-                                    <td class="l-note">{{ item.note }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- New Source Text Toggle -->
-                    <div class="logic-footer">
-                        <button class="btn-source-toggle" @click.stop="toggleChunks(rep.id)">
-                            {{ expandedChunksId === rep.id ? 'Sembunyikan Sumber Data' : '🔍 Lihat Sumber Teks (RAG Chunks)' }}
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Chunk Breakdown (Now triggered via toggleChunks) -->
-                <div v-if="expandedChunksId === rep.id" class="chunk-breakdown animate-fade-in">
-                    <div v-for="(chunk, idx) in rep.chunks" :key="chunk.id" class="chunk-item">
-                        <div class="chunk-meta">
-                            <span class="chunk-label">CHUNK #{{ idx + 1 }}</span>
-                            <span class="chunk-id">{{ chunk.id.substring(0,8) }}...</span>
+    <div v-if="isExpanded" class="details-section animate-fade-in">
+        <div class="details-inner">
+            <div class="section-title">DETIL DOKUMEN & AUDIT LOG</div>
+            <div class="nodes-list">
+                <div v-for="rep in period.reports" :key="rep.id" class="node-card">
+                    <div class="node-header" @click="toggleDoc(rep.id)">
+                        <div class="node-main">
+                            <span class="node-date">{{ formatDateShort(rep.metadata?.date || rep.created_at) }}</span>
+                            <span class="node-title">{{ rep.metadata?.title || 'System Log' }}</span>
                         </div>
-                        <div class="chunk-content">{{ chunk.content }}</div>
-                        <div class="chunk-footer">
-                            <pre class="metadata-json">{{ JSON.stringify(chunk.metadata, null, 2) }}</pre>
+                        <div class="node-amount tabular-nums" :class="rep.metadata?.revenue ? 'text-emerald' : 'text-danger'">
+                            {{ rep.metadata?.revenue ? '+' + formatCurrency(rep.metadata.revenue) : '-' + formatCurrency(rep.metadata.expenses) }}
+                        </div>
+                        <div class="node-toggle" :class="{ rotated: expandedDocId === rep.id }">
+                            <AppIcon name="chevron-right" :size="14" />
+                        </div>
+                    </div>
+
+                    <!-- AI Reasoning / Normalization Note -->
+                        <div v-if="expandedDocId === rep.id" class="node-expanded animate-fade-in">
+                            <div class="audit-top-bar">
+                                <div class="audit-badge-premium">
+                                    <div class="pulse-ring"></div>
+                                    <AppIcon name="cpu" :size="16" />
+                                    <span>AI INTEGRITY AUDIT ACTIVE</span>
+                                </div>
+                                <div class="audit-summary-text">Mencocokkan Business Logic & Validasi Data RAG</div>
+                            </div>
+                            
+                            <div class="audit-logic-grid">
+                                <div v-for="item in getDocLogic(rep)" :key="item.label" class="logic-row-card" :class="item.type">
+                                    <div class="logic-identity">
+                                        <div class="logic-icon-box" :class="item.color">
+                                            <AppIcon :name="item.icon" :size="18" />
+                                        </div>
+                                        <div class="logic-meta">
+                                            <span class="l-label">{{ item.label }}</span>
+                                            <span class="l-value tabular-nums" :class="item.type">
+                                                {{ item.type === 'score' ? item.val + '%' : (item.val !== null ? formatCurrency(item.val) : '-') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="logic-analysis">
+                                        <div class="analysis-bubble" v-html="highlightAnalysis(item.note)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="node-actions-area">
+                                <button class="btn-premium-outline" @click.stop="toggleChunks(rep.id)">
+                                    <AppIcon :name="expandedChunksId === rep.id ? 'eye-off' : 'database'" :size="14" />
+                                    <span>{{ expandedChunksId === rep.id ? 'Sembunyikan Silsilah Data' : 'Tinjau Silsilah Sumber (RAG)' }}</span>
+                                </button>
+                            </div>
+
+                        <!-- Chunks -->
+                        <div v-if="expandedChunksId === rep.id" class="rag-chunks animate-fade-in">
+                            <div v-for="(chunk, idx) in rep.chunks" :key="chunk.id" class="chunk-box">
+                                <div class="chunk-head">
+                                    <span>CHUNK #{{ idx + 1 }}</span>
+                                    <code>{{ chunk.id.substring(0,8) }}</code>
+                                </div>
+                                <div class="chunk-body">{{ chunk.content }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -177,6 +196,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   period: Object,
@@ -188,6 +208,7 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle', 'generate-ai', 'normalize-ai'])
 const expandedDocId = ref(null)
+const expandedChunksId = ref(null)
 
 // Computed
 const profitClass = computed(() => {
@@ -196,22 +217,57 @@ const profitClass = computed(() => {
 
 const formattedAI = computed(() => {
     if (!props.period.aiSummary) return ''
-    return props.period.aiSummary
-        .replace(/\n/g, '<br/>')
+    
+    let html = props.period.aiSummary
+        // Headers
+        .replace(/^### (.*$)/gim, '<h3 class="brief-h3">$1</h3>')
+        // Bold
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Numeric Lists
+        .replace(/^\d\.\s+(.*$)/gim, '<div class="brief-list-item"><span class="list-num">$&</span></div>')
+        // Clean up numeric list span (keep just the number and content)
+        .replace(/<span class="list-num">(\d\.)\s+(.*?)<\/span>/gim, '<span class="list-num">$1</span><span class="list-content">$2</span>')
+        // Paragraphs (double newlines)
+        .replace(/\n\n/g, '</p><p>')
+        // Single newlines
+        .replace(/\n/g, '<br/>')
+
+    return `<p>${html}</p>`
 })
 
+// Smooth SVG Curve Sparkline
 const normalizedTrend = computed(() => {
-    const data = props.period.dailyTrend || [] // Array of numbers
-    if (data.length === 0) return []
+    const data = props.period.dailyTrend || []
+    if (data.length === 0) return Array(10).fill(0)
     const max = Math.max(...data)
     if (max === 0) return data.map(() => 0)
     return data.map(v => (v / max) * 100)
 })
 
-function toggleExpand() {
-    emit('toggle', props.period.id)
-}
+const curveLinePath = computed(() => {
+    const data = normalizedTrend.value
+    if (data.length < 2) return ''
+    const stepX = 100 / (data.length - 1)
+    
+    return data.reduce((path, val, i) => {
+        const x = i * stepX
+        const y = 40 - (val * 0.35 + 2)
+        if (i === 0) return `M ${x},${y}`
+        
+        const prevX = (i - 1) * stepX
+        const prevY = 40 - (data[i-1] * 0.35 + 2)
+        const cx = (prevX + x) / 2
+        return `${path} Q ${prevX},${prevY} ${cx},${(prevY + y) / 2} T ${x},${y}`
+    }, '')
+})
+
+const curveAreaPath = computed(() => {
+    const line = curveLinePath.value
+    if (!line) return ''
+    return `${line} L 100,40 L 0,40 Z`
+})
+
+function toggleExpand() { emit('toggle', props.period.id) }
 
 function toggleDoc(id) {
     if (expandedDocId.value === id) {
@@ -222,7 +278,6 @@ function toggleDoc(id) {
     }
 }
 
-const expandedChunksId = ref(null)
 function toggleChunks(id) {
     expandedChunksId.value = expandedChunksId.value === id ? null : id
 }
@@ -240,44 +295,46 @@ const healthScore = computed(() => {
 const healthStatus = computed(() => {
     const score = healthScore.value
     if (score === null) return null
-    if (score >= 80) return { label: 'SEHAT', class: 'status-sehat' }
-    if (score >= 50) return { label: 'WASPADA', class: 'status-waspada' }
-    return { label: 'KRITIS', class: 'status-kritis' }
+    if (score >= 80) return { label: 'HEALTHY', class: 'dot-emerald' }
+    if (score >= 50) return { label: 'WARNING', class: 'dot-warning' }
+    return { label: 'CRITICAL', class: 'dot-danger' }
 })
 
 function getDocLogic(rep) {
     let reasoning = rep.metadata?.aiReasoning
     if (!reasoning) return []
-    
-    // NEW: Auto-parse JSON string if detected
     if (typeof reasoning === 'string' && reasoning.trim().startsWith('{')) {
-        try {
-            reasoning = JSON.parse(reasoning)
-        } catch (e) {
-            console.warn('Failed to parse AI reasoning JSON:', e)
-        }
+        try { reasoning = JSON.parse(reasoning) } catch (e) {}
     }
     
-    // If it's the new structured object
+    const profitAnalysis = reasoning.profit_analysis || `LABA BERSIH secara eksplisit disebutkan: ${formatCurrency(rep.metadata?.netProfit || 0)}`
+
     if (typeof reasoning === 'object' && !Array.isArray(reasoning)) {
         return [
-            { label: 'Omzet', val: rep.metadata?.revenue, type: 'plus', note: reasoning.revenue },
-            { label: 'Beban', val: rep.metadata?.expenses, type: 'minus', note: reasoning.expenses },
-            { label: 'Net Profit', val: rep.metadata?.netProfit, type: 'total', note: reasoning.netProfit },
-            { label: 'Audit / Match', val: null, type: 'status', note: reasoning.audit },
-            { label: 'Health Score', val: reasoning.score, type: 'score', note: reasoning.status }
+            { icon: 'trending-up', label: 'Omzet', val: rep.metadata?.revenue, type: 'plus', note: reasoning.revenue, color: 'success' },
+            { icon: 'trending-down', label: 'Beban', val: rep.metadata?.expenses, type: 'minus', note: reasoning.expenses, color: 'danger' },
+            { icon: 'wallet', label: 'Net Profit', val: rep.metadata?.netProfit, type: 'total', note: profitAnalysis, color: 'primary' },
+            { icon: 'shield-check', label: 'Audit Log', val: null, type: 'status', note: reasoning.audit, color: 'warning' },
+            { icon: 'activity', label: 'Health Index', val: reasoning.score, type: 'score', note: reasoning.status, color: 'emerald' }
         ]
     }
+    return [{ icon: 'shield-check', label: 'Audit', val: rep.metadata?.netProfit, type: 'total', note: reasoning, color: 'primary' }]
+}
 
-    // Fallback for old string reasoning
-    return [
-        { label: 'Analisa Terpadu', val: rep.metadata?.netProfit, type: 'total', note: reasoning }
-    ]
+function highlightAnalysis(text) {
+    if (!text) return '-'
+    // Highlight Currency (Rp 123.456)
+    // Highlight Percentages (98%)
+    // Highlight Numbers (135M)
+    return text
+        .replace(/(Rp\s?[\d.,]+)/g, '<strong class="hl-val">$1</strong>')
+        .replace(/(\d+%)/g, '<strong class="hl-val">$1</strong>')
+        .replace(/(\d+(\.\d+)?[MK])/g, '<strong class="hl-val">$1</strong>')
 }
 
 function getScoreClass(score) {
     if (!score) return ''
-    if (score >= 90) return 'text-success'
+    if (score >= 90) return 'text-emerald'
     if (score >= 70) return 'text-warning'
     return 'text-danger'
 }
@@ -287,549 +344,559 @@ function formatCurrency(val) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
 }
 
-function formatDate(date) {
-    return new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+function formatDateShort(date) {
+    return new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
 }
 </script>
 
 <style scoped>
-/* Logic Footer & Source Toggle */
-.logic-footer {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px dashed rgba(0,0,0,0.05);
-    display: flex;
-    justify-content: flex-end;
-}
-
-.btn-source-toggle {
-    background: transparent;
-    border: none;
-    color: var(--primary-color);
-    font-size: 0.72rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 8px;
-    transition: all 0.2s;
-    opacity: 0.8;
-}
-
-.btn-source-toggle:hover {
-    background: rgba(99,102,241, 0.08);
-    opacity: 1;
-}
 .insight-card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-color);
-  margin-bottom: var(--space-lg);
-  overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-main);
+    margin-bottom: var(--space-xl);
+    transition: var(--transition-main);
+    overflow: hidden;
 }
 
-.insight-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+/* Glass Header */
+.glass-header {
+    padding: 24px 32px;
+    background: rgba(var(--bg-card-rgb), 0.4);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
 }
 
-/* Header */
-.card-header {
-  padding: var(--space-md) var(--space-lg);
-  background: var(--bg-secondary);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border-color);
-  border-left: 4px solid transparent;
+.glass-header.good-profit { border-left: 4px solid var(--color-primary); }
+.glass-header.bad-profit { border-left: 4px solid #ef4444; }
+
+.header-main {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    flex: 1;
 }
 
-.card-header.good-profit { border-left-color: var(--success); }
-.card-header.bad-profit { border-left-color: var(--error); }
-
-.header-main { display: flex; gap: var(--space-xl); align-items: center; }
-
+/* Period Badge */
 .period-badge {
-    display: flex; align-items: center; gap: var(--space-sm);
-    font-weight: 600; font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 180px;
 }
-.company-tag {
-    background: var(--bg-tertiary);
-    color: var(--primary);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
+
+.period-icon-box {
+    width: 44px;
+    height: 44px;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-primary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.period-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.period-label-text {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+}
+
+.company-subtag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--color-primary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-left: 8px;
-    border: 1px solid var(--primary-alpha-20);
+    letter-spacing: 0.05em;
 }
 
-.profit-badge {
-    display: flex; flex-direction: column; align-items: flex-end;
-    font-size: 1.2rem; font-weight: 700;
+/* Executive Stat Layout */
+.h-stat-executive {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
-.profit-badge.good-profit { color: var(--success); }
-.profit-badge.bad-profit { color: var(--error); }
 
-.profit-label { font-size: 0.7rem; font-weight: 400; color: var(--text-tertiary); text-transform: uppercase; }
+.h-value-hero {
+    font-size: 1.75rem;
+    font-weight: 850;
+    line-height: 1.1;
+    color: var(--text-main);
+    letter-spacing: -0.04em;
+}
 
-.expand-icon { font-size: 0.8rem; transition: transform 0.3s; }
-.expand-icon.rotated { transform: rotate(180deg); }
+.h-value-hero.good-profit { color: var(--text-main); }
+.h-value-hero.bad-profit { color: #ef4444; }
 
-/* Body */
+.h-label-row {
+    display: flex;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.h-label-muted {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.h-stat-secondary {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.h-stat-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--glass-border);
+    margin: 0 16px;
+}
+
+.expand-icon-box {
+    color: var(--text-dim);
+    transition: transform 0.3s;
+}
+
+.expand-icon-box.rotated { transform: rotate(180deg); }
+
+/* Body Area */
 .card-body {
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    gap: var(--space-lg);
-    padding: var(--space-lg);
+    grid-template-columns: 180px 1fr 180px;
+    gap: 32px;
+    padding: 32px;
+    background: rgba(var(--bg-card-rgb), 0.2);
 }
 
-.stats-grid { display: flex; flex-direction: column; gap: var(--space-md); }
-.stat-item { display: flex; justify-content: space-between; font-size: 0.9rem; }
-.stat-label { color: var(--text-tertiary); }
-.stat-value { font-weight: 600; }
-
-.text-success { color: var(--success); }
-.text-danger { color: var(--error); }
-
-/* AI Box */
-.ai-insight-box {
-    background: var(--bg-tertiary);
-    padding: var(--space-md);
-    border-radius: var(--radius-md);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    position: relative;
-    max-height: 250px;
-    overflow-y: auto;
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-color);
-}
-
-.ai-insight-box.is-loading {
-    min-height: 150px;
-}
-
-/* Premium AI Overlay */
-.premium-ai-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(8px);
-    z-index: 10;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: var(--radius-md);
-    animation: fadeIn 0.3s ease;
-}
-
-.processing-content {
+.metrics-grid {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    text-align: center;
+    gap: 16px;
+    border-right: 1px solid var(--glass-border);
 }
 
-.ai-orb {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 50%;
-    filter: blur(2px);
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
-    animation: orbPulse 2s infinite ease-in-out;
-}
-
-.processing-text {
+.metric-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
 }
 
-.main-msg {
+.m-label {
+    font-size: 0.625rem;
     font-weight: 700;
-    color: var(--primary);
-    font-size: 0.95rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
 }
 
-.sub-msg {
-    font-size: 0.7rem;
-    color: var(--text-tertiary);
-    font-style: italic;
+.m-value {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: var(--text-main);
 }
 
-@keyframes orbPulse {
-    100% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
-    50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 30px rgba(34, 197, 94, 0.6); }
-    100% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
-}
+.text-emerald { color: var(--color-primary); }
+.text-danger { color: #ef4444; }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.btn-generate {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border: none; color: white; padding: 8px 16px; border-radius: 20px;
-    cursor: pointer; font-size: 0.85rem; margin-top: 10px;
-}
-
-.btn-regenerate {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-tertiary);
-    padding: 4px 12px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 0.7rem;
-    margin-top: 15px;
-    transition: all 0.2s;
-}
-
-.btn-regenerate:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    background: rgba(99,102,241, 0.05);
-}
-
-/* Trend Sparkline */
-.trend-box { display: flex; flex-direction: column; gap: 5px; align-items: center; justify-content: flex-end; height: 100%; }
-/* AI Normalization UI */
-.ai-loader {
+/* Executive Analysis */
+.executive-analysis {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    animation: pulse 1.5s infinite ease-in-out;
+    gap: 12px;
 }
 
-.mini-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--border-color);
-    border-top-color: var(--primary-color);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-/* AI Reasoning UI */
-.ai-reasoning-box {
-    background: rgba(99, 102, 241, 0.05);
-    border: 1px solid rgba(99, 102, 241, 0.1);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    margin: var(--space-sm) var(--space-md);
-}
-
-.ai-logic-header {
+.analysis-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.85rem;
-    color: var(--primary-color);
-    margin-bottom: 8px;
 }
 
-.logic-text {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    font-style: italic;
-    line-height: 1.4;
-    margin-bottom: 12px;
-}
-
-/* Audit Table UI */
-.logic-table-wrapper {
-    margin-bottom: 15px;
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-}
-
-.logic-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-}
-
-.logic-table th {
-    text-align: left;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.03);
-    color: var(--text-tertiary);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.65rem;
-    letter-spacing: 0.05em;
-}
-
-.l-row td {
-    padding: 10px 12px;
-    border-top: 1px solid rgba(0, 0, 0, 0.03);
-    vertical-align: top;
-}
-
-.l-label {
-    white-space: nowrap;
-    width: 120px;
-    color: var(--text-secondary);
-}
-
-.l-icon { margin-right: 6px; font-style: normal; }
-
-.l-val {
-    font-weight: 700;
-    white-space: nowrap;
-    width: 140px;
-}
-
-.l-note {
-    color: var(--text-tertiary);
-    line-height: 1.4;
-    font-style: italic;
-}
-
-/* Row Specific Colors */
-.plus .l-val { color: var(--success-color); }
-.minus .l-val { color: var(--danger-color); }
-.total { background: rgba(99, 102, 241, 0.03); }
-.total .l-val { color: var(--primary-color); }
-.status { background: rgba(0, 0, 0, 0.02); }
-.status .l-note { font-weight: 600; color: var(--text-secondary); font-style: normal; }
-
-.ai-badge {
-    background: rgba(99, 102, 241, 0.1);
-    color: #818cf8;
-    padding: 2px 6px;
-    border-radius: 12px;
-    font-size: 0.65rem;
-    font-weight: 600;
-    margin-left: 6px;
-    border: 1px solid rgba(99, 102, 241, 0.2);
-    text-transform: uppercase;
-}
-
-/* Profit & Health Header */
-.profit-wrapper {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-}
-
-.health-pill {
-    padding: 2px 10px;
-    border-radius: 20px;
+.analysis-title {
     font-size: 0.65rem;
     font-weight: 800;
-    letter-spacing: 0.05em;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: var(--shadow-sm);
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
 }
 
-.status-sehat { background: #22c55e; color: white; }
-.status-waspada { background: #eab308; color: white; }
-.status-kritis { background: #ef4444; color: white; }
+.analysis-content {
+    background: rgba(var(--bg-card-rgb), 0.3);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+}
 
-/* Table Row: Score */
-.score { background: rgba(34, 197, 94, 0.04); }
-.score .l-val { color: #16a34a; }
-.score .l-note { font-weight: 700; text-transform: uppercase; color: #16a34a; font-size: 0.7rem; }
+.scrollable-brief {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-border) transparent;
+}
 
-.profit-amount {
-    font-size: 1.5rem;
+.scrollable-brief::-webkit-scrollbar { width: 6px; }
+.scrollable-brief::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+.markdown-body-lite {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--text-main);
+}
+
+.markdown-body-lite :deep(p) {
+    margin-bottom: 16px;
+}
+
+.markdown-body-lite :deep(.brief-h3) {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.markdown-body-lite :deep(.brief-h3)::before {
+    content: "";
+    width: 4px;
+    height: 12px;
+    background: var(--color-primary);
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.markdown-body-lite :deep(.brief-list-item) {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-left: 4px;
+}
+
+.markdown-body-lite :deep(.list-num) {
+    font-weight: 800;
+    color: var(--color-primary);
+    min-width: 20px;
+}
+
+.markdown-body-lite :deep(.list-content) {
+    flex: 1;
+}
+
+.markdown-body-lite :deep(strong) {
+    color: var(--color-primary);
     font-weight: 700;
 }
 
-.profit-label {
+.analysis-footer {
+    margin-top: 16px;
+}
+
+.btn-action-small {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
     display: flex;
     align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
+.btn-action-small:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(16, 185, 129, 0.05);
 }
 
-.pulse-text {
-    animation: textPulse 1.5s infinite ease-in-out;
-}
-
-.pulse-bg {
-    animation: bgPulse 1.5s infinite ease-in-out;
-    background: rgba(99, 102, 241, 0.2);
-}
-
-@keyframes textPulse {
-    0% { opacity: 0.7; transform: scale(0.98); }
-    50% { opacity: 1; transform: scale(1.02); }
-    100% { opacity: 0.7; transform: scale(0.98); }
-}
-
-@keyframes bgPulse {
-    0% { background: rgba(99, 102, 241, 0.1); }
-    50% { background: rgba(99, 102, 241, 0.3); }
-    100% { background: rgba(99, 102, 241, 0.1); }
-}
-
-.sparkline-container {
-    display: flex; align-items: flex-end; gap: 2px;
-    height: 80px; width: 100%;
-}
-.spark-bar {
-    flex: 1; background: var(--primary-alpha-50);
-    border-radius: 2px 2px 0 0;
-    transition: height 0.5s ease;
-}
-.spark-bar:hover { background: var(--primary); }
-
-/* Details */
-.card-details {
-    border-top: 1px dashed var(--border-color);
-    padding: var(--space-lg);
-    background: var(--bg-secondary-alpha-50);
-}
-.details-title { font-size: 0.9rem; margin-bottom: var(--space-md); color: var(--text-secondary); }
-/* Transaction & Chunk List */
-.transaction-list {
+/* Visual Trend */
+.visual-trend {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: 12px;
 }
 
-.doc-item {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+.v-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.curve-container {
+    height: 80px;
+    width: 100%;
+    position: relative;
+}
+
+.spark-svg { width: 100%; height: 100%; overflow: visible; }
+.curve-line { stroke: var(--color-primary); filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3)); }
+
+.trend-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-dim);
+}
+
+/* Details Section */
+.details-section {
+    padding: 0 32px 32px;
+}
+
+.details-inner {
+    border-top: 1px dashed var(--glass-border);
+    padding-top: 24px;
+}
+
+.section-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+}
+
+.nodes-list { display: flex; flex-direction: column; gap: 12px; }
+
+.node-card {
+    background: rgba(var(--bg-card-rgb), 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
     overflow: hidden;
 }
 
-.doc-header {
-    padding: var(--space-sm) var(--space-md);
+.node-header {
+    padding: 16px 20px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     cursor: pointer;
     transition: background 0.2s;
 }
 
-.doc-header:hover {
-    background: var(--bg-tertiary);
+.node-header:hover { background: rgba(var(--bg-card-rgb), 0.3); }
+
+.node-main { display: flex; flex-direction: column; flex: 1; }
+.node-date { font-size: 0.75rem; color: var(--text-muted); }
+.node-title { font-size: 0.9375rem; font-weight: 700; color: var(--text-main); }
+.node-amount { font-weight: 800; font-size: 1rem; margin: 0 24px; }
+.node-toggle { color: var(--text-dim); transition: transform 0.2s; }
+.node-toggle.rotated { transform: rotate(90deg); }
+
+/* Node Expanded Audit Overhaul - Modern Grid */
+.node-expanded {
+    padding: 32px;
+    background: rgba(var(--bg-card-rgb), 0.1);
+    border-top: 1px solid var(--glass-border);
 }
 
-.doc-info {
+.audit-top-bar {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-    flex: 1;
-}
-
-.doc-date {
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-    min-width: 80px;
-}
-
-.doc-title {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.chunk-badge {
-    background: var(--bg-tertiary);
-    color: var(--text-tertiary);
-    font-size: 0.7rem;
-    padding: 2px 6px;
-    border-radius: 10px;
-}
-
-.doc-amount {
-    font-weight: 700;
-    font-size: 0.9rem;
-    margin-right: 15px;
-}
-
-.doc-arrow {
-    font-size: 0.7rem;
-    color: var(--text-tertiary);
-    transition: transform 0.2s;
-}
-.doc-arrow.rotated { transform: rotate(180deg); }
-
-/* Chunk Breakdown Details */
-.chunk-breakdown {
-    background: var(--bg-tertiary-alpha-50);
-    padding: var(--space-md);
-    border-top: 1px solid var(--border-color-alpha);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-}
-
-.chunk-item {
-    background: var(--bg-primary);
-    border-left: 3px solid var(--primary);
-    padding: var(--space-md);
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
-    box-shadow: var(--shadow-sm);
-}
-
-.chunk-meta {
-    display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border-color-alpha);
-    padding-bottom: 4px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--glass-border);
 }
 
-.chunk-label {
+.audit-badge-premium {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-primary);
+    padding: 6px 16px;
+    border-radius: 100px;
     font-size: 0.7rem;
     font-weight: 800;
-    color: var(--primary);
+    letter-spacing: 0.1em;
+    position: relative;
+    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.chunk-id {
-    font-family: monospace;
-    font-size: 0.7rem;
-    color: var(--text-tertiary);
+.pulse-ring {
+    width: 6px;
+    height: 6px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    animation: pulse-dot 2s infinite;
 }
 
-.chunk-content {
+@keyframes pulse-dot {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(3); opacity: 0; }
+}
+
+.audit-summary-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-dim);
+}
+
+.audit-logic-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.logic-row-card {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
+    background: rgba(var(--bg-card-rgb), 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.logic-row-card:hover {
+    background: rgba(var(--bg-card-rgb), 0.5);
+    border-color: var(--text-dim);
+    transform: translateX(4px);
+}
+
+.logic-row-card.total {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.05), transparent);
+    border-left: 4px solid var(--color-primary);
+}
+
+.logic-identity {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.logic-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--bg-card-rgb), 0.5);
+    border: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.logic-icon-box.success { color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3); }
+.logic-icon-box.danger { color: #ef4444; border-color: rgba(239, 68, 68, 0.3); }
+.logic-icon-box.primary { color: #6366f1; border-color: rgba(99, 102, 241, 0.3); }
+.logic-icon-box.warning { color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); }
+.logic-icon-box.emerald { color: #10b981; border-color: rgba(16, 185, 129, 0.3); }
+
+.logic-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.l-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.l-value {
+    font-size: 1.1rem;
+    font-weight: 850;
+    color: var(--text-main);
+}
+
+.l-value.plus { color: var(--color-primary); }
+.l-value.minus { color: #ef4444; }
+
+.logic-analysis {
+    display: flex;
+    align-items: center;
+    padding-left: 24px;
+    border-left: 1px dashed var(--glass-border);
+}
+
+.analysis-bubble {
     font-size: 0.85rem;
-    line-height: 1.4;
-    white-space: pre-wrap;
-    color: var(--text-primary);
-    margin-bottom: 10px;
+    line-height: 1.6;
+    color: var(--text-muted);
 }
 
-.chunk-footer {
-    background: #00000010;
-    padding: 8px;
+:deep(.hl-val) {
+    color: var(--text-main);
+    font-weight: 800;
+    background: rgba(var(--bg-card-rgb), 0.1);
+    padding: 0 4px;
     border-radius: 4px;
 }
 
-.metadata-json {
-    font-family: monospace;
-    font-size: 0.75rem;
-    color: #0066cc;
-    margin: 0;
-    overflow-x: auto;
+.node-actions-area {
+    margin-top: 32px;
+    display: flex;
+    justify-content: flex-start;
 }
 
-@media (max-width: 768px) {
-    .card-body { grid-template-columns: 1fr; }
-    .header-main { gap: var(--space-md); flex-direction: column; align-items: flex-start; }
-    .profit-badge { align-items: flex-start; }
+.btn-premium-outline {
+    background: rgba(var(--bg-card-rgb), 0.4);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
 }
+
+.btn-premium-outline:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: rgba(16, 185, 129, 0.05);
+    transform: translateY(-2px);
+}
+
+/* AI Pill Premium */
+.ai-pill-verified-premium {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(124, 58, 237, 0.04);
+    color: #7c3aed;
+    padding: 2px 8px;
+    border: 1px solid rgba(124, 58, 237, 0.12);
+    border-radius: 8px;
+    font-size: 0.58rem;
+    font-weight: 800;
+}
+
+@keyframes pulse-purple-tight {
+    0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.2); }
+    70% { box-shadow: 0 0 0 6px rgba(124, 58, 237, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+}
+
+.pulse-purple-tight { animation: pulse-purple-tight 3s infinite; }
+.ml-md-plus { margin-left: 10px; }
 </style>

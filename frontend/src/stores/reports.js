@@ -58,7 +58,6 @@ export const useReportsStore = defineStore('reports', () => {
             const queryFilters = { ...filters }
             if (authStore.user?.role === 'ceo' || authStore.user?.role === 'farmer') {
                 queryFilters.company_id = authStore.user?.company_id
-                // Hard override selected company to match user role
                 selectedCompany.value = Object.keys(COMPANY_TABLES).find(
                     k => COMPANY_TABLES[k].id === authStore.user?.company_id
                 ) || 'all'

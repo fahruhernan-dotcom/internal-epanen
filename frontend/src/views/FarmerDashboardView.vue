@@ -71,12 +71,12 @@
                 </div>
 
                 <div class="action-list">
-                  <button class="action-item">
-                    <span class="action-icon">⚙️</span>
+                  <button class="action-item" aria-label="Account settings">
+                    <AppIcon name="settings" :size="20" />
                     <span>Pengaturan Akun</span>
                   </button>
-                  <button class="action-item text-error" @click="handleLogout">
-                    <span class="action-icon">🚪</span>
+                  <button class="action-item text-error" @click="handleLogout" aria-label="Logout">
+                    <AppIcon name="log-out" :size="20" />
                     <span>Keluar Aplikasi</span>
                   </button>
                 </div>
@@ -98,7 +98,7 @@
           @click="activeTab = tab.id"
         >
           <div class="icon-wrapper">
-            <span class="dock-icon">{{ tab.icon }}</span>
+            <AppIcon :name="tab.iconName" :size="20" />
           </div>
           <span class="dock-label">{{ tab.label }}</span>
         </button>
@@ -115,17 +115,18 @@ import FarmerReportForm from '@/components/FarmerReportForm.vue'
 import FarmerHistoryList from '@/components/FarmerHistoryList.vue'
 import SOPReferenceView from '@/views/SOPReferenceView.vue'
 import FarmerChatView from '@/views/FarmerChatView.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const activeTab = ref('home')
 
 const tabs = [
-  { id: 'home', label: 'Lapor', icon: '📝' },
-  { id: 'ai', label: 'AI Chat', icon: '🤖' },
-  { id: 'history', label: 'Riwayat', icon: '📋' },
-  { id: 'sop', label: 'SOP', icon: '📖' },
-  { id: 'profile', label: 'Profil', icon: '👤' }
+  { id: 'home', label: 'Lapor', iconName: 'file-text' },
+  { id: 'ai', label: 'AI Chat', iconName: 'bot' },
+  { id: 'history', label: 'Riwayat', iconName: 'clipboard-list' },
+  { id: 'sop', label: 'SOP', iconName: 'book-open' },
+  { id: 'profile', label: 'Profil', iconName: 'user' }
 ]
 
 const userInitials = computed(() => {
@@ -338,7 +339,7 @@ async function handleLogout() {
 .stat-box {
   background: var(--bg-tertiary);
   padding: var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -369,7 +370,7 @@ async function handleLogout() {
   padding: var(--space-md);
   background: var(--bg-tertiary);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   width: 100%;
   font-weight: 600;
   color: var(--text-secondary);

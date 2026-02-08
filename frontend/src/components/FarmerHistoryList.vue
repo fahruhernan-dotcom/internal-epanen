@@ -115,7 +115,7 @@ function showReportDetail(report) {
 .header-card {
   background: linear-gradient(135deg, var(--primary), var(--primary-600));
   color: white; padding: var(--space-lg);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
   margin: -1rem -1rem var(--space-md) -1rem;
 }
 .subtitle { opacity: 0.9; font-size: 0.9rem; }

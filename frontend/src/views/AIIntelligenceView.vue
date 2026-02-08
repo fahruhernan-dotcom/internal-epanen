@@ -26,7 +26,9 @@
         <div class="nodes-container">
           <!-- Orchestrator -->
           <div class="node orchestrator-node" title="Grok 4.1 Fast Orchestrator">
-            <div class="node-icon">🧠</div>
+            <div class="node-icon">
+              <AppIcon name="brain" :size="32" />
+            </div>
             <div class="node-label">AI OWNER</div>
             <div class="node-sub">Gatekeeper & Router</div>
           </div>
@@ -42,22 +44,30 @@
           <!-- Sub Agents -->
           <div class="sub-agents-row">
             <div class="node agent-node active-pulse" @click="selectedAgent = 'Lyori'">
-              <div class="node-icon">🌾</div>
+              <div class="node-icon">
+                <AppIcon name="leaf" :size="24" />
+              </div>
               <div class="node-label">Lyori AI</div>
               <div class="node-status active">Active</div>
             </div>
             <div class="node agent-node active-pulse" style="animation-delay: 0.5s" @click="selectedAgent = 'Moafarm'">
-              <div class="node-icon">🌱</div>
+              <div class="node-icon">
+                <AppIcon name="sprout" :size="24" />
+              </div>
               <div class="node-label">Moafarm AI</div>
               <div class="node-status active">Active</div>
             </div>
             <div class="node agent-node active-pulse" style="animation-delay: 1s" @click="selectedAgent = 'Kaja'">
-              <div class="node-icon">🥬</div>
+              <div class="node-icon">
+                <AppIcon name="leaf" :size="24" />
+              </div>
               <div class="node-label">Kaja AI</div>
               <div class="node-status active">Active</div>
             </div>
             <div class="node agent-node" @click="selectedAgent = 'Farmer'">
-              <div class="node-icon">👨‍🌾</div>
+              <div class="node-icon">
+                <AppIcon name="user" :size="24" />
+              </div>
               <div class="node-label">Farmer AI</div>
               <div class="node-status active">Active</div>
             </div>
@@ -89,7 +99,9 @@
             <h4>Connected Tools & RAG</h4>
             <div class="tools-list">
               <div v-for="tool in agentInsights[selectedAgent].tools" :key="tool.name" class="tool-item">
-                <span class="tool-icon">{{ tool.icon }}</span>
+                <span class="tool-icon">
+                  <AppIcon :name="tool.iconName" :size="20" />
+                </span>
                 <div class="tool-info">
                   <span class="tool-name">{{ tool.name }}</span>
                   <span class="tool-desc">{{ tool.desc }}</span>
@@ -123,6 +135,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const selectedAgent = ref('Lyori')
 
@@ -130,29 +143,29 @@ const agentInsights = {
   'Lyori': {
     role: 'Financial & SOP Specialist for Lyori Ecosystem',
     tools: [
-      { name: 'Finance Lyori RAG', icon: '📂', desc: 'Vector search for weekly financial PDFs' },
-      { name: 'General Doc RAG', icon: '📄', desc: 'SOP, RAB, and KPI documentation' },
-      { name: 'Lyori CRUD Tool', icon: '🛠️', desc: 'Direct Supabase access for report management' }
+      { name: 'Finance Lyori RAG', iconName: 'folder', desc: 'Vector search for weekly financial PDFs' },
+      { name: 'General Doc RAG', iconName: 'file-text', desc: 'SOP, RAB, and KPI documentation' },
+      { name: 'Lyori CRUD Tool', iconName: 'settings', desc: 'Direct Supabase access for report management' }
     ]
   },
   'Moafarm': {
     role: 'Operations Expert for Moafarm SmartFarm',
     tools: [
-      { name: 'Moafarm Daily RAG', icon: '📊', desc: 'Audit daily operations data' },
-      { name: 'Financial Ingest', icon: '📥', desc: 'Automated extraction from finance forms' }
+      { name: 'Moafarm Daily RAG', iconName: 'bar-chart-3', desc: 'Audit daily operations data' },
+      { name: 'Financial Ingest', iconName: 'download', desc: 'Automated extraction from finance forms' }
     ]
   },
   'Kaja': {
     role: 'Production & Logistics Advisor',
     tools: [
-      { name: 'Kaja Vector Store', icon: '🗄️', desc: 'High-density production records' }
+      { name: 'Kaja Vector Store', iconName: 'database', desc: 'High-density production records' }
     ]
   },
   'Farmer': {
     role: 'Operational Data Collector',
     tools: [
-      { name: 'Daily Form Parser', icon: '📝', desc: 'Translates informal WA to JSON' },
-      { name: 'SOP Compliance Node', icon: '✅', desc: 'Real-time auditing against company standards' }
+      { name: 'Daily Form Parser', iconName: 'file-text', desc: 'Translates informal WA to JSON' },
+      { name: 'SOP Compliance Node', iconName: 'check-circle', desc: 'Real-time auditing against company standards' }
     ]
   }
 }
@@ -226,7 +239,7 @@ const liveLogs = ref([
 
 .card {
   background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   border: 1px solid var(--border-color);
   padding: var(--space-xl);
 }
@@ -257,7 +270,7 @@ const liveLogs = ref([
 .node {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   padding: var(--space-md);
   text-align: center;
   transition: all var(--transition-normal);

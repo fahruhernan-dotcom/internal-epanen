@@ -18,7 +18,7 @@
       <!-- Enhanced Empty State -->
       <div v-if="messages.length === 0" class="empty-state animate-fade-in">
         <div class="empty-icon-wrapper">
-          <span class="empty-icon">🌱</span>
+          <AppIcon name="sprout" :size="48" />
         </div>
         <h3>Halo! Saya Asisten Anda</h3>
         <p>Bisa bantu apa hari ini? Ceritakan saja kegiatan atau kendala di lapangan.</p>
@@ -40,8 +40,13 @@
     <div class="chat-input-container" v-if="!isComplete">
       <!-- Quick Reply Pill -->
       <div v-if="hasConfirmation && !isLoading" class="quick-reply-area animate-fade-in">
-        <button @click="handleConfirm" class="quick-pill confirm">✅ Ya, Kirim Laporan</button>
-        <button @click="handleRevise" class="quick-pill revise">Ada Perbaikan</button>
+        <button @click="handleConfirm" class="quick-pill confirm" aria-label="Confirm and send report">
+          <AppIcon name="check-circle" :size="16" />
+          <span class="ml-sm">Ya, Kirim Laporan</span>
+        </button>
+        <button @click="handleRevise" class="quick-pill revise" aria-label="Request revisions">
+          Ada Perbaikan
+        </button>
       </div>
 
       <div class="typing-pill" v-if="isLoading">
@@ -66,9 +71,10 @@
           :disabled="!canSubmit"
           class="modern-send-btn"
           :class="{ active: canSubmit && !isLoading }"
+          aria-label="Send message"
         >
           <div v-if="isLoading" class="spinner-white-mini"></div>
-          <span v-else>🚀</span>
+          <AppIcon v-else name="rocket" :size="20" />
         </button>
       </form>
     </div>
@@ -76,7 +82,9 @@
     <!-- Premium Success Overaly -->
     <div v-else class="completion-overlay animate-fade-in">
       <div class="completion-card card shadow-xl">
-        <div class="success-check animate-bounce">✅</div>
+        <div class="success-check animate-bounce">
+          <AppIcon name="check-circle" :size="64" />
+        </div>
         <h2>Laporan Selesai!</h2>
         <p>Data Anda sudah tercatat dengan aman di sistem.</p>
         <div class="completion-actions">
@@ -93,6 +101,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useClaudeChat } from '@/composables/useClaudeChat'
 import ChatMessage from './ChatMessage.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   onSave: {
@@ -288,7 +297,7 @@ onMounted(() => {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -508,4 +517,6 @@ onMounted(() => {
     padding: var(--space-sm) var(--space-sm) 160px;
   }
 }
+
+.ml-sm { margin-left: var(--space-sm); }
 </style>
