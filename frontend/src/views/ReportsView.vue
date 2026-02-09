@@ -1,31 +1,64 @@
 <template>
-  <div class="reports-page animate-fade-in">
-    <!-- Filters -->
-    <div class="filters-bar card">
-      <div class="filter-group" v-if="authStore?.isAdmin || authStore?.isOwner">
-        <label class="form-label">Perusahaan</label>
-        <select v-model="selectedCompany" class="form-input" @change="loadReports">
-          <option value="all">Semua Perusahaan</option>
-          <option v-for="company in companyOptions" :key="company" :value="company">
-            {{ company }}
-          </option>
-        </select>
+  <div class="reports-page animate-fade-in-up">
+    <!-- Header Section -->
+    <div class="page-header mb-2xl">
+      <div>
+        <h2 class="text-gradient-emerald text-3xl font-bold mb-xs">Monitoring Harian</h2>
+        <p class="text-muted">Pantau aktivitas, kondisi cuaca, dan kendala lapangan secara real-time.</p>
       </div>
-      <div class="filter-group" v-else-if="authStore.user?.companies?.name">
-        <label class="form-label">Perusahaan</label>
-        <div class="company-badge-static">
-          🏢 {{ authStore.user.companies.name }}
+    </div>
+
+    <!-- Control Bar (Filters) -->
+    <div class="premium-card filter-card p-lg mb-2xl flex flex-wrap items-end gap-lg">
+      <!-- Company Filter -->
+      <div class="filter-group">
+        <label class="input-label">Entitas Perusahaan</label>
+        <div class="custom-select-container" v-if="authStore?.isAdmin || authStore?.isOwner" ref="companyDropdownRef">
+          <button class="custom-select-trigger" @click="toggleCompanyDropdown" :class="{ 'is-open': isDropdownOpen }">
+            <span class="font-bold">{{ selectedCompany === 'all' ? 'Semua Entitas' : selectedCompany }}</span>
+            <AppIcon name="chevron-down" :size="18" class="transition-transform duration-200" :class="{ 'rotate-180': isDropdownOpen }" />
+          </button>
+          
+          <transition name="dropdown-fade">
+            <div class="custom-dropdown-menu" v-if="isDropdownOpen">
+              <div 
+                class="dropdown-item" 
+                :class="{ 'selected': selectedCompany === 'all' }"
+                @click="selectCompany('all')"
+              >
+                <span>Semua Entitas</span>
+                <AppIcon v-if="selectedCompany === 'all'" name="check" :size="16" class="text-primary" />
+              </div>
+              
+              <div class="dropdown-divider"></div>
+              
+              <div 
+                v-for="company in companyOptions" 
+                :key="company" 
+                class="dropdown-item"
+                :class="{ 'selected': selectedCompany === company }"
+                @click="selectCompany(company)"
+              >
+                <span>{{ company }}</span>
+                <AppIcon v-if="selectedCompany === company" name="check" :size="16" class="text-primary" />
+              </div>
+            </div>
+          </transition>
+        </div>
+        <div v-else class="company-badge-static">
+           <AppIcon name="briefcase" :size="16" />
+           <span class="font-bold">{{ authStore?.user?.companies?.name || 'User' }}</span>
         </div>
       </div>
 
-      <!-- Period Tabs -->
-      <div class="period-tabs-container">
-        <label class="form-label mb-xs block">Periode</label>
-        <div class="period-tabs">
+      <!-- Time Period Selector (Segmented Control) -->
+      <div class="filter-group flex-grow">
+        <label class="input-label">Rentang Waktu</label>
+        <div class="segmented-control">
           <button 
             v-for="type in periodTypes" 
             :key="type.value"
-            class="tab-btn" 
+            class="segment-btn" 
             :class="{ active: selectedPeriodType === type.value }"
             @click="setPeriodType(type.value)"
           >
@@ -33,55 +66,66 @@
           </button>
         </div>
       </div>
-      
+
       <!-- Custom Date Inputs -->
-      <div v-if="selectedPeriodType === 'custom'" class="flex gap-sm animate-fade-in filter-group">
-        <div>
-            <label class="form-label">Dari</label>
-            <input type="date" v-model="customStartDate" class="form-input" @change="loadReports" />
+      <div v-if="selectedPeriodType === 'custom'" class="flex gap-md animate-scale-up">
+        <div class="filter-group">
+          <label class="input-label">Mulai</label>
+          <input type="date" v-model="customStartDate" class="elite-input date-input" @change="loadReports" />
         </div>
-        <div>
-            <label class="form-label">Sampai</label>
-            <input type="date" v-model="customEndDate" class="form-input" @change="loadReports" />
+        <div class="filter-group">
+          <label class="input-label">Sampai</label>
+          <input type="date" v-model="customEndDate" class="elite-input date-input" @change="loadReports" />
         </div>
       </div>
-      
-      <div class="flex-spacer"></div>
 
-      <button class="btn btn-primary" @click="loadReports">
-        🔍 Filter
+      <!-- Refresh Button -->
+      <button class="btn-primary-new h-[46px] px-lg ml-auto hover-lift" @click="loadReports">
+        <AppIcon name="search" :size="18" />
+        <span class="font-semibold ml-sm">Terapkan Filter</span>
       </button>
     </div>
 
-    <!-- Reports Table -->
-    <div class="card">
-      <div class="card-header">
-        <h3>Laporan Harian</h3>
-        <span class="report-count">{{ reportsStore?.dailyReports?.length || 0 }} laporan</span>
+    <!-- Reports Table Section -->
+    <div class="premium-card overflow-hidden">
+        <div class="card-header-flex p-xl border-b border-glass">
+            <div class="flex items-center gap-md">
+                <div class="icon-box-sm emerald">
+                    <AppIcon name="clipboard" :size="20" />
+                </div>
+                <div>
+                   <h3 class="font-bold text-lg text-main">Log Laporan Lapangan</h3>
+                   <p class="text-xs text-muted">{{ reportsStore?.dailyReports?.length || 0 }} laporan ditemukan periode ini</p>
+                </div>
+            </div>
+             <button class="btn-ghost-sm" @click="loadReports" title="Refresh Data">
+                <AppIcon name="refresh-cw" :size="18" :class="{ 'animate-spin': reportsStore.loading }" />
+            </button>
+        </div>
+
+      <div v-if="reportsStore?.loading" class="p-3xl flex flex-col items-center justify-center text-muted min-h-[300px]">
+        <div class="spinner-premium mb-md"></div>
+        <span class="animate-pulse">Menarik data laporan terbaru...</span>
       </div>
       
-      <div v-if="reportsStore?.loading" class="loading-state">
-        <div class="spinner"></div>
-        <span>Memuat laporan...</span>
+      <div v-else-if="(reportsStore?.dailyReports?.length || 0) === 0" class="empty-state min-h-[300px] flex flex-col items-center justify-center">
+        <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-lg">
+             <AppIcon name="inbox" :size="40" class="text-muted opacity-50" />
+        </div>
+        <h4 class="text-lg font-bold text-muted mb-xs">Tidak Ada Laporan</h4>
+        <p class="text-sm text-muted">Belum ada data laporan yang masuk untuk kriteria ini.</p>
       </div>
       
-      <div v-else-if="(reportsStore?.dailyReports?.length || 0) === 0" class="empty-state">
-        <span class="empty-icon">📭</span>
-        <p>Tidak ada laporan ditemukan</p>
-        <span class="empty-hint">Coba ubah filter pencarian</span>
-      </div>
-      
-      <div v-else class="table-container">
-        <table class="table">
+      <div v-else class="table-responsive px-lg pb-lg pt-md">
+        <table class="elite-table">
           <thead>
             <tr>
-              <th>Tanggal</th>
-              <th>Perusahaan</th>
-              <th>Pelapor</th>
-              <th>Aktivitas</th>
-              <th>Masalah</th>
-              <th>Cuaca</th>
-              <th>Catatan</th>
+              <th width="15%">Waktu</th>
+              <th width="12%">Entitas</th>
+              <th width="15%">Pelapor</th>
+              <th width="30%">Aktivitas Utama</th>
+              <th width="15%">Status</th>
+              <th width="13%">Kondisi</th>
             </tr>
           </thead>
           <tbody>
@@ -89,53 +133,65 @@
               v-for="report in reportsStore.dailyReports" 
               :key="report.id"
               @click="showReportDetail(report)"
-              class="clickable-row rich-row"
+              class="hover-row cursor-pointer"
             >
-              <td class="col-date">
+              <!-- Date Column -->
+              <td>
                 <div class="flex flex-col">
-                  <span class="day-label">{{ getRelativeDate(report.report_date) }}</span>
-                  <span class="date-sub">{{ formatDateShort(report.report_date) }}</span>
+                  <span class="font-bold text-main text-sm">{{ getRelativeDate(report.report_date) }}</span>
+                  <span class="text-xs font-mono text-muted mt-1">{{ formatDateShort(report.report_date) }}</span>
                 </div>
               </td>
-              <td class="col-company">
-                <span class="badge badge-outline" :class="getCompanyBadgeClass(report._company)">
-                  {{ report._company }}
+
+              <!-- Company Column -->
+              <td>
+                <span class="company-tag" :class="getCompanyColorClass(report._company)">
+                  {{ report._company || 'N/A' }}
                 </span>
               </td>
-              <td class="col-user">
-                <div class="user-info">
-                  <span class="avatar-mini">👤</span>
-                  <span class="user-name">{{ report.user_id || '-' }}</span>
-                </div>
-              </td>
-              <td class="col-activity">
-                <div class="activity-rich-content">
-                  <span class="activity-main-text">{{ getActivitiesSummary(report.activities) }}</span>
-                  <p v-if="getActivityDetails(report.activities)" class="activity-snippet">
-                    {{ truncate(getActivityDetails(report.activities), 80) }}
-                  </p>
-                </div>
-              </td>
-              <td class="col-issues">
-                <div v-if="hasIssues(report.issues)" class="issue-rich-content">
-                  <span class="badge badge-warning mb-xs">
-                    {{ getIssueCount(report.issues) }} Masalah
+
+              <!-- User Column -->
+              <td>
+                 <div class="user-cell">
+                  <div class="avatar-circle-sm" :style="{ background: stringToColor(report.user_id) }">
+                    {{ (report.user_id || '?').charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="font-medium text-sm text-main truncate max-w-[100px]" :title="report.user_id">
+                    {{ report.user_id || 'Unknown' }}
                   </span>
-                  <p class="issue-snippet">{{ truncate(getIssuePreview(report.issues), 60) }}</p>
                 </div>
-                <span v-else class="text-success text-sm font-semibold">✓ Aman</span>
               </td>
-              <td class="col-weather">
-                <span class="weather-badge-rich" :title="report.weather">
-                  <span class="weather-icon-lg">{{ getWeatherIcon(report.weather) }}</span>
-                  <span class="weather-text-sm">{{ report.weather || '-' }}</span>
-                </span>
+
+              <!-- Activity Column -->
+              <td>
+                <div class="flex flex-col gap-1 max-w-sm">
+                  <span class="font-semibold text-sm text-main truncate">
+                    {{ getActivitiesSummary(report.activities) }}
+                  </span>
+                  <span class="text-xs text-muted truncate" v-if="getActivityDetails(report.activities)">
+                    {{ truncate(getActivityDetails(report.activities), 60) }}
+                  </span>
+                </div>
               </td>
-              <td class="col-notes">
-                <span class="notes-preview" v-if="report.notes">
-                  {{ truncate(report.notes, 40) }}
-                </span>
-                <span v-else class="text-muted italic text-xs">Tidak ada catatan</span>
+
+              <!-- Issues Column -->
+              <td>
+                 <div v-if="hasIssues(report.issues)" class="status-badge warning">
+                    <AppIcon name="alert-circle" :size="14" />
+                    <span class="truncate max-w-[80px]">{{ getIssueCount(report.issues) }} Kendala</span>
+                 </div>
+                 <div v-else class="status-badge success">
+                    <AppIcon name="check-circle" :size="14" />
+                    <span>Aman</span>
+                 </div>
+              </td>
+
+              <!-- Weather Column -->
+              <td>
+                <div class="weather-pill" :title="report.weather">
+                   <span class="text-lg">{{ getWeatherIcon(report.weather) }}</span>
+                   <span class="text-xs font-bold uppercase text-muted truncate max-w-[60px]">{{ report.weather || '-' }}</span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -152,10 +208,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
+import { ref, onMounted, onUnmounted, computed, defineAsyncComponent } from 'vue'
 import { useReportsStore } from '@/stores/reports'
 import { useAuthStore } from '@/stores/auth'
 import { COMPANY_TABLES } from '@/services/supabase'
+import AppIcon from '@/components/AppIcon.vue'
 
 const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
 
@@ -166,19 +223,28 @@ const selectedCompany = ref('all')
 const selectedReport = ref(null)
 
 // Filtering State
-const selectedPeriodType = ref('weekly') // Default to weekly for operational
+const selectedPeriodType = ref('weekly')
 const customStartDate = ref('')
 const customEndDate = ref('')
 
 const periodTypes = [
+    { value: 'weekly', label: '7 Hari Terakhir' },
+    { value: '2weeks', label: '14 Hari' },
     { value: 'monthly', label: 'Bulanan' },
-    { value: '3weeks', label: '3 Mingguan' },
-    { value: '2weeks', label: '2 Mingguan' },
-    { value: 'weekly', label: 'Mingguan' },
-    { value: 'custom', label: 'Custom' }
+    { value: 'custom', label: 'Kustom' }
 ]
 
-const companyOptions = computed(() => Object.keys(COMPANY_TABLES))
+const companyOptions = computed(() => {
+    // Filter out Owner and Admin from the list as they are not "companies" with reports
+    const all = Object.keys(COMPANY_TABLES).filter(c => c !== 'Owner' && c !== 'Admin')
+    
+    // If Admin/Owner, show all valid companies
+    if (authStore.isAdmin || authStore.isOwner) return all
+    
+    // If regular user, only show their company
+    const userCompany = authStore.user?.companies?.name
+    return userCompany ? [userCompany] : []
+})
 
 function setPeriodType(type) {
     selectedPeriodType.value = type
@@ -187,7 +253,7 @@ function setPeriodType(type) {
 
 function calculateDateRange() {
     const today = new Date()
-    const end = today // Default end is today
+    const end = today
     let start = new Date()
 
     if (selectedPeriodType.value === 'custom') {
@@ -197,14 +263,11 @@ function calculateDateRange() {
         }
     }
     
-    // Logic for presets
     if (selectedPeriodType.value === 'monthly') {
-        // Strict start of month
         start = new Date(today.getFullYear(), today.getMonth(), 1)
     } else {
         let daysBack = 7
         if (selectedPeriodType.value === '2weeks') daysBack = 14
-        if (selectedPeriodType.value === '3weeks') daysBack = 21
         start.setDate(today.getDate() - daysBack)
     }
     
@@ -217,21 +280,12 @@ function calculateDateRange() {
 }
 
 
-function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  })
-}
-
 function formatDateShort(dateStr) {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('id-ID', {
     day: 'numeric',
-    month: 'short'
+    month: 'short',
+    year: 'numeric'
   })
 }
 
@@ -278,20 +332,6 @@ function getIssueCount(issues) {
   return 1
 }
 
-function getIssuePreview(issues) {
-    if (!issues) return ''
-    if (Array.isArray(issues) && issues.length > 0) {
-        const first = issues[0]
-        return typeof first === 'string' ? first : (first.description || first.content || '')
-    }
-    if (typeof issues === 'object') {
-        const first = Object.values(issues)[0]
-        if (typeof first === 'string') return first
-        return first?.description || first?.content || ''
-    }
-    return String(issues)
-}
-
 function getWeatherIcon(weather) {
   if (!weather) return ''
   const w = weather.toLowerCase()
@@ -302,40 +342,53 @@ function getWeatherIcon(weather) {
   return '🌡️'
 }
 
-function getCompanyBadgeClass(company) {
-  const classes = {
-    'ePanen': 'badge-success',
-    'Moafarm': 'badge-info',
-    'Lyori': 'badge-warning',
-    'Kaja': 'badge-success',
-    'Melon': 'badge-info'
-  }
-  return classes[company] || 'badge-info'
+function getCompanyColorClass(company) {
+    if (['ePanen', 'Kaja'].includes(company)) return 'emerald'
+    if (['Moafarm', 'Melon', 'Lyori'].includes(company)) return 'blue'
+    return 'neutral'
 }
 
-function formatJSON(data) {
-  if (!data) return '-'
-  try {
-    return JSON.stringify(data, null, 2)
-  } catch {
-    return String(data)
-  }
+function stringToColor(str) {
+    if (!str) return '#ccc'
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return '#' + "00000".substring(0, 6 - c.length) + c;
 }
 
 function showReportDetail(report) {
   selectedReport.value = report
 }
 
-// Redundant normalizeIssues helper removed
-
 async function loadReports() {
   const { start, end } = calculateDateRange()
-  
   reportsStore.setSelectedCompany(selectedCompany.value)
   await reportsStore.fetchAllDailyReports({
     startDate: start,
     endDate: end
   })
+}
+
+// Custom Dropdown Logic
+const isDropdownOpen = ref(false)
+const companyDropdownRef = ref(null)
+
+function toggleCompanyDropdown() {
+    isDropdownOpen.value = !isDropdownOpen.value
+}
+
+function closeCompanyDropdown(e) {
+    if (companyDropdownRef.value && !companyDropdownRef.value.contains(e.target)) {
+        isDropdownOpen.value = false
+    }
+}
+
+function selectCompany(company) {
+    selectedCompany.value = company
+    isDropdownOpen.value = false
+    loadReports()
 }
 
 onMounted(() => {
@@ -353,195 +406,384 @@ onMounted(() => {
         }
     }
     
+    // Global click listener for dropdown
+    document.addEventListener('click', closeCompanyDropdown)
+    
     loadReports()
+})
+
+onUnmounted(() => {
+    document.removeEventListener('click', closeCompanyDropdown)
 })
 </script>
 
+<style scoped>
+/* Page Layout */
 .reports-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-bottom: 64px;
 }
 
-/* Filters */
-.filters-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-lg);
-  padding: var(--space-xl);
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(0, 0, 0, 0.03);
-}
+/* Spacing Utilities (Local Definition) */
+.p-lg { padding: 24px; }
+.mb-2xl { margin-bottom: 48px; }
+.mb-xs { margin-bottom: 4px; }
+.gap-lg { gap: 24px; }
+.gap-md { gap: 16px; }
+.ml-auto { margin-left: auto; }
+.ml-sm { margin-left: 8px; }
+.px-lg { padding-left: 24px; padding-right: 24px; }
+.pb-lg { padding-bottom: 24px; }
+.pt-md { padding-top: 16px; }
+.p-xl { padding: 32px; }
+.p-3xl { padding: 48px; }
+.w-full { width: 100%; }
 
-.period-tabs-container {
-  background: var(--bg-main);
-  padding: 4px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-}
-
-.period-tabs {
-  display: flex;
-  gap: 2px;
-}
-
-.tab-btn {
-  background: transparent;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-  font-weight: 600;
-}
-
-.tab-btn.active {
-  background: white;
-  color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.filter-group {
-  min-width: 180px;
-}
-
-.form-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.form-input {
-  background: var(--bg-main);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 0.9375rem;
-  transition: all 0.2s ease;
-}
-
-.form-input:focus {
-  border-color: var(--color-primary);
-  background: white;
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
-}
-
-/* Table Card */
-.reports-card {
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(0, 0, 0, 0.03);
-  overflow: hidden;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-xl);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-}
-
-.card-header h3 {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text-main);
-}
-
-.report-count {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: rgba(16, 185, 129, 0.1);
-  padding: 4px 12px;
+/* Premium Card & Layout */
+.premium-card {
+  background: rgba(var(--bg-card-rgb), 0.3);
+  border: 1px solid var(--glass-border);
   border-radius: 20px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: visible; /* Allowing Select dropdowns to overflow */
 }
 
-/* Table Styles */
-.table th {
-  background: var(--bg-main);
-  color: var(--text-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  padding: var(--space-lg);
-  text-align: left;
+/* Specific override for Filter Card to ensure Dropdowns flow out */
+.filter-card {
+    overflow: visible !important;
+    z-index: 50; /* Ensure it stacks above the table card */
 }
 
-.table td {
-  padding: var(--space-lg);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-  vertical-align: middle;
+/* FILTER SECTION */
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.clickable-row:hover {
-  background: rgba(16, 185, 129, 0.02);
+.input-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
 }
 
-.day-label {
-  font-weight: 800;
-  color: var(--text-main);
-  font-size: 1rem;
+/* CUSTOM ELITE DROPDOWN */
+.custom-select-container {
+    position: relative;
+    min-width: 220px;
+    z-index: 50; /* Ensure it floats above other elements */
 }
 
-.date-sub {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(var(--text-main-rgb), 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
 }
 
-.badge-outline {
-  border: 1.5px solid currentColor;
-  background: transparent !important;
-  font-weight: 700;
-  padding: 4px 10px;
+.custom-select-trigger:hover {
+    background: rgba(var(--text-main-rgb), 0.06);
+    transform: translateY(-1px);
+    border-color: rgba(16, 185, 129, 0.3);
 }
 
-.user-name {
-  font-weight: 700;
-  color: var(--text-main);
+.custom-select-trigger.is-open {
+    border-color: var(--color-primary);
+    background: rgba(var(--bg-main-rgb), 0.8);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
 }
 
-.activity-main-text {
-  font-weight: 700;
-  color: var(--text-main);
-  display: block;
+/* Dropdown Menu */
+.custom-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 260px; /* Slightly wider for better readability */
+    background: var(--bg-card-solid);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px; /* Smooth corners */
+    padding: 8px;
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5); /* Deep shadow for lifting */
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 9999; /* Top level priority */
+    backdrop-filter: blur(20px);
 }
 
-.activity-snippet {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  margin-top: 2px;
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
 }
 
-.weather-badge-rich {
-  background: var(--bg-main);
-  padding: 8px 12px;
-  border-radius: 12px;
-  display: inline-flex;
+.dropdown-item:hover {
+    background: rgba(var(--text-main-rgb), 0.04);
+    color: var(--text-main);
+}
+
+.dropdown-item.selected {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--glass-border);
+    margin: 6px 0;
+}
+
+/* Animations */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+    transition: all 0.2s ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Reusing Elite Input Style */
+.elite-input {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(var(--text-main-rgb), 0.03);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+.elite-input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    background: rgba(var(--text-main-rgb), 0.05);
+}
+
+.company-badge-static {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(var(--text-main-rgb), 0.05);
+    border-radius: 10px;
+    color: var(--text-main);
+    border: 1px solid var(--glass-border);
+}
+
+/* SEGMENTED CONTROL (The Period Selector) */
+.segmented-control {
+    display: inline-flex;
+    background: rgba(var(--text-main-rgb), 0.05);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+
+.segment-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.segment-btn:hover {
+    color: var(--text-main);
+}
+
+.segment-btn.active {
+    background: var(--bg-card); /* Should adapt to theme */
+    color: var(--color-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.dark-mode .segment-btn.active {
+    background: #2d2d2d;
+}
+
+/* TABLE STYLING */
+.premium-card.overflow-hidden {
+    overflow: hidden; /* Restoring overflow hidden for table card */
+}
+
+.card-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.icon-box-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-box-sm.emerald {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.btn-ghost-sm {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: var(--text-muted);
+    transition: background 0.2s;
+}
+.btn-ghost-sm:hover {
+    background: rgba(var(--text-main-rgb), 0.05);
+    color: var(--text-main);
+}
+
+/* Elite Table Implementation */
+.elite-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 12px;
+}
+
+.elite-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+}
+
+.elite-table td {
+    padding: 20px 24px;
+    background: rgba(255, 255, 255, 0.02); /* Very subtle card bg */
+    border-top: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+    vertical-align: middle;
+    color: var(--text-main);
+    transition: all 0.2s;
+}
+
+.elite-table td:first-child {
+    border-left: 1px solid var(--glass-border);
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+}
+
+.elite-table td:last-child {
+    border-right: 1px solid var(--glass-border);
+    border-top-right-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+.hover-row:hover td {
+    background: rgba(var(--text-main-rgb), 0.03);
+    transform: translateY(-2px);
+    border-color: rgba(var(--color-primary-rgb), 0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Cell Contents */
+.company-tag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.company-tag.emerald { color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); }
+.company-tag.blue { color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); }
+.company-tag.neutral { color: var(--text-muted); background: rgba(var(--text-main-rgb), 0.05); }
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar-circle-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.status-badge.warning { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.status-badge.success { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+.weather-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(var(--text-main-rgb), 0.03);
+    padding: 4px 10px;
+    border-radius: 20px;
+    width: fit-content;
+}
+
+/* Button New */
+.btn-primary-new {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  border-radius: 10px;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-primary-new:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
 }
 
-.weather-icon-lg {
-  font-size: 1.25rem;
-}
-
-.weather-text-sm {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
+/* Animations */
+/* animate-fade-in-up is inherited from global CSS to ensure correct forwards behavior */
+.animate-scale-up { animation: scaleUp 0.3s ease-out forwards; }
+@keyframes scaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+</style>

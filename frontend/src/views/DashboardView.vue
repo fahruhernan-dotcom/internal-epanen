@@ -102,7 +102,7 @@
     </div>
 
     <!-- AI Briefing Hub -->
-    <div v-if="authStore.isAdmin || authStore.isOwner" class="mt-xl animate-fade-in-up stagger-5">
+    <div v-if="authStore.isAdmin || authStore.isOwner" class="mt-2xl animate-fade-in-up stagger-5">
       <div class="premium-card glass-container-hero p-0">
         <div class="glass-header-hero flex items-center justify-between p-xl">
           <div class="flex items-center gap-sm">
@@ -128,8 +128,8 @@
       </div>
     </div>
 
-    <div class="mt-3xl">
-      <div class="flex justify-between items-center mb-md animate-fade-in-up stagger-6">
+    <div class="premium-section-gap">
+      <div class="flex justify-between items-center mb-xl animate-fade-in-up stagger-6">
         <h3 class="section-title-premium">{{ authStore.isAdmin || authStore.isOwner ? 'Klaster Analitik Entitas' : 'Perusahaan Terotorisasi' }}</h3>
         <span v-if="authStore.isAdmin || authStore.isOwner" class="badge-premium-emerald">GERBANG ADMIN</span>
       </div>
@@ -246,16 +246,25 @@
         </div>
       </div>
     </div>
+
+    <!-- Report Detail Modal -->
+    <ReportDetailModal 
+      v-if="selectedReport"
+      :report="selectedReport" 
+      @close="selectedReport = null" 
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { supabase, VIEWS } from '@/services/supabase'
 import { groupChunksToDocuments } from '@/utils/financialUtils'
 import AppIcon from '@/components/AppIcon.vue'
+
+const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -265,6 +274,7 @@ const stats = ref(null)
 const recentReports = ref([])
 const aiLoading = ref(false)
 const aiSummary = ref('')
+const selectedReport = ref(null)
 
 const roleLabel = computed(() => {
   const role = authStore.user?.role
@@ -415,8 +425,8 @@ function goToCompany(name) {
 }
 
 function goToDoc(doc) {
-  // If it's a daily report (v_all_daily_reports), go to /reports
-  router.push({ path: '/reports', query: { company: doc.company_name } })
+  // If it's a daily report (v_all_daily_reports), open modal direct
+  selectedReport.value = doc
 }
 
 function openUploadForm() {
@@ -1166,6 +1176,16 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: 500;
+}
+
+.premium-section-gap {
+    margin-top: 6rem; /* High-Fidelity Spacing */
+}
+
+@media (max-width: 768px) {
+    .premium-section-gap {
+        margin-top: 3.5rem;
+    }
 }
 
 </style>

@@ -312,15 +312,50 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Main Layout */
 .main-layout {
-  display: flex;
   min-height: 100vh;
+  /* background-color: var(--bg-main); Removed to let aurora show */
+  color: var(--text-main);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Aurora Animation & Background */
+.aurora-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1; /* Behind everything */
+  background: var(--bg-mesh); /* Use the Design Token Mesh */
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  animation: float 20s infinite alternate;
+}
+
+.blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: rgba(16, 185, 129, 0.2); animation-delay: 0s; }
+.blob-2 { top: 20%; right: -20%; width: 60vw; height: 60vw; background: rgba(59, 130, 246, 0.2); animation-delay: -5s; }
+.blob-3 { bottom: -20%; left: 20%; width: 70vw; height: 70vw; background: rgba(139, 92, 246, 0.2); animation-delay: -10s; }
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, 30px) scale(1.1); }
 }
 
 /* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--bg-sidebar);
+  background: rgba(var(--bg-card-rgb), 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
@@ -329,7 +364,7 @@ onUnmounted(() => {
   left: 0;
   top: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: 1000;
   overflow: hidden; /* Container stay fixed, internal nav scrolls */
 }
 
@@ -338,7 +373,7 @@ onUnmounted(() => {
 }
 
 .sidebar-header {
-  height: 80px;
+  height: 72px; /* Matched exactly to .top-header height */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -666,6 +701,11 @@ onUnmounted(() => {
 
 .main-content.no-sidebar {
   margin-left: 0 !important;
+}
+
+/* Sidebar Collapsed Handling */
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
 }
 
 .sidebar.collapsed + .main-content {

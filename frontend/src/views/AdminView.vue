@@ -1,293 +1,261 @@
 <template>
-  <div class="admin-page animate-fade-in-up">
-    <!-- Header Section -->
-    <div class="page-header mb-2xl">
-      <div>
-        <h2 class="text-gradient-emerald text-3xl font-bold mb-xs">Administrasi Sistem</h2>
-        <p class="text-muted">Kelola pengguna, akses role, dan konfigurasi sistem ekosistem.</p>
+  <div class="admin-page">
+    <!-- Page Header -->
+    <div class="page-header animate-fade-in">
+      <div class="header-content">
+        <div class="title-group">
+          <div class="premium-badge mb-xs">SYSTEM COMMAND</div>
+          <h2 class="page-title">Direktori & Akses</h2>
+          <p class="page-subtitle">Pusat kendali otentikasi dan manajemen personil SmartFarm.</p>
+        </div>
+        <button class="btn-primary-glow" @click="openAddModal">
+          <AppIcon name="user-plus" :size="20" />
+          <span>Registrasi User</span>
+        </button>
       </div>
-      <button class="btn-primary-new hover-lift" @click="openAddModal" aria-label="Tambah user baru">
-        <AppIcon name="plus" :size="20" />
-        <span class="ml-sm font-semibold">Tambah User Baru</span>
-      </button>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-grid mb-2xl">
-      <!-- Total Users -->
-      <div class="premium-card stat-card hover-glow">
-        <div class="icon-pod emerald">
+    <!-- Stats Hub -->
+    <div class="stats-hub mb-xl animate-up">
+      <div class="stat-glass-card">
+        <div class="stat-icon-wrapper emerald">
           <AppIcon name="users" :size="24" />
         </div>
-        <div class="stat-content">
-          <span class="stat-label">Total Pengguna</span>
-          <span class="stat-value tabular-nums">{{ users.length }}</span>
+        <div class="stat-info">
+          <span class="stat-label">Total Personil</span>
+          <span class="stat-value">{{ users.length }}</span>
         </div>
+        <div class="stat-bg-glow emerald"></div>
       </div>
 
-      <!-- Admins -->
-      <div class="premium-card stat-card hover-glow delay-1">
-        <div class="icon-pod red">
-          <AppIcon name="shield" :size="24" />
+      <div class="stat-glass-card">
+        <div class="stat-icon-wrapper red">
+          <AppIcon name="shield-check" :size="24" />
         </div>
-        <div class="stat-content">
-          <span class="stat-label">Administrator</span>
-          <span class="stat-value tabular-nums">{{ usersByRole.admin }}</span>
+        <div class="stat-info">
+          <span class="stat-label">Admin Sistem</span>
+          <span class="stat-value">{{ usersByRole.admin || 0 }}</span>
         </div>
+        <div class="stat-bg-glow red"></div>
       </div>
 
-      <!-- Owners/CEOs -->
-      <div class="premium-card stat-card hover-glow delay-2">
-        <div class="icon-pod purple">
-          <AppIcon name="briefcase" :size="24" />
+      <div class="stat-glass-card">
+        <div class="stat-icon-wrapper purple">
+          <AppIcon name="crown" :size="24" />
         </div>
-        <div class="stat-content">
-          <span class="stat-label">Eksekutif (Owner/CEO)</span>
-          <span class="stat-value tabular-nums">{{ usersByRole.owner + usersByRole.ceo }}</span>
+        <div class="stat-info">
+          <span class="stat-label">Eksekutif</span>
+          <span class="stat-value">{{ (usersByRole.owner || 0) + (usersByRole.ceo || 0) }}</span>
         </div>
+        <div class="stat-bg-glow purple"></div>
       </div>
 
-      <!-- Farmers -->
-      <div class="premium-card stat-card hover-glow delay-3">
-        <div class="icon-pod amber">
-          <AppIcon name="sun" :size="24" />
+      <div class="stat-glass-card">
+        <div class="stat-icon-wrapper amber">
+          <AppIcon name="sprout" :size="24" />
         </div>
-        <div class="stat-content">
-          <span class="stat-label">Petani (Farmers)</span>
-          <span class="stat-value tabular-nums">{{ usersByRole.farmer }}</span>
+        <div class="stat-info">
+          <span class="stat-label">Operasional</span>
+          <span class="stat-value">{{ usersByRole.farmer || 0 }}</span>
         </div>
+        <div class="stat-bg-glow amber"></div>
       </div>
     </div>
 
-    <!-- Users Table Section -->
-    <div class="premium-card overflow-hidden">
-      <div class="card-header-flex p-lg border-b border-glass">
-        <div class="flex items-center gap-md">
-          <div class="icon-box-sm">
-             <AppIcon name="list" :size="18" />
-          </div>
-          <h3 class="font-bold text-lg">Direktori Pengguna</h3>
+    <!-- User Directory Toolbar -->
+    <div class="directory-container glass-premium-dark">
+      <div class="directory-header">
+        <div class="header-left">
+          <AppIcon name="command" :size="20" class="header-icon" />
+          <h3 class="directory-title">Direktori Pengguna</h3>
         </div>
         
-        <div class="filter-wrapper">
-          <AppIcon name="filter" :size="16" class="filter-icon" />
-          <select v-model="filterRole" class="elite-select">
-            <option value="">Semua Role</option>
-            <option value="admin">Admin</option>
-            <option value="owner">Owner</option>
-            <option value="ceo">CEO</option>
-            <option value="farmer">Farmer</option>
-          </select>
+        <div class="filter-group">
+          <div class="search-box">
+            <AppIcon name="search" :size="16" />
+            <input 
+              type="text" 
+              v-model="searchQuery"
+              placeholder="Cari nama..." 
+              class="search-input" 
+            />
+          </div>
+          <div class="select-pill">
+            <AppIcon name="filter" :size="14" />
+            <select v-model="filterRole">
+              <option value="">Semua Role</option>
+              <option value="admin">Admin</option>
+              <option value="owner">Owner</option>
+              <option value="ceo">CEO</option>
+              <option value="farmer">Farmer</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div v-if="loading" class="p-2xl flex flex-col items-center justify-center text-muted">
-        <div class="spinner-premium mb-md"></div>
-        <span>Menyinkronkan data pengguna...</span>
+      <div v-if="loading" class="loading-state">
+        <div class="premium-loader"></div>
+        <p>Menghubungkan ke database...</p>
       </div>
 
-      <div v-else class="table-responsive">
-        <table class="elite-table">
-          <thead>
-            <tr>
-              <th>Identitas Pengguna</th>
-              <th>Kontak</th>
-              <th>Role & Akses</th>
-              <th>Entitas</th>
-              <th>Status</th>
-              <th class="text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id" class="hover-row">
-              <td>
-                <div class="user-cell">
-                  <div class="avatar-circle">{{ user.full_name.charAt(0).toUpperCase() }}</div>
-                  <span class="font-semibold">{{ user.full_name }}</span>
-                </div>
-              </td>
-              <td class="text-sm font-mono text-muted">{{ formatPhone(user.phone_number) }}</td>
-              <td>
-                <span class="role-badge" :class="user.role">
-                  {{ user.role }}
-                </span>
-              </td>
-              <td class="text-sm">
-                <span v-if="user.role === 'admin'" class="text-muted italic">System Global</span>
-                <span v-else class="font-medium text-main">{{ user.companies?.name || '-' }}</span>
-              </td>
-              <td>
-                <div class="status-indicator">
-                  <span class="status-dot" :class="user.is_active ? 'active' : 'inactive'"></span>
-                  <span class="text-xs font-medium">{{ user.is_active ? 'Aktif' : 'Nonaktif' }}</span>
-                </div>
-              </td>
-              <td>
-                <div class="flex items-center justify-end gap-sm">
-                  <button class="action-btn" @click="openEditModal(user)" title="Edit">
-                    <AppIcon name="edit-2" :size="16" />
-                  </button>
-                  <button class="action-btn" @click="toggleUserStatus(user)" :title="user.is_active ? 'Nonaktifkan' : 'Aktifkan'">
-                    <AppIcon :name="user.is_active ? 'lock' : 'unlock'" :size="16" />
-                  </button>
-                  <button class="action-btn danger" @click="confirmDeleteUser(user)" title="Hapus Permanen">
-                    <AppIcon name="trash-2" :size="16" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else class="user-grid">
+        <div v-for="(user, index) in filteredUsers" :key="user.id" 
+             class="user-row-card animate-slide-right"
+             :style="{ animationDelay: `${index * 50}ms` }">
+          
+          <div class="user-identity">
+            <div class="user-avatar-premium" :class="user.role">
+              {{ user.full_name?.charAt(0).toUpperCase() || '?' }}
+              <div class="status-indicator-ring" :class="{ 'active': user.is_active }"></div>
+            </div>
+            <div class="user-info-text">
+              <span class="user-name">{{ user.full_name }}</span>
+              <span class="user-phone">
+                <AppIcon name="phone" :size="12" />
+                {{ formatPhone(user.phone_number) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="user-access">
+            <div class="access-pill" :class="user.role">
+              <AppIcon :name="getRoleIcon(user.role)" :size="12" />
+              <span>{{ user.role.toUpperCase() }}</span>
+            </div>
+            <span class="entity-name">
+              {{ user.role === 'admin' ? 'System Global' : (user.companies?.name || 'SmartFarm') }}
+            </span>
+          </div>
+
+          <div class="user-status">
+            <span class="status-badge" :class="{ 'active': user.is_active }">
+              {{ user.is_active ? 'TERVERIFIKASI' : 'TERKUNCI' }}
+            </span>
+          </div>
+
+          <div class="user-actions">
+            <button class="action-circle-btn" @click="openEditModal(user)" title="Edit Profil">
+              <AppIcon name="edit-3" :size="16" />
+            </button>
+            <button class="action-circle-btn" @click="toggleUserStatus(user)" 
+                    :class="{ 'warning': user.is_active }"
+                    :title="user.is_active ? 'Kunci Akses' : 'Buka Akses'">
+              <AppIcon :name="user.is_active ? 'shield-off' : 'lock'" :size="16" />
+            </button>
+            <button class="action-circle-btn danger" @click="confirmDeleteUser(user)" title="Hapus Permanen">
+              <AppIcon name="trash-2" :size="16" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Add/Edit Modal -->
-    <div v-if="showModal" class="modal-backdrop animate-fade-in" @click.self="closeModal">
-      <div class="premium-card modal-card animate-scale-up">
-        <div class="modal-header border-b border-glass p-lg flex justify-between items-center bg-glass-accent">
-          <h3 class="text-xl font-bold">{{ editingUser ? 'Edit Profil Pengguna' : 'Registrasi User Baru' }}</h3>
-          <button class="close-btn" @click="closeModal">
-            <AppIcon name="x" :size="20" />
-          </button>
+    <!-- Modals (Add/Edit) -->
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-card-premium glass-premium-dark animate-pop">
+        <div class="modal-header-premium">
+          <div class="header-icon-box">
+            <AppIcon name="user-plus" :size="24" />
+          </div>
+          <div class="header-text">
+            <h3>{{ editingUser ? 'Modifikasi Akses' : 'Registrasi Personil' }}</h3>
+            <p>{{ editingUser ? 'Perbarui data dan role pengguna' : 'Tambahkan anggota baru ke dalam sistem' }}</p>
+          </div>
+          <button class="modal-close-btn" @click="closeModal">✕</button>
         </div>
 
-        <form @submit.prevent="saveUser" class="p-lg flex flex-col gap-lg">
-          <div class="form-group">
-            <label class="input-label">Nama Lengkap</label>
-            <input 
-              type="text" 
-              v-model="formData.full_name" 
-              class="elite-input" 
-              placeholder="Contoh: Budi Santoso"
-              required
-            />
-          </div>
+        <form @submit.prevent="saveUser" class="modal-form-content">
+          <div class="form-grid">
+            <div class="input-field full-width">
+              <label>Nama Lengkap</label>
+              <div class="field-container">
+                <AppIcon name="user" :size="18" />
+                <input type="text" v-model="formData.full_name" placeholder="Nama lengkap personil..." required />
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label class="input-label">Nomor Telepon (WhatsApp)</label>
-            <input 
-              type="tel" 
-              v-model="formData.phone_number" 
-              class="elite-input" 
-              placeholder="628xxxxxxxxxx"
-              required
-            />
-            <small class="text-xs text-muted mt-xs">Akan digunakan untuk login dan notifikasi WA.</small>
-          </div>
+            <div class="input-field full-width">
+              <label>Nomor WhatsApp</label>
+              <div class="field-container">
+                <AppIcon name="phone" :size="18" />
+                <input type="tel" v-model="formData.phone_number" placeholder="628xxxxxxxxxx" required />
+              </div>
+            </div>
 
-          <div class="grid grid-cols-2 gap-md">
-            <div class="form-group">
-              <label class="input-label">Role Akses</label>
-              <div class="select-wrapper">
-                <select v-model="formData.role" class="elite-input" required @change="handleRoleChange">
+            <div class="input-field">
+              <label>Role Akses</label>
+              <div class="select-container">
+                <select v-model="formData.role" required @change="handleRoleChange">
                   <option value="">Pilih Role...</option>
-                  <option value="admin">⭐ Admin (Super User)</option>
-                  <option value="owner">👔 Owner</option>
-                  <option value="ceo">💼 CEO</option>
-                  <option value="farmer">🌾 Farmer</option>
+                  <option value="admin">Admin</option>
+                  <option value="owner">Owner</option>
+                  <option value="ceo">CEO</option>
+                  <option value="farmer">Farmer</option>
                 </select>
-                <AppIcon name="chevron-down" :size="16" class="select-icon" />
+                <AppIcon name="chevron-down" :size="16" class="select-arrow" />
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="input-label">
-                Entitas Perusahaan
-                <span v-if="formData.role === 'admin'" class="text-xs text-muted font-normal">(Tidak Perlu)</span>
-              </label>
-              <div class="select-wrapper">
-                <select
-                  v-model="formData.company_id"
-                  class="elite-input"
-                  :required="!['admin', 'owner'].includes(formData.role)"
-                  :disabled="['admin', 'owner'].includes(formData.role)"
-                >
+            <div class="input-field">
+              <label>Entitas</label>
+              <div class="select-container" :class="{ 'disabled': formData.role === 'admin' }">
+                <select v-model="formData.company_id" :disabled="formData.role === 'admin'" :required="formData.role !== 'admin'">
                   <option value="">Pilih Perusahaan...</option>
-                  <option v-for="company in companies" :key="company.id" :value="company.id">
-                    {{ company.name }}
-                  </option>
+                  <option v-for="co in companies" :key="co.id" :value="co.id">{{ co.name }}</option>
                 </select>
-                <AppIcon name="chevron-down" :size="16" class="select-icon" />
+                <AppIcon name="chevron-down" :size="16" class="select-arrow" />
+              </div>
+            </div>
+
+            <div class="input-field full-width">
+              <label>Password Login</label>
+              <div class="field-container">
+                <AppIcon name="key" :size="18" />
+                <input type="text" v-model="formData.password" placeholder="smartfarm2026 (default)" />
               </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="input-label">Password Sistem</label>
-            <input 
-              type="text" 
-              v-model="formData.password" 
-              class="elite-input font-mono" 
-              placeholder="Default: smartfarm2026"
-            />
-             <small class="text-xs text-muted mt-xs">Biarkan kosong untuk menggunakan password default.</small>
-          </div>
-
-          <div class="form-group">
-            <label class="flex items-center gap-md cursor-pointer p-sm rounded-lg hover:bg-white/5 transition-colors">
-              <div class="toggle-switch">
-                <input type="checkbox" v-model="formData.is_active" class="toggle-input" />
-                <div class="toggle-slider"></div>
-              </div>
-              <span class="font-medium">Status Akun Aktif</span>
-            </label>
-          </div>
-
-          <div v-if="formError" class="alert-box error">
-            <AppIcon name="alert-circle" :size="18" />
+          <div v-if="formError" class="modal-error">
+            <AppIcon name="alert-circle" :size="16" />
             <span>{{ formError }}</span>
           </div>
 
-          <div class="flex justify-end gap-md mt-md pt-md border-t border-glass">
-            <button type="button" class="btn-ghost" @click="closeModal">Batal</button>
-            <button type="submit" class="btn-primary-new" :disabled="saving">
-              <template v-if="saving">
-                 <div class="spinner-sm text-white"></div>
-              </template>
-              <template v-else>
-                 <span>{{ editingUser ? 'Simpan Perubahan' : 'Buat User' }}</span>
-              </template>
+          <div class="modal-footer-premium">
+            <button type="button" class="btn-cancel" @click="closeModal">BATALKAN</button>
+            <button type="submit" class="btn-confirm" :disabled="saving">
+              <span v-if="saving" class="spin-loader"></span>
+              <span v-else>{{ editingUser ? 'PERBARUI DATA' : 'KONFIRMASI REGISTRASI' }}</span>
             </button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal (Premium Style) -->
-    <div v-if="showDeleteModal" class="modal-backdrop animate-fade-in" @click.self="closeDeleteModal">
-      <div class="premium-card modal-card animate-shake max-w-md border-error-soft">
-        <div class="p-xl text-center">
-          <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-lg text-red-600">
-             <AppIcon name="alert-triangle" :size="32" />
+    <!-- Delete Confirmation -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+      <div class="modal-card-premium glass-premium-dark animate-shake" style="max-width: 400px;">
+        <div class="delete-warning-header">
+          <div class="warning-icon-box">
+            <AppIcon name="alert-triangle" :size="32" />
           </div>
-          <h3 class="text-xl font-bold mb-sm text-main">Konfirmasi Penghapusan</h3>
-          <p class="text-muted mb-lg">
-            Anda akan menghapus user <strong class="text-main">{{ userToDelete?.full_name }}</strong>. 
-            Tindakan ini tidak dapat dibatalkan. Ketik nama user untuk konfirmasi.
-          </p>
-
-          <input 
-            type="text" 
-            v-model="deleteConfirmationText" 
-            class="elite-input border-red-300 focus:border-red-500 mb-lg text-center" 
-            :placeholder="userToDelete?.full_name"
-          />
-
-          <div class="flex gap-md">
-            <button class="btn-ghost flex-1" @click="closeDeleteModal">Batalkan</button>
-            <button
-              @click="executeDeleteUser"
-              class="btn-danger flex-1"
-              :disabled="deleteConfirmationText !== userToDelete?.full_name || deleting"
-            >
-              <span v-if="deleting">Menghapus...</span>
-              <span v-else>Hapus Permanen</span>
+          <h3>Konfirmasi Hapus</h3>
+          <p>Tindakan ini permanen. Ketik nama pengguna <strong>{{ userToDelete?.full_name }}</strong> untuk konfirmasi.</p>
+        </div>
+        
+        <div class="p-lg">
+          <input type="text" v-model="deleteConfirmationText" class="delete-confirm-input" :placeholder="userToDelete?.full_name" />
+          <div class="flex gap-md mt-lg">
+            <button class="btn-cancel flex-1" @click="closeDeleteModal">BATAL</button>
+            <button class="btn-confirm danger flex-1" 
+                    :disabled="deleteConfirmationText !== userToDelete?.full_name || deleting"
+                    @click="executeDeleteUser">
+              HAPUS PERMANEN
             </button>
           </div>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -307,6 +275,7 @@ const userToDelete = ref(null)
 const deleteConfirmationText = ref('')
 const editingUser = ref(null)
 const filterRole = ref('')
+const searchQuery = ref('')
 const formError = ref('')
 
 const formData = ref({
@@ -319,8 +288,13 @@ const formData = ref({
 })
 
 const filteredUsers = computed(() => {
-  if (!filterRole.value) return users.value
-  return users.value.filter(u => u.role === filterRole.value)
+  let list = users.value
+  if (filterRole.value) list = list.filter(u => u.role === filterRole.value)
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(u => u.full_name?.toLowerCase().includes(q))
+  }
+  return list
 })
 
 const usersByRole = computed(() => {
@@ -330,6 +304,16 @@ const usersByRole = computed(() => {
   })
   return counts
 })
+
+function getRoleIcon(role) {
+  const icons = {
+    admin: 'shield-check',
+    owner: 'crown',
+    ceo: 'user-check',
+    farmer: 'sprout'
+  }
+  return icons[role] || 'user'
+}
 
 function formatPhone(phone) {
   if (!phone) return '-'
@@ -377,13 +361,6 @@ function closeModal() {
 function handleRoleChange() {
   if (formData.value.role === 'admin') {
     formData.value.company_id = ''
-  } else if (formData.value.role === 'owner') {
-    const ownerCompany = companies.value.find(c => c.code === 'Owner' || c.name === 'Owner')
-    if (ownerCompany) {
-      formData.value.company_id = ownerCompany.id
-    } else {
-      formData.value.company_id = 'fef23b03-fe98-4a56-9ebc-64e1d21845fb'
-    }
   }
 }
 
@@ -391,13 +368,13 @@ async function saveUser() {
   saving.value = true
   formError.value = ''
   try {
-    let phone = formData.value.phone_number.replace(/\D/g, '')
+    let phone = String(formData.value.phone_number).replace(/\D/g, '')
     if (phone.startsWith('0')) phone = '62' + phone.slice(1)
-    if (!phone.startsWith('62')) phone = '62' + phone
+    if (phone.length > 0 && !phone.startsWith('62')) phone = '62' + phone
 
     const userData = {
       full_name: formData.value.full_name,
-      phone_number: parseInt(phone),
+      phone_number: phone ? parseInt(phone) : null,
       role: formData.value.role,
       company_id: formData.value.company_id || null,
       password: formData.value.password || 'smartfarm2026',
@@ -494,381 +471,519 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Layout */
 .admin-page {
+  padding: 24px 32px 48px; /* Reduced top padding from 48px to 24px */
   max-width: 1400px;
   margin: 0 auto;
-  padding-bottom: 64px; /* Bottom spacing for page */
 }
 
+/* Page Header */
 .page-header {
-  margin-bottom: 48px; /* High separation for header */
+  margin-bottom: 64px; /* Increased from 40px */
 }
 
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 32px; /* Increased card gap */
-  margin-bottom: 48px; /* High separation for table */
-}
-
-.stat-card {
+.header-content {
   display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg); /* Reduced vertical padding */
-  position: relative;
-  overflow: hidden;
-  background: rgba(var(--bg-card-rgb), 0.5); /* Ensure glass effect */
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  justify-content: space-between;
+  align-items: flex-end;
 }
 
-.icon-pod {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  box-shadow: 0 8px 16px -4px currentColor;
-}
-
-.icon-pod.emerald { background: linear-gradient(135deg, #10b981, #059669); color: rgba(16, 185, 129, 0.4); }
-.icon-pod.emerald svg { color: white; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
-
-.icon-pod.red { background: linear-gradient(135deg, #ef4444, #b91c1c); color: rgba(239, 68, 68, 0.4); }
-.icon-pod.red svg { color: white; }
-
-.icon-pod.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: rgba(139, 92, 246, 0.4); }
-.icon-pod.purple svg { color: white; }
-
-.icon-pod.amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: rgba(245, 158, 11, 0.4); }
-.icon-pod.amber svg { color: white; }
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 1.75rem;
+.premium-badge {
+  display: inline-block;
+  font-size: 0.65rem;
   font-weight: 800;
-  color: var(--text-main);
-  line-height: 1;
-}
-
-/* ELITE TABLE CONTAINER & STYLES */
-.premium-card.overflow-hidden {
-  background: rgba(var(--bg-card-rgb), 0.3); /* Distinct container bg */
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-}
-
-.elite-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 8px; /* Slightly reduced gap for cohesiveness */
-  padding: 0 var(--space-md); /* Internal padding for the table within card */
-}
-
-.elite-table th {
-  text-align: left;
-  padding: var(--space-md);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  font-weight: 700;
-  border-bottom: none;
-  background: rgba(255, 255, 255, 0.02); /* Subtle header highlight */
-  border-radius: 8px; /* Rounded headers */
-  margin-bottom: 8px;
-}
-
-.elite-table td {
-  padding: 16px var(--space-md); /* Balanced padding */
-  border-bottom: 1px solid var(--glass-border);
-  color: var(--text-main);
-  vertical-align: middle;
-}
-
-.hover-row:hover td {
-  background: rgba(var(--text-main-rgb), 0.02);
-}
-
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.avatar-circle {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.9rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-/* Badges & Status */
-.role-badge {
-  display: inline-flex;
+  color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.1);
   padding: 4px 10px;
   border-radius: 6px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
 }
 
-.role-badge.admin { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
-.role-badge.owner { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); }
-.role-badge.ceo { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
-.role-badge.farmer { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.04em;
+  margin: 0 0 8px 0;
+}
 
-.status-indicator {
+.page-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0;
+}
+
+.btn-primary-glow {
+  background: linear-gradient(135deg, var(--color-primary), #059669);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 18px;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-dim);
+.btn-primary-glow:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 30px -5px rgba(16, 185, 129, 0.5);
 }
 
-.status-dot.active {
-  background: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+/* Stats Hub */
+.stats-hub {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 64px; /* Increased spacing to next section */
 }
 
-/* Actions */
-.action-btn {
-  width: 32px;
-  height: 32px;
+.stat-glass-card {
+  position: relative;
+  background: rgba(var(--bg-card-rgb), 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.stat-glass-card:hover {
+  transform: translateY(-5px);
+  background: rgba(var(--bg-card-rgb), 0.7);
+}
+
+.stat-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  color: var(--text-muted);
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  background: rgba(var(--text-main-rgb), 0.05);
-  color: var(--color-primary);
-}
-
-.action-btn.danger:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-/* Buttons */
-.btn-primary-new {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  color: white;
-  padding: 10px 20px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-primary-new:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
-}
-
-.btn-ghost {
-  padding: 10px 20px;
-  border-radius: 10px;
-  color: var(--text-muted);
-  font-weight: 600;
-  transition: background 0.2s;
-}
-
-.btn-ghost:hover {
-  background: rgba(var(--text-main-rgb), 0.05);
-  color: var(--text-main);
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.btn-danger:hover {
-  background: #dc2626;
-}
-
-/* Inputs */
-.elite-input {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--glass-border);
-  background: rgba(var(--text-main-rgb), 0.03);
-  color: var(--text-main);
-  transition: all 0.2s;
-}
-
-.elite-input:focus {
-  outline: none;
-  background: rgba(var(--text-main-rgb), 0.05);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-.select-wrapper {
+  color: #fff; /* Ensure icon is white */
+  z-index: 2;
   position: relative;
 }
 
-.select-icon {
+.stat-icon-wrapper.emerald { 
+  background: linear-gradient(135deg, #10b981, #059669); 
+  box-shadow: 0 8px 16px -4px rgba(16, 185, 129, 0.5); 
+}
+.stat-icon-wrapper.red { 
+  background: linear-gradient(135deg, #ef4444, #b91c1c); 
+  box-shadow: 0 8px 16px -4px rgba(239, 68, 68, 0.5); 
+}
+.stat-icon-wrapper.purple { 
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9); 
+  box-shadow: 0 8px 16px -4px rgba(139, 92, 246, 0.5); 
+}
+.stat-icon-wrapper.amber { 
+  background: linear-gradient(135deg, #f59e0b, #d97706); 
+  box-shadow: 0 8px 16px -4px rgba(245, 158, 11, 0.5); 
+}
+
+.stat-info { z-index: 2; }
+.stat-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; display: block; }
+.stat-value { font-size: 1.75rem; font-weight: 900; color: var(--text-main); line-height: 1; }
+
+.stat-bg-glow {
   position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--text-muted);
+  top: -20%;
+  right: -10%;
+  width: 120px;
+  height: 120px;
+  filter: blur(40px);
+  opacity: 0.1;
+  z-index: 1;
+}
+.stat-bg-glow.emerald { background: #10b981; }
+.stat-bg-glow.red { background: #ef4444; }
+.stat-bg-glow.purple { background: #8b5cf6; }
+.stat-bg-glow.amber { background: #f59e0b; }
+
+/* Directory Container */
+.directory-container {
+  background: rgba(var(--bg-card-rgb), 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.3);
 }
 
-/* Modal */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal-card {
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  border: 1px solid var(--glass-border);
-}
-
-.input-label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 6px;
-}
-
-/* Animation Utilities */
-.hover-lift { transition: transform 0.3s ease; }
-.hover-lift:hover { transform: translateY(-2px); }
-.hover-glow:hover { box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
-
-.animate-scale-up {
-  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes scaleUp {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.delay-1 { animation-delay: 0.1s; }
-.delay-2 { animation-delay: 0.2s; }
-.delay-3 { animation-delay: 0.3s; }
-
-/* Filter Select */
-.elite-select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--glass-border);
-  background: rgba(var(--bg-card-rgb), 0.5);
-  color: var(--text-main);
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.card-header-flex {
+.directory-header {
+  padding: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.filter-wrapper {
+.header-left { display: flex; align-items: center; gap: 16px; }
+.header-icon { color: var(--color-primary); }
+.directory-title { font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0; }
+
+.filter-group { display: flex; gap: 16px; }
+
+.search-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 16px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  width: 240px;
+  transition: all 0.2s;
 }
 
-/* Toggle Switch */
-.toggle-switch {
-  position: relative;
-  width: 44px;
-  height: 24px;
+.search-box:focus-within {
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.toggle-input {
-  opacity: 0;
-  width: 0;
-  height: 0;
+.search-input {
+  background: none;
+  border: none;
+  padding: 12px 0;
+  color: var(--text-main);
+  outline: none;
+  width: 100%;
 }
 
-.toggle-slider {
-  position: absolute;
+.select-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 16px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.select-pill select {
+  background: none;
+  border: none;
+  color: var(--text-main);
+  padding: 12px 0;
+  font-weight: 600;
+  outline: none;
   cursor: pointer;
-  inset: 0;
-  background-color: rgba(var(--text-main-rgb), 0.2);
-  transition: .4s;
-  border-radius: 34px;
 }
 
-.toggle-slider:before {
+/* User Grid/Rows */
+.user-grid {
+  padding: 16px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-row-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 16px 24px;
+  border-radius: 20px;
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1fr;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.user-row-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(8px);
+  border-color: rgba(var(--color-primary-rgb), 0.3);
+}
+
+.user-identity { display: flex; align-items: center; gap: 20px; }
+
+.user-avatar-premium {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+  position: relative;
+  font-size: 1.1rem;
+}
+
+.user-avatar-premium.admin { background: linear-gradient(135deg, #ef4444, #991b1b); }
+.user-avatar-premium.owner { background: linear-gradient(135deg, #8b5cf6, #4c1d95); }
+.user-avatar-premium.ceo { background: linear-gradient(135deg, #f59e0b, #92400e); }
+.user-avatar-premium.farmer { background: linear-gradient(135deg, #10b981, #065f46); }
+
+.status-indicator-ring {
   position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
+  bottom: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background: #64748b;
+  border: 3px solid #1e293b;
   border-radius: 50%;
 }
+.status-indicator-ring.active { background: #10b981; box-shadow: 0 0 8px #10b981; }
 
-.toggle-input:checked + .toggle-slider {
-  background-color: var(--color-primary);
+.user-info-text { display: flex; flex-direction: column; gap: 2px; }
+.user-name { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+.user-phone { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-weight: 500; }
+
+.user-access { display: flex; flex-direction: column; gap: 4px; }
+
+.access-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  width: fit-content;
+  border: 1px solid transparent;
 }
 
-.toggle-input:checked + .toggle-slider:before {
-  transform: translateX(20px);
+/* Light Mode (Default) - High Contrast */
+.access-pill.admin { background: rgba(239, 68, 68, 0.08); color: #dc2626; border-color: rgba(239, 68, 68, 0.15); }
+.access-pill.owner { background: rgba(139, 92, 246, 0.08); color: #7c3aed; border-color: rgba(139, 92, 246, 0.15); }
+.access-pill.ceo { background: rgba(245, 158, 11, 0.08); color: #d97706; border-color: rgba(245, 158, 11, 0.15); }
+.access-pill.farmer { background: rgba(16, 185, 129, 0.08); color: #059669; border-color: rgba(16, 185, 129, 0.15); }
+
+/* Dark Mode Overrides - Neon Aesthetic */
+.dark-mode .access-pill.admin { color: #fca5a5; background: rgba(239, 68, 68, 0.15); }
+.dark-mode .access-pill.owner { color: #c4b5fd; background: rgba(139, 92, 246, 0.15); }
+.dark-mode .access-pill.ceo { color: #fcd34d; background: rgba(245, 158, 11, 0.15); }
+.dark-mode .access-pill.farmer { color: #a7f3d0; background: rgba(16, 185, 129, 0.15); }
+
+.entity-name { font-size: 0.85rem; color: var(--text-dim); font-weight: 600; }
+
+.status-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+}
+.status-badge.active { color: #34d399; background: rgba(52, 211, 153, 0.05); border-color: rgba(52, 211, 153, 0.2); }
+
+.user-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+.action-circle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-circle-btn:hover { background: rgba(255,255,255,0.1); color: var(--color-primary); transform: scale(1.1); }
+.action-circle-btn.warning:hover { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+.action-circle-btn.danger:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+
+.modal-card-premium {
+  max-width: 540px;
+  width: 100%;
+  border-radius: 32px;
+  border: 1px solid rgba(255,254,255,0.15);
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.85); /* Specific dark base for modal */
+}
+
+.modal-header-premium {
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  position: relative;
+}
+
+.header-icon-box {
+  width: 56px;
+  height: 56px;
+  background: var(--color-primary);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 8px 20px -5px rgba(16, 185, 129, 0.5);
+}
+
+.header-text h3 { font-size: 1.5rem; font-weight: 800; color: #fff; margin: 0; }
+.header-text p { font-size: 0.9rem; color: #94a3b8; margin: 4px 0 0 0; }
+
+.modal-close-btn {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.modal-form-content { padding: 32px; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.full-width { grid-column: span 2; }
+
+.input-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.field-container, .select-container {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 16px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.field-container:focus-within, .select-container:focus-within {
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.field-container input, .select-container select {
+  background: none;
+  border: none;
+  padding: 14px 0;
+  color: white;
+  outline: none;
+  width: 100%;
+  font-weight: 600;
+}
+
+.select-container { position: relative; padding-right: 40px; }
+.select-arrow { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.5; }
+
+.disabled { opacity: 0.5; cursor: not-allowed; }
+
+.modal-error {
+  margin-top: 20px;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.modal-footer-premium {
+  margin-top: 32px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.btn-cancel {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 14px 24px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-confirm {
+  background: linear-gradient(135deg, var(--color-primary), #059669);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-confirm:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
+.btn-confirm.danger { background: #ef4444; }
+
+/* Animation Hooks */
+.animate-pop { animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes modalPop { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+.animate-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+.animate-slide-right { animation: slideRightFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes slideRightFade { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+
+/* Delete Specific */
+.delete-warning-header { text-align: center; padding: 40px 32px 0; }
+.warning-icon-box { width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #ef4444; margin: 0 auto 24px; }
+.delete-confirm-input { width: 100%; background: rgba(0,0,0,0.2); border: 2px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 14px; color: white; text-align: center; font-weight: 800; }
+.delete-confirm-input:focus { border-color: #ef4444; outline: none; }
+
+.loading-state { padding: 64px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.premium-loader { width: 40px; height: 40px; border: 3px solid rgba(16, 185, 129, 0.1); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1024px) {
+  .stats-hub { grid-template-columns: 1fr 1fr; }
+  .user-row-card { grid-template-columns: 1.5fr 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  .stats-hub { grid-template-columns: 1fr; }
+  .user-row-card { grid-template-columns: 1fr 0.5fr; gap: 10px;}
+  .user-access, .user-status { display: none; }
+  .header-content { flex-direction: column; align-items: flex-start; gap: 24px; }
+  .search-box { width: 100%; }
+  .filter-group { flex-direction: column; width: 100%; }
 }
 </style>

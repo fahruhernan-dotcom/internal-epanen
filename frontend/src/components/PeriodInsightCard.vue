@@ -69,7 +69,10 @@
       <!-- Center: AI Executive Analysis (Now with Scrollable Minimalize feature) -->
       <div class="executive-analysis" :class="{ 'is-loading': isGenerating }">
         <div class="analysis-header">
-            <AppIcon name="brain-circuit" :size="16" class="text-emerald" />
+            <!-- Replacing brain icon with Premium AI Orb -->
+            <div class="ai-orb-wrapper pulse-border">
+                <img src="@/assets/images/ai-orb-premium.png" alt="AI Core" class="ai-orb-icon" />
+            </div>
             <span class="analysis-title">EXECUTIVE BRIEF</span>
         </div>
 
@@ -513,21 +516,68 @@ function formatDateShort(date) {
 .text-emerald { color: var(--color-primary); }
 .text-danger { color: #ef4444; }
 
-/* Executive Analysis */
+/* AI Executive Analysis */
 .executive-analysis {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    border-radius: 20px; /* Softened edges from standard */
+    padding: 2px; /* Slight padding if needed for glow spread */
 }
 
 .analysis-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px; /* More breathing room */
+    padding-left: 4px;
+}
+
+/* Premium AI Orb Styles - Wrapper Refactor */
+.ai-orb-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden; /* Clips the zoomed image */
+    
+    /* The fixed border ring */
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.05);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2) inset;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-orb-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.4));
+    
+    /* Slightly less aggressive zoom - Sweet Spot */
+    transform: scale(1.25);
+    transform-origin: center;
+    animation: orbImageBreath 3s ease-in-out infinite;
+}
+
+.pulse-border {
+    animation: borderBreath 3s ease-in-out infinite;
+}
+
+@keyframes borderBreath {
+    0%, 100% { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 0 5px rgba(16, 185, 129, 0.2) inset; }
+    50% { border-color: rgba(16, 185, 129, 0.9); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4) inset; }
+}
+
+@keyframes orbImageBreath {
+    0%, 100% { transform: scale(1.25); filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.4)); }
+    50% { transform: scale(1.35); filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.7)); }
 }
 
 .analysis-title {
-    font-size: 0.65rem;
+    font-size: 0.8rem; /* Slightly larger text */
     font-weight: 800;
     color: var(--text-muted);
     letter-spacing: 0.15em;
