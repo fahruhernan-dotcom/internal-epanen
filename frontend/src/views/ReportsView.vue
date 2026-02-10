@@ -309,14 +309,35 @@ function truncate(text, length) {
 
 function getActivitiesSummary(activities) {
   if (!activities) return 'Laporan Tanpa Judul'
-  if (typeof activities === 'string') return activities
-  if (activities.summary) return activities.summary
+  
+  let data = activities
+  if (typeof activities === 'string' && activities.trim().startsWith('{')) {
+    try {
+      data = JSON.parse(activities)
+    } catch (e) {
+      return activities
+    }
+  }
+
+  if (typeof data === 'string') return data
+  if (data.summary) return data.summary
   return 'Aktivitas Harian'
 }
 
 function getActivityDetails(activities) {
-    if (!activities || typeof activities === 'string') return null
-    return activities.details || null
+    if (!activities) return null
+    
+    let data = activities
+    if (typeof activities === 'string' && activities.trim().startsWith('{')) {
+      try {
+        data = JSON.parse(activities)
+      } catch (e) {
+        return null
+      }
+    }
+
+    if (typeof data === 'string') return null
+    return data.details || null
 }
 
 function hasIssues(issues) {

@@ -78,7 +78,19 @@
         </div>
 
         <div class="form-group mt-md">
-          <label class="form-label-premium">Bisa jelaskan detailnya?</label>
+          <div class="flex-between mb-sm">
+            <label class="form-label-premium mb-0">Bisa jelaskan detailnya?</label>
+            <button 
+              type="button" 
+              class="btn-ai-assist" 
+              @click="generateAIReport" 
+              :disabled="isGeneratingAI || !formData.activities.summary"
+              title="Buat detail otomatis dengan AI"
+            >
+              <span v-if="isGeneratingAI" class="spinner-sm"></span>
+              <span v-else>✨ Tuliskan untuk Saya</span>
+            </button>
+          </div>
           <textarea 
             v-model="formData.activities.details" 
             class="form-input-premium" 
@@ -156,6 +168,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/services/supabase' 
+import { aiService } from '@/services/ai'
 import { useSupabaseReports } from '@/composables/useSupabaseReports'
 
 const authStore = useAuthStore()
@@ -164,6 +177,7 @@ const { submitDailyReport, isSaving: submitting } = useSupabaseReports()
 const statusMessage = ref('')
 const statusType = ref('')
 const draftSavedAt = ref(null)
+const isGeneratingAI = ref(false)
 
 // Company Checks
 const isLyori = computed(() => authStore.user?.company_id === '53af2fd7-685d-41b5-8daa-265fe3db9b46')
@@ -257,6 +271,36 @@ watch(formData, () => saveDraft(), { deep: true })
 function addIssue() { formData.value.issues.push({ severity: 'low', notes: '', status: 'ongoing' }) }
 function removeIssue(index) { formData.value.issues.splice(index, 1) }
 
+// AI Helper
+async function generateAIReport() {
+  if (!formData.value.activities.summary) return
+  
+  isGeneratingAI.value = true
+  try {
+    const context = {
+      weather: formData.value.weather,
+      summary: formData.value.activities.summary,
+      notes: formData.value.notes,
+      issues: formData.value.issues,
+      company: authStore.user?.companies?.name || 'SmartFarm'
+    }
+    
+    const result = await aiService.assistFarmerReport(context)
+    if (result && !result.includes('Maaf') && !result.includes('Fitur AI')) {
+      // Append or Replace? Let's use typewriter effect simulation or just set it
+      formData.value.activities.details = result
+    } else {
+      statusMessage.value = result // Show error inline
+      statusType.value = 'error'
+      setTimeout(() => statusMessage.value = '', 3000)
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isGeneratingAI.value = false
+  }
+}
+
 async function handleSubmit() {
     statusMessage.value = ''
     
@@ -305,8 +349,10 @@ onMounted(() => loadDraft())
 }
 
 .card-premium {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: rgba(var(--bg-card-rgb), 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-lg);
   box-shadow: var(--shadow-sm);
@@ -603,6 +649,40 @@ onMounted(() => loadDraft())
   animation: spin 0.8s linear infinite;
   display: block;
   margin: 0 auto;
+}
+
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.btn-ai-assist {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ai-assist:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-ai-assist:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Animations */

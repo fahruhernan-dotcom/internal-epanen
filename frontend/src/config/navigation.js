@@ -1,5 +1,5 @@
 /**
- * ePanen SmartFarm - Navigation Configuration
+ * Official ePanen - Navigation Configuration
  * Pusat kendali menu dan ikon 3D Sidebar.
  */
 

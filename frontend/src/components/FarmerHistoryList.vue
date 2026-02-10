@@ -91,8 +91,17 @@ function getWeatherIcon(w) {
 }
 
 function getSummary(r) {
-  if (r.activities && typeof r.activities === 'object') return r.activities.summary || 'Tidak ada ringkasan'
-  return r.activities || 'Laporan Harian' 
+  let activities = r.activities
+  if (typeof activities === 'string' && activities.trim().startsWith('{')) {
+    try {
+      activities = JSON.parse(activities)
+    } catch (e) {
+      // fallback to original string
+    }
+  }
+
+  if (activities && typeof activities === 'object') return activities.summary || 'Tidak ada ringkasan'
+  return activities || 'Laporan Harian' 
 }
 
 function getSeverityClass(sev) {

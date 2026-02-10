@@ -3,7 +3,7 @@
     <header v-if="!embedded" class="dashboard-header mb-lg">
       <span class="section-label">Farmer Support</span>
       <h2 class="gradient-text">Buku Saku SOP</h2>
-      <p class="text-muted">Panduan standar operasional untuk memastikan kualitas terbaik di setiap panen SmartFarm.</p>
+      <p class="text-muted">Panduan standar operasional untuk memastikan kualitas terbaik di setiap panen Official ePanen.</p>
     </header>
 
     <div class="sop-grid" :class="{ 'single-col': embedded }">

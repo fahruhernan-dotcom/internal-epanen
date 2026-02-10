@@ -6,7 +6,7 @@
         <div class="title-group">
           <div class="premium-badge mb-xs">SYSTEM COMMAND</div>
           <h2 class="page-title">Direktori & Akses</h2>
-          <p class="page-subtitle">Pusat kendali otentikasi dan manajemen personil SmartFarm.</p>
+          <p class="page-subtitle">Pusat kendali otentikasi dan manajemen personil Official ePanen.</p>
         </div>
         <button class="btn-primary-glow" @click="openAddModal">
           <AppIcon name="user-plus" :size="20" />
@@ -60,6 +60,17 @@
         </div>
         <div class="stat-bg-glow amber"></div>
       </div>
+
+      <div class="stat-glass-card">
+        <div class="stat-icon-wrapper emerald">
+          <AppIcon name="receipt" :size="24" />
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">KASIR</span>
+          <span class="stat-value">{{ usersByRole.cashier || 0 }}</span>
+        </div>
+        <div class="stat-bg-glow emerald"></div>
+      </div>
     </div>
 
     <!-- User Directory Toolbar -->
@@ -88,6 +99,7 @@
               <option value="owner">Owner</option>
               <option value="ceo">CEO</option>
               <option value="farmer">Farmer</option>
+              <option value="cashier">Cashier</option>
             </select>
           </div>
         </div>
@@ -184,26 +196,73 @@
 
             <div class="input-field">
               <label>Role Akses</label>
-              <div class="select-container">
-                <select v-model="formData.role" required @change="handleRoleChange">
-                  <option value="">Pilih Role...</option>
-                  <option value="admin">Admin</option>
-                  <option value="owner">Owner</option>
-                  <option value="ceo">CEO</option>
-                  <option value="farmer">Farmer</option>
-                </select>
-                <AppIcon name="chevron-down" :size="16" class="select-arrow" />
+              <div class="premium-select-wrapper" v-click-outside="() => isRoleDropdownOpen = false">
+                <div 
+                  class="premium-select-trigger" 
+                  :class="{ open: isRoleDropdownOpen }"
+                  @click="isRoleDropdownOpen = !isRoleDropdownOpen"
+                >
+                  <span>{{ formData.role ? capitalize(formData.role) : 'Pilih Role...' }}</span>
+                  <AppIcon 
+                    name="chevron-down" 
+                    :size="16" 
+                    class="select-arrow" 
+                    :class="{ rotated: isRoleDropdownOpen }" 
+                  />
+                </div>
+                
+                <transition name="dropdown-slide">
+                  <div class="premium-options-menu glass-panel" v-if="isRoleDropdownOpen">
+                    <div 
+                      class="premium-option" 
+                      v-for="role in ['admin', 'owner', 'ceo', 'farmer', 'cashier']" 
+                      :key="role"
+                      :class="{ selected: formData.role === role }"
+                      @click="selectRole(role)"
+                    >
+                      <span>{{ capitalize(role) }}</span>
+                      <AppIcon v-if="formData.role === role" name="check" :size="14" class="text-emerald" />
+                    </div>
+                  </div>
+                </transition>
               </div>
             </div>
 
             <div class="input-field">
               <label>Entitas</label>
-              <div class="select-container" :class="{ 'disabled': formData.role === 'admin' }">
-                <select v-model="formData.company_id" :disabled="formData.role === 'admin'" :required="formData.role !== 'admin'">
-                  <option value="">Pilih Perusahaan...</option>
-                  <option v-for="co in companies" :key="co.id" :value="co.id">{{ co.name }}</option>
-                </select>
-                <AppIcon name="chevron-down" :size="16" class="select-arrow" />
+              <div 
+                class="premium-select-wrapper" 
+                :class="{ 'disabled': formData.role === 'admin' || formData.role === 'owner' || formData.role === 'cashier' }" 
+                v-click-outside="() => isCompanyDropdownOpen = false"
+              >
+                <div 
+                  class="premium-select-trigger" 
+                  :class="{ open: isCompanyDropdownOpen, 'disabled': formData.role === 'admin' || formData.role === 'owner' || formData.role === 'cashier' }"
+                  @click="(!formData.role || (formData.role !== 'admin' && formData.role !== 'owner' && formData.role !== 'cashier')) && (isCompanyDropdownOpen = !isCompanyDropdownOpen)"
+                >
+                  <span>{{ getCompanyName(formData.company_id) || 'Pilih Perusahaan...' }}</span>
+                  <AppIcon 
+                    name="chevron-down" 
+                    :size="16" 
+                    class="select-arrow" 
+                    :class="{ rotated: isCompanyDropdownOpen }" 
+                  />
+                </div>
+
+                <transition name="dropdown-slide">
+                  <div class="premium-options-menu glass-panel" v-if="isCompanyDropdownOpen">
+                    <div 
+                      class="premium-option" 
+                      v-for="co in companies" 
+                      :key="co.id"
+                      :class="{ selected: formData.company_id === co.id }"
+                      @click="selectCompany(co)"
+                    >
+                      <span>{{ co.name }}</span>
+                      <AppIcon v-if="formData.company_id === co.id" name="check" :size="14" class="text-emerald" />
+                    </div>
+                  </div>
+                </transition>
               </div>
             </div>
 
@@ -298,7 +357,7 @@ const filteredUsers = computed(() => {
 })
 
 const usersByRole = computed(() => {
-  const counts = { admin: 0, owner: 0, ceo: 0, farmer: 0 }
+  const counts = { admin: 0, owner: 0, ceo: 0, farmer: 0, cashier: 0 }
   users.value.forEach(u => {
     if (counts[u.role] !== undefined) counts[u.role]++
   })
@@ -310,7 +369,8 @@ function getRoleIcon(role) {
     admin: 'shield-check',
     owner: 'crown',
     ceo: 'user-check',
-    farmer: 'sprout'
+    farmer: 'sprout',
+    cashier: 'receipt'
   }
   return icons[role] || 'user'
 }
@@ -322,6 +382,61 @@ function formatPhone(phone) {
     return `+${str.slice(0, 2)} ${str.slice(2, 5)}-${str.slice(5, 9)}-${str.slice(9)}`
   }
   return str
+}
+
+// Custom Dropdown Logic
+const isRoleDropdownOpen = ref(false)
+const isCompanyDropdownOpen = ref(false)
+
+const vClickOutside = {
+  mounted(el, binding) {
+    el.clickOutsideEvent = (event) => {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value(event)
+      }
+    }
+    document.addEventListener('click', el.clickOutsideEvent)
+  },
+  unmounted(el) {
+    document.removeEventListener('click', el.clickOutsideEvent)
+  }
+}
+
+function capitalize(str) {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function getCompanyName(id) {
+  const co = companies.value.find(c => c.id === id)
+  return co ? co.name : ''
+}
+
+function selectRole(role) {
+  formData.value.role = role
+  
+  if (role === 'admin' || role === 'cashier') {
+    formData.value.company_id = ''
+  } else if (role === 'owner') {
+    // Auto-select 'Owner' company if exists
+    const ownerComp = companies.value.find(c => c.name === 'Owner' || c.code === 'OWNER')
+    if (ownerComp) {
+      formData.value.company_id = ownerComp.id
+    }
+  }
+  
+  isRoleDropdownOpen.value = false
+}
+
+function selectCompany(co) {
+  formData.value.company_id = co.id
+  
+  // If user selects 'Owner' company, force role to owner
+  if (co.name === 'Owner' || co.code === 'OWNER') {
+    formData.value.role = 'owner'
+  }
+  
+  isCompanyDropdownOpen.value = false
 }
 
 function openAddModal() {
@@ -359,7 +474,7 @@ function closeModal() {
 }
 
 function handleRoleChange() {
-  if (formData.value.role === 'admin') {
+  if (formData.value.role === 'admin' || formData.value.role === 'cashier') {
     formData.value.company_id = ''
   }
 }
@@ -538,7 +653,7 @@ onMounted(() => {
 /* Stats Hub */
 .stats-hub {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 24px;
   margin-bottom: 64px; /* Increased spacing to next section */
 }
@@ -724,6 +839,7 @@ onMounted(() => {
 .user-avatar-premium.owner { background: linear-gradient(135deg, #8b5cf6, #4c1d95); }
 .user-avatar-premium.ceo { background: linear-gradient(135deg, #f59e0b, #92400e); }
 .user-avatar-premium.farmer { background: linear-gradient(135deg, #10b981, #065f46); }
+.user-avatar-premium.cashier { background: linear-gradient(135deg, #10b981, #065f46); }
 
 .status-indicator-ring {
   position: absolute;
@@ -760,12 +876,14 @@ onMounted(() => {
 .access-pill.owner { background: rgba(139, 92, 246, 0.08); color: #7c3aed; border-color: rgba(139, 92, 246, 0.15); }
 .access-pill.ceo { background: rgba(245, 158, 11, 0.08); color: #d97706; border-color: rgba(245, 158, 11, 0.15); }
 .access-pill.farmer { background: rgba(16, 185, 129, 0.08); color: #059669; border-color: rgba(16, 185, 129, 0.15); }
+.access-pill.cashier { background: rgba(16, 185, 129, 0.08); color: #059669; border-color: rgba(16, 185, 129, 0.15); }
 
 /* Dark Mode Overrides - Neon Aesthetic */
 .dark-mode .access-pill.admin { color: #fca5a5; background: rgba(239, 68, 68, 0.15); }
 .dark-mode .access-pill.owner { color: #c4b5fd; background: rgba(139, 92, 246, 0.15); }
 .dark-mode .access-pill.ceo { color: #fcd34d; background: rgba(245, 158, 11, 0.15); }
 .dark-mode .access-pill.farmer { color: #a7f3d0; background: rgba(16, 185, 129, 0.15); }
+.dark-mode .access-pill.cashier { color: #a7f3d0; background: rgba(16, 185, 129, 0.15); }
 
 .entity-name { font-size: 0.85rem; color: var(--text-dim); font-weight: 600; }
 
@@ -818,8 +936,12 @@ onMounted(() => {
   width: 100%;
   border-radius: 32px;
   border: 1px solid rgba(255,254,255,0.15);
-  overflow: hidden;
-  background: rgba(15, 23, 42, 0.85); /* Specific dark base for modal */
+  /* overflow: hidden; Removed to allow dropdowns to overflow */
+  background: rgba(15, 23, 42, 0.95); /* Adjusted opacity for no-blur behind */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh; /* Limit height */
 }
 
 .modal-header-premium {
@@ -830,6 +952,7 @@ onMounted(() => {
   background: rgba(255,255,255,0.03);
   border-bottom: 1px solid rgba(255,255,255,0.05);
   position: relative;
+  border-radius: 32px 32px 0 0; /* Re-add radius since overflow hidden is gone */
 }
 
 .header-icon-box {
@@ -927,6 +1050,8 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 16px;
+  padding-bottom: 32px; /* Pad bottom since it's the end */
+  border-radius: 0 0 32px 32px;
 }
 
 .btn-cancel {
@@ -985,5 +1110,110 @@ onMounted(() => {
   .header-content { flex-direction: column; align-items: flex-start; gap: 24px; }
   .search-box { width: 100%; }
   .filter-group { flex-direction: column; width: 100%; }
+}
+
+/* Dropdown Option Styling Fix */
+.premium-select-wrapper {
+  position: relative;
+  width: 100%;
+  z-index: 50;
+}
+
+.premium-select-trigger {
+    background: rgba(255, 255, 255, 0.05); /* Match field-container bg */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 14px 16px; /* Match input padding */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem; /* Match input font size, assuming it inherits or is close */
+}
+
+.premium-select-trigger:hover {
+    background: rgba(255, 255, 255, 0.08); /* Match hover state */
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.premium-select-trigger.open {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.select-arrow {
+    color: #94a3b8; /* text-muted */
+    transition: transform 0.3s ease;
+}
+
+.select-arrow.rotated {
+    transform: rotate(180deg);
+    color: var(--color-primary);
+}
+
+.premium-options-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    background: #0f172a; /* Match modal base or dark variant */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 6px;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
+    overflow-y: auto; /* Enable vertical scroll */
+    max-height: 240px; /* Limit height to show ~5 items */
+    z-index: 100;
+    overscroll-behavior: contain; /* Prevent parent scroll */
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+
+/* Hide scrollbar Webkit */
+.premium-options-menu::-webkit-scrollbar {
+    display: none;
+}
+
+.premium-option {
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.premium-option:hover {
+    background: rgba(16, 185, 129, 0.08);
+    color: white;
+}
+
+.premium-option.selected {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.text-emerald { color: #10b981; }
+
+.disabled-opacity { opacity: 0.5; pointer-events: none; }
+
+/* Transitions */
+.dropdown-slide-enter-active,
+.dropdown-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-slide-enter-from,
+.dropdown-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
 }
 </style>

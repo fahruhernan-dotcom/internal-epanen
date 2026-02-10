@@ -29,7 +29,9 @@ export const TABLES = {
     WHATSAPP_LOGS: 'whatsapp_logs',
     DRAFT_REPORTS: 'draft_daily_reports',
     USER_PREFERENCES: 'user_preferences',
-    STANDARDIZED_FINANCIALS: 'standardized_financials'
+    STANDARDIZED_FINANCIALS: 'standardized_financials',
+    INVOICES: 'invoices',
+    MARKET_PRICES: 'product_market_prices'
 }
 
 // Company table mapping - For companies only (Admin is website super-user, not a company)
@@ -39,21 +41,27 @@ export const COMPANY_TABLES = {
         code: 'Lyori',
         dailyReports: 'daily_reports_lyori',
         finance: 'finance_lyori',
-        sopTable: 'sop_farmer_lyori'
+        sopTable: 'sop_farmer_lyori',
+        customLogo: '/src/assets/images/lyori-logo.png',
+        customIcon: '/src/assets/images/lyori-icon.png'
     },
     'Moafarm': {
         id: '5236043f-a9ce-498c-84c4-c5de16893ccd',
         code: 'moafarm',
         dailyReports: 'daily_reports_moafarm',
         finance: 'finance_moafarm',
-        sopTable: 'sop_farmer_moafarm'
+        sopTable: 'sop_farmer_moafarm',
+        customLogo: '/src/assets/images/moafarm-logo.png',
+        customIcon: '/src/assets/images/moafarm-icon.png'
     },
     'Kaja': {
         id: '8523f28b-7f12-4455-a8a8-015d2a826d5c',
         code: 'Kaja',
         dailyReports: 'daily_reports_kaja',
         finance: 'finance_kaja',
-        sopTable: 'sop_farmer_kaja'
+        sopTable: 'sop_farmer_kaja',
+        customLogo: '/src/assets/images/kaja-logo.png',
+        customIcon: '/src/assets/images/kaja-icon.png'
     },
     'ePanen': {
         id: '3d0e89d1-76f5-421b-ba7b-c2c0dea6ebf0',

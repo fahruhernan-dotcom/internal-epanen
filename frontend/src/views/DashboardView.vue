@@ -1,5 +1,6 @@
 <template>
-  <div class="dashboard-expert-view">
+  <FarmerDashboardView v-if="authStore.user?.role === 'farmer'" />
+  <div v-else class="dashboard-expert-view">
     <!-- Welcome Header Section -->
     <header class="welcome-section-premium animate-fade-in-up">
       <div class="welcome-text">
@@ -15,7 +16,7 @@
             <span class="text-muted font-light">Selamat Datang,</span><br>
             <span class="text-gradient-emerald">{{ authStore.userName }}</span>
         </h1>
-        <p class="system-desc-v2">Ringkasan cerdas performa ekosistem ePanen hari ini.</p>
+        <p class="system-desc-v2">Ringkasan cerdas performa ekosistem Official ePanen hari ini.</p>
       </div>
       <div class="quick-status-cards">
         <div class="mini-card-v2">
@@ -129,9 +130,12 @@
     </div>
 
     <div class="premium-section-gap">
-      <div class="flex justify-between items-center mb-xl animate-fade-in-up stagger-6">
+      <div class="flex justify-between items-center mb-md animate-fade-in-up stagger-6">
         <h3 class="section-title-premium">{{ authStore.isAdmin || authStore.isOwner ? 'Klaster Analitik Entitas' : 'Perusahaan Terotorisasi' }}</h3>
-        <span v-if="authStore.isAdmin || authStore.isOwner" class="badge-premium-emerald">GERBANG ADMIN</span>
+        <div v-if="authStore.isAdmin || authStore.isOwner" class="badge-premium-emerald">
+            <span class="emerald-dot-pulse"></span>
+            <span>GERBANG EKOSISTEM</span>
+        </div>
       </div>
       
       <div class="companies-grid">
@@ -160,7 +164,12 @@
           >
             <div class="company-header">
               <div class="company-icon-box">
-                <span class="company-icon-text">{{ getCompanyIcon(company) }}</span>
+                <img 
+                  v-if="getCompanyCustomIcon(company)" 
+                  :src="getCompanyCustomIcon(company)" 
+                  class="company-card-icon-img" 
+                />
+                <span v-else class="company-icon-text">{{ getCompanyIcon(company) }}</span>
               </div>
               <h4 class="company-title-text">{{ company }}</h4>
             </div>
@@ -220,7 +229,14 @@
                 <td class="tabular-nums text-muted text-xs">{{ formatDate(rep.report_date || rep.created_at) }}</td>
                 <td>
                    <div class="flex items-center gap-sm">
-                      <span class="company-mini-icon">{{ getCompanyIcon(rep.company_name) }}</span>
+                      <div class="company-mini-icon-wrapper">
+                        <img 
+                          v-if="getCompanyCustomIcon(rep.company_name)" 
+                          :src="getCompanyCustomIcon(rep.company_name)" 
+                          class="company-mini-icon-img" 
+                        />
+                        <span v-else class="company-mini-icon">{{ getCompanyIcon(rep.company_name) }}</span>
+                      </div>
                       <span class="font-bold text-main">{{ rep.company_name }}</span>
                    </div>
                 </td>
@@ -246,23 +262,24 @@
         </div>
       </div>
     </div>
-
-    <!-- Report Detail Modal -->
-    <ReportDetailModal 
-      v-if="selectedReport"
-      :report="selectedReport" 
-      @close="selectedReport = null" 
-    />
   </div>
+
+  <!-- Report Detail Modal -->
+  <ReportDetailModal 
+    v-if="selectedReport"
+    :report="selectedReport" 
+    @close="selectedReport = null" 
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { supabase, VIEWS } from '@/services/supabase'
+import { supabase, VIEWS, COMPANY_TABLES } from '@/services/supabase'
 import { groupChunksToDocuments } from '@/utils/financialUtils'
 import AppIcon from '@/components/AppIcon.vue'
+import FarmerDashboardView from './FarmerDashboardView.vue'
 
 const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
 
@@ -365,7 +382,7 @@ async function generateAutoInsight() {
         const lyoriDocs = stats.value?.byCompany?.['Lyori']?.total || 0
         const total = stats.value?.totalReports || 0
         
-        aiSummary.value = `**Ekosistem ePanen** secara kolektif telah mengelola **${total} dokumen** finansial. Saat ini, **Lyori** mengamankan **${lyoriDocs} dokumen**, sementara **Kaja** menyumbangkan **${kajaDocs} dokumen** ke dalam klaster. Stabilitas transmisi data terjaga 100% dengan tingkat akurasi audit rata-rata mencapai **94%** di seluruh entitas.`
+        aiSummary.value = `**Ekosistem Official ePanen** secara kolektif telah mengelola **${total} dokumen** finansial. Saat ini, **Lyori** mengamankan **${lyoriDocs} dokumen**, sementara **Kaja** menyumbangkan **${kajaDocs} dokumen** ke dalam klaster. Stabilitas transmisi data terjaga 100% dengan tingkat akurasi audit rata-rata mencapai **94%** di seluruh entitas.`
     } finally {
         aiLoading.value = false
     }
@@ -375,11 +392,19 @@ function getCompanyIcon(name) {
   if (!name) return '🏢'
   const icons = {
     'Kaja': '🥗',
-    'Lyori': '🥚',
+    'Lyori': '🌿', // Changed from egg
     'Yantofarm': '🌾',
     'ePanen': '🚜'
   }
   return icons[name] || '🏢'
+}
+
+function getCompanyCustomIcon(name) {
+  const companyData = COMPANY_TABLES[name]
+  if (companyData && companyData.customIcon) {
+    return new URL(companyData.customIcon, import.meta.url).href
+  }
+  return null
 }
 
 function formatDate(date) {
@@ -575,20 +600,31 @@ onMounted(() => {
 }
 
 .kp-icon-box {
-    width: 44px;
-    height: 44px;
-    background: rgba(16, 185, 129, 0.15);
+    width: 48px;
+    height: 48px;
+    background: rgba(var(--bg-card-rgb), 0.4);
+    border: 1px solid var(--glass-border);
     border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--color-primary);
     z-index: 2;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
 }
 
-.kp-icon-box.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-.kp-icon-box.purple { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
-.kp-icon-box.gold { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.kp-icon-box::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+}
+
+.kp-icon-box.blue { color: #3b82f6; border-color: rgba(59, 130, 246, 0.2); }
+.kp-icon-box.purple { color: #8b5cf6; border-color: rgba(139, 92, 246, 0.2); }
+.kp-icon-box.gold { color: #f59e0b; border-color: rgba(245, 158, 11, 0.2); }
 
 .kp-content {
     display: flex;
@@ -848,14 +884,26 @@ onMounted(() => {
 }
 
 .badge-premium-emerald {
-    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
     font-weight: 800;
-    padding: 4px 12px;
+    padding: 6px 12px;
     background: rgba(16, 185, 129, 0.1);
     color: var(--color-primary);
     border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 20px;
-    letter-spacing: 0.1em;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+}
+
+.emerald-dot-pulse {
+    width: 6px;
+    height: 6px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    animation: p-pulse 2s infinite;
 }
 
 /* Companies Grid */
@@ -898,22 +946,43 @@ onMounted(() => {
 }
 
 .company-icon-box {
-    width: 52px;
-    height: 52px;
-    background: linear-gradient(145deg, var(--color-primary), #047857);
-    border-radius: 14px;
+    width: 64px;
+    height: 64px;
+    background: #fff;
+    border: 2px solid #10b981;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 6px 15px rgba(16, 185, 129, 0.2);
+    position: relative;
+    overflow: hidden;
 }
 
-.company-icon-text { font-size: 1.75rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+.company-icon-box::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent);
+    pointer-events: none;
+}
+
+.company-card-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.company-card:hover .company-card-icon-img {
+    transform: scale(1.15) rotate(5deg);
+}
 
 .company-title-text {
-    font-size: 1.125rem;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 850;
     color: var(--text-main);
+    letter-spacing: -0.03em;
 }
 
 .company-stats-row {
@@ -956,8 +1025,8 @@ onMounted(() => {
     font-size: 1.5rem;
     font-weight: 800;
     color: var(--text-main);
-    line-height: 1;
-    margin-bottom: 4px; /* Fixes the 10TOTAL NODES overlap by using column layout */
+    line-height: 1.2;
+    margin-bottom: 8px; /* High-Fidelity spacing (was 4px) */
 }
 
 .co-stat .l {
@@ -1094,6 +1163,33 @@ onMounted(() => {
     position: relative;
     z-index: 1;
 }
+
+.company-mini-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    background: #fff;
+    border: 1.5px solid #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.company-mini-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Make it fill the circle tightly */
+}
+
+.hover-row:hover .company-mini-icon-wrapper {
+    transform: scale(1.1);
+    border-color: #059669;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
 
 .dashboard-backdrop-premium {
     position: absolute;

@@ -446,6 +446,60 @@ Total Revenue terdeteksi sekitar **Rp ${totalRev.toLocaleString('id-ID')}**.
 
 *Analisis detail akan muncul di sini setelah API Key LLM dikonfigurasi di file .env.*`
     }
+
+    /**
+     * Assists farmers in writing daily reports based on minimal input
+     */
+    async assistFarmerReport(context) {
+        if (!this.apiKey) {
+            return "Fitur AI belum dikonfigurasi. Harap hubungi administrator."
+        }
+
+        const prompt = `
+      Anda adalah asisten virtual cerdas untuk petani/pekerja di ${context.company || 'SmartFarm'}.
+      Tugas Anda adalah MEMPERLUAS ringkasan singkat menjadi laporan harian profesional yang detail dan rapi.
+      
+      DATA SAAT INI:
+      - Cuaca: ${context.weather}
+      - Ringkasan Kegiatan: ${context.summary}
+      - Poin Tambahan: ${context.notes || '-'}
+      - Masalah/Kendala: ${JSON.stringify(context.issues || [])}
+      
+      INSTRUKSI:
+      1. Tulis paragraph narasi detail ("Detail Kegiatan") yang menjelaskan kegiatan tersebut secara profesional.
+      2. Gunakan bahasa Indonesia yang baik, formal namun tetap natural untuk laporan lapangan.
+      3. Asumsikan durasi kerja standar dan prosedur standar pertanian/perikanan jika detail kurang (misal: pemberian pakan, pengecekan kualitas air, dll jika relevan dengan ${context.company}).
+      4. Jangan terlalu panjang, cukup 2-3 paragraf padat.
+      
+      OUTPUT:
+      Langsung berikan teks laporannya saja tanpa pembuka/penutup basa-basi.
+    `
+
+        try {
+            const response = await fetch(this.baseUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    messages: [
+                        { role: 'system', content: 'Anda adalah asisten penulisan laporan pertanian profesional.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    max_tokens: 500,
+                    temperature: 0.7
+                })
+            })
+
+            const result = await response.json()
+            return result.choices[0].message.content.trim()
+        } catch (err) {
+            console.error('AI Farmer Assist Error:', err)
+            return "Maaf, sistem sedang sibuk. Silakan tulis manual."
+        }
+    }
 }
 
 export const aiService = new AIService()

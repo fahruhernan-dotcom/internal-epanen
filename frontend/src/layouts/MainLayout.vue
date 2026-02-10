@@ -11,7 +11,9 @@
       <div class="sidebar-header">
         <div class="logo">
           <AppIcon name="leaf" :size="24" class="logo-icon" />
-          <span v-if="!sidebarCollapsed" class="logo-text">SmartFarm</span>
+          <span v-if="!sidebarCollapsed" class="logo-text">
+            Official <span class="text-emerald">ePanen</span>
+          </span>
         </div>
         <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">
           <AppIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" :size="16" />
@@ -21,7 +23,7 @@
       <nav class="sidebar-nav">
         <template v-for="(item, idx) in navigationItems" :key="idx">
           <!-- Section Label -->
-          <div v-if="item.isSection && !sidebarCollapsed" class="nav-section">{{ item.label }}</div>
+          <div v-if="item.isSection && !sidebarCollapsed && (item.roles ? item.roles.includes(authStore.user?.role) : true)" class="nav-section">{{ item.label }}</div>
           
           <!-- Nav Link -->
           <router-link
@@ -47,7 +49,23 @@
           </router-link>
         </template>
 
-        <!-- Company Links -->
+        <!-- Transaction Links (Cashier) -->
+        <template v-if="['cashier', 'admin', 'owner'].includes(authStore.user?.role)">
+          <div v-if="!sidebarCollapsed" class="nav-section">Transaksi</div>
+          <router-link 
+            to="/cashier" 
+            class="nav-item-v2"
+            :class="{ active: route.path === '/cashier' }"
+          >
+            <div class="nav-icon-pod">
+              <div class="nav-icon-svg">
+                <AppIcon name="receipt" :size="18" stroke-width="2.5" />
+              </div>
+            </div>
+            <span v-if="!sidebarCollapsed" class="nav-text">Kasir / Invoice</span>
+          </router-link>
+        </template>
+
         <template v-if="['owner', 'admin', 'ceo'].includes(authStore.user?.role)">
           <div v-if="!sidebarCollapsed" class="nav-section">Perusahaan</div>
           <router-link 
@@ -57,7 +75,15 @@
             class="nav-item-v2"
           >
             <div class="nav-icon-pod company-icon">
-              <span>{{ getCompanyIcon(company.code) }}</span>
+              <!-- Custom Image Icon -->
+              <img 
+                v-if="getCompanyCustomIcon(company.name)" 
+                :src="getCompanyCustomIcon(company.name)" 
+                class="company-icon-img" 
+                alt="logo" 
+              />
+              <!-- Fallback Emoji Icon -->
+              <span v-else>{{ getCompanyIcon(company.code || company.name) }}</span>
             </div>
             <span v-if="!sidebarCollapsed" class="nav-text">{{ company.name }}</span>
           </router-link>
@@ -150,7 +176,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useNotificationStore } from '@/stores/notifications'
-import { getCompanies } from '@/services/supabase'
+import { getCompanies, COMPANY_TABLES } from '@/services/supabase'
 import { navigationConfig } from '@/config/navigation'
 import AppIcon from '@/components/AppIcon.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
@@ -249,10 +275,11 @@ const currentDate = computed(() => {
   })
 })
 
-function getCompanyIcon(code) {
+function getCompanyIcon(codeOrName) {
   const icons = {
     'Lyori': '🌾',
     'moafarm': '🌱',
+    'Moafarm': '🌱',
     'Kaja': '🥬',
     'EP': '🍏',
     'ePanen': '🍏',
@@ -260,7 +287,16 @@ function getCompanyIcon(code) {
     'Melon': '🍈',
     'Owner': '🏢'
   }
-  return icons[code] || '🏭'
+  return icons[codeOrName] || '🏭'
+}
+
+function getCompanyCustomIcon(name) {
+  const companyData = COMPANY_TABLES[name]
+  if (companyData && companyData.customIcon) {
+    // Vite dynamic asset resolution
+    return new URL(companyData.customIcon, import.meta.url).href
+  }
+  return null
 }
 
 function handleLogout() {
@@ -373,59 +409,123 @@ onUnmounted(() => {
 }
 
 .sidebar-header {
-  height: 72px; /* Matched exactly to .top-header height */
+  height: 80px; 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-xl);
-  border-bottom: 1px solid var(--glass-border);
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: 12px;
   text-decoration: none;
 }
 
 .logo-icon {
-  color: var(--color-primary);
-  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.4));
-  transition: filter 0.3s ease;
+  color: #fff;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
 }
 
-.logo-img {
-  width: 32px;
-  height: 32px;
+/* Company Icons - Revert to Expert Pods (Rounded Square) */
+.company-icon-img {
+  width: 90%;
+  height: 90%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+}
+
+.nav-item-v2:hover .company-icon-img {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.nav-icon-pod {
+  width: 38px;
+  height: 38px;
+  background: #fff !important; /* Force white for 3D pop */
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px; /* Smooth rounded square as per screenshot */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.nav-item-v2.active .nav-icon-pod {
+  border-color: #10b981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+}
+
+.nav-icon-pod::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+
+.logo-img-v2 {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  /* Expert Glow: Subtle Bloom */
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.45));
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar:hover .logo-img-v2 {
+  transform: scale(1.05) rotate(5deg);
 }
 
 .logo-text {
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: 900; 
   letter-spacing: -0.04em;
-  color: var(--text-main);
+  color: #fff;
+}
+
+.logo-text::after {
+  content: 'Farm';
+  color: #10b981;
+  margin-left: -58px; /* Offset to overlay or just change text logic */
+  display: none; /* Handled via template better */
+}
+
+.company-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .sidebar-toggle {
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
-  color: var(--text-muted);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--color-primary);
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+}
+
+.text-emerald {
+  color: #10b981 !important;
 }
 
 /* Navigation Items - 3D Icon Overhaul */
@@ -460,45 +560,31 @@ onUnmounted(() => {
 .nav-item-v2 {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: 14px;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 18px; /* Large rounding as seen in screenshot */
   color: var(--text-dim);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 0.825rem;
-  border: 1px solid transparent;
+  font-weight: 650;
+  font-size: 0.875rem;
   position: relative;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
 }
 
-/* physical Icon Pod - The 'Contrast Anchor' */
-.nav-icon-pod {
-    width: 40px; 
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px; /* Smooth rounded square */
-    background: rgba(var(--text-main-rgb), 0.06);
-    border: 1px solid rgba(var(--text-main-rgb), 0.08);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    flex-shrink: 0;
-    position: relative;
-    overflow: hidden; /* CRITICAL: Clips the square PNG backgrounds */
+.nav-item-v2:hover {
+  background: rgba(16, 185, 129, 0.08); /* Transparent emerald hover */
+  color: #10b981;
 }
 
-.dark-mode .nav-icon-pod {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.nav-item-v2.active {
+  background: rgba(16, 185, 129, 0.15); /* Premium active glow as seen in screenshot */
+  color: #10b981;
+  font-weight: 800;
 }
 
-.nav-item-v2:hover .nav-icon-pod {
-    background: rgba(var(--text-main-rgb), 0.08);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
+/* physical Icon Pod - Redundant anchor removed, unified above at line 440+ */
+
 
 .nav-icon-3d {
   width: 100%;
@@ -531,63 +617,30 @@ onUnmounted(() => {
     justify-content: center;
 }
 
-.nav-item-v2:hover {
-  background: rgba(var(--bg-card-rgb), 0.25);
-  color: var(--text-main);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.nav-item-v2:hover .nav-icon-pod {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.2);
-}
-
-.nav-item-v2:hover .nav-icon-3d {
+.nav-item-v2:hover .nav-icon-3d,
+.nav-item-v2.active .nav-icon-3d {
     transform: scale(1.1) translateY(-2px);
-}
-
-.nav-item-v2:hover .nav-icon-svg {
-    opacity: 1;
-    color: var(--color-primary);
-}
-
-.nav-item-v2.active {
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--color-primary);
-  box-shadow: 
-    inset 0 0 15px rgba(16, 185, 129, 0.05),
-    0 4px 12px rgba(0, 0, 0, 0.05);
-  font-weight: 700;
-}
-
-.nav-item-v2.active .nav-icon-pod {
-    background: rgba(16, 185, 129, 0.18);
-    border-color: rgba(16, 185, 129, 0.4);
-    box-shadow: 
-        0 4px 12px rgba(16, 185, 129, 0.2),
-        inset 0 0 10px rgba(16, 185, 129, 0.1);
 }
 
 .nav-item-v2.active .icon-3d-img {
     filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.6)) saturate(1.6) contrast(1.2);
-    transform: scale(1.1) rotate(-2deg);
 }
 
+.nav-item-v2:hover .nav-icon-svg,
 .nav-item-v2.active .nav-icon-svg {
     opacity: 1;
-    color: var(--color-primary);
-    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.5));
+    color: #10b981;
     transform: scale(1.1);
 }
 
 .active-indicator-pill {
     position: absolute;
     right: 0;
-    width: 4px;
-    height: 16px;
-    background: var(--color-primary);
-    border-radius: 4px 0 0 4px;
-    box-shadow: -2px 0 8px var(--color-primary);
+    width: 6px; /* Slightly thicker */
+    height: 24px; /* Matches screenshot height */
+    background: #10b981;
+    border-radius: 100px 0 0 100px;
+    box-shadow: -4px 0 12px rgba(16, 185, 129, 0.4);
 }
 
 .nav-section {

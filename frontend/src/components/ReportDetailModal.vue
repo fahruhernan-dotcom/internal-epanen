@@ -51,9 +51,9 @@
           </div>
           
           <div class="activity-content">
-            <div v-if="report.activities?.summary" class="activity-main">
-              <h5>{{ report.activities.summary }}</h5>
-              <p v-if="report.activities.details">{{ report.activities.details }}</p>
+            <div v-if="normalizeActivities(report.activities)?.summary" class="activity-main">
+              <h5>{{ normalizeActivities(report.activities).summary }}</h5>
+              <p v-if="normalizeActivities(report.activities).details">{{ normalizeActivities(report.activities).details }}</p>
             </div>
             <div v-else-if="typeof report.activities === 'string'" class="activity-main">
               <p>{{ report.activities }}</p>
@@ -198,6 +198,20 @@ function getWeatherIconName(weather) {
   if (w.includes('hot') || w.includes('panas')) return 'sun'
   if (w.includes('clear') || w.includes('cerah')) return 'cloud-sun'
   return 'thermometer'
+}
+
+function normalizeActivities(activities) {
+  if (!activities) return null
+  if (typeof activities === 'object') return activities
+  
+  if (typeof activities === 'string' && activities.trim().startsWith('{')) {
+    try {
+      return JSON.parse(activities)
+    } catch (e) {
+      return null
+    }
+  }
+  return null
 }
 
 function hasIssues(issues) {

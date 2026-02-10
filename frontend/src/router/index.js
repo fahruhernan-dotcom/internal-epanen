@@ -86,6 +86,12 @@ const routes = [
                 path: 'profile',
                 name: 'Profile',
                 component: () => import('@/views/ProfileView.vue')
+            },
+            {
+                path: 'cashier',
+                name: 'Cashier',
+                component: () => import('@/views/CashierView.vue'),
+                meta: { roles: ['cashier', 'admin', 'owner'] }
             }
         ]
     },
@@ -108,6 +114,8 @@ router.beforeEach((to, from, next) => {
         next('/login')
     } else if (to.path === '/login' && authStore.isAuthenticated) {
         next('/')
+    } else if (to.path === '/' && authStore.user?.role === 'farmer') {
+        next('/submit-daily')
     } else if (to.meta.roles && !to.meta.roles.includes(authStore.user?.role)) {
         // Role not authorized, redirect to home
         next('/')

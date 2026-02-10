@@ -20,7 +20,7 @@
             </div>
             <div class="logo-glow"></div>
           </div>
-          <h1 class="brand-title">SmartFarm</h1>
+          <h1 class="brand-title">Official <span class="text-emerald">ePanen</span></h1>
           <p class="brand-subtitle">Sistem Manajemen Ekosistem Digital</p>
         </div>
 
@@ -230,25 +230,45 @@ async function handleLogin() {
   justify-content: center;
   color: white;
   z-index: 2;
-  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+  box-shadow: 
+    0 10px 25px -5px rgba(16, 185, 129, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.logo-icon-box::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent 60%);
+  pointer-events: none;
 }
 
 .logo-glow {
   position: absolute;
-  inset: -10px;
+  inset: -15px;
   background: var(--color-primary);
-  filter: blur(24px);
-  opacity: 0.3;
+  filter: blur(35px);
+  opacity: 0.25;
   z-index: 1;
-  animation: pulse-glow 3s infinite;
+  animation: pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .brand-title {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 2.25rem;
+  font-weight: 900;
   color: var(--text-main);
-  margin-bottom: 8px;
-  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+  letter-spacing: -0.05em;
+  background: linear-gradient(135deg, var(--text-main), #10b981);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .brand-subtitle {

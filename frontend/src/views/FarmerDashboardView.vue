@@ -7,9 +7,17 @@
           <p class="greeting">Selamat Pagi,</p>
           <h2 class="user-name">{{ authStore.user?.full_name?.split(' ')[0] || 'Petani' }}!</h2>
         </div>
-        <div class="company-badge">
-          <div class="status-orb pulse"></div>
-          <span class="company-name text-truncate">{{ userCompany }}</span>
+        <div class="company-badge-v2">
+          <div class="company-logo-pod">
+              <img 
+                v-if="userCompanyLogo" 
+                :src="userCompanyLogo" 
+                class="company-logo-mini-v2" 
+                alt="logo" 
+              />
+              <div v-else class="status-orb-v2 pulse"></div>
+          </div>
+          <span v-if="!userCompanyLogo" class="company-name-v2 text-truncate">{{ userCompany }}</span>
         </div>
       </div>
     </header>
@@ -61,11 +69,11 @@
                 
                 <div class="profile-stats">
                   <div class="stat-box">
-                    <span class="stat-count">24</span>
+                    <span class="stat-count">{{ stats.totalReports }}</span>
                     <span class="stat-meta">Laporan</span>
                   </div>
                   <div class="stat-box">
-                    <span class="stat-count">98%</span>
+                    <span class="stat-count">100%</span>
                     <span class="stat-meta">SOP</span>
                   </div>
                 </div>
@@ -108,18 +116,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useReportsStore } from '@/stores/reports'
 import FarmerReportForm from '@/components/FarmerReportForm.vue'
 import FarmerHistoryList from '@/components/FarmerHistoryList.vue'
 import SOPReferenceView from '@/views/SOPReferenceView.vue'
 import FarmerChatView from '@/views/FarmerChatView.vue'
+import { COMPANY_TABLES } from '@/services/supabase'
 import AppIcon from '@/components/AppIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const reportsStore = useReportsStore()
 const activeTab = ref('home')
+const stats = ref({ totalReports: 0, todayReports: 0 })
 
 const tabs = [
   { id: 'home', label: 'Lapor', iconName: 'file-text' },
@@ -134,18 +146,32 @@ const userInitials = computed(() => {
     return name.charAt(0).toUpperCase()
 })
 
-const userCompany = computed(() => authStore.user?.companies?.name || 'SmartFarm')
+const userCompany = computed(() => authStore.user?.companies?.name || 'Official ePanen')
+
+const userCompanyLogo = computed(() => {
+    const name = userCompany.value
+    const companyData = COMPANY_TABLES[name]
+    if (companyData && companyData.customLogo) {
+        return new URL(companyData.customLogo, import.meta.url).href
+    }
+    return null
+})
 
 async function handleLogout() {
   authStore.logout()
   router.push('/login')
 }
+
+onMounted(async () => {
+  const data = await reportsStore.getReportStats()
+  if (data) stats.value = data
+})
 </script>
 
 <style scoped>
 .farmer-dashboard {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent;
   display: flex;
   flex-direction: column;
 }
@@ -153,7 +179,7 @@ async function handleLogout() {
 /* Premium Header */
 .app-header {
   padding: var(--space-xl) var(--space-lg) var(--space-md);
-  background: var(--bg-primary);
+  background: transparent;
   z-index: 10;
 }
 
@@ -177,41 +203,60 @@ async function handleLogout() {
   color: var(--text-primary);
 }
 
-.company-badge {
+.company-badge-v2 {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  background: var(--bg-secondary);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
 }
 
-.status-orb {
-  width: 8px;
-  height: 8px;
+.company-logo-pod {
+  width: 42px;
+  height: 42px;
+  background: #fff;
+  border: 2px solid #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.company-logo-mini-v2 {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.4s ease;
+}
+
+.status-orb-v2 {
+  width: 12px;
+  height: 12px;
   background: var(--primary-500);
   border-radius: 50%;
 }
 
-.pulse {
-  animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.5; }
-  100% { transform: scale(0.9); opacity: 1; }
-}
-
-.company-name {
-  font-size: 0.75rem;
-  font-weight: 600;
-  max-width: 100px;
+.company-name-v2 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-main);
+  max-width: 120px;
 }
 
 /* Dashboard Content */
+.company-logo-mini {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+  transition: all 0.4s ease;
+}
+
+.company-badge:hover .company-logo-mini {
+  transform: scale(1.1) rotate(2deg);
+}
+
 .dashboard-content {
   flex: 1;
   max-width: 600px;
@@ -249,7 +294,7 @@ async function handleLogout() {
 }
 
 .dark-mode .floating-dock {
-  background: rgba(15, 20, 25, 0.7);
+  background: rgba(15, 20, 25, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -268,14 +313,32 @@ async function handleLogout() {
 }
 
 .icon-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 1.5rem;
-  transition: all 0.3s;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+}
+
+.dock-item.active .icon-wrapper {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05)) !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  box-shadow: 0 8px 16px rgba(34, 197, 94, 0.2) !important;
+  transform: translateY(-6px) scale(1.1);
+}
+
+.icon-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+  pointer-events: none;
 }
 
 .dock-label {
@@ -303,7 +366,10 @@ async function handleLogout() {
 .profile-card {
   padding: var(--space-xl);
   border-radius: var(--radius-2xl);
-  background: var(--bg-secondary);
+  background: rgba(var(--bg-card-rgb), 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
   margin-top: var(--space-md);
 }
 
@@ -337,12 +403,13 @@ async function handleLogout() {
 }
 
 .stat-box {
-  background: var(--bg-tertiary);
+  background: rgba(var(--bg-card-rgb), 0.2);
   padding: var(--space-md);
   border-radius: var(--radius-card);
   text-align: center;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--glass-border);
 }
 
 .stat-count {
@@ -368,8 +435,8 @@ async function handleLogout() {
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-md);
-  background: var(--bg-tertiary);
-  border: none;
+  background: rgba(var(--bg-card-rgb), 0.2);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card);
   width: 100%;
   font-weight: 600;
