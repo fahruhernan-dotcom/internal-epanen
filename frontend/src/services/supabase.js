@@ -42,8 +42,8 @@ export const COMPANY_TABLES = {
         dailyReports: 'daily_reports_lyori',
         finance: 'finance_lyori',
         sopTable: 'sop_farmer_lyori',
-        customLogo: '/src/assets/images/lyori-logo.png',
-        customIcon: '/src/assets/images/lyori-icon.png'
+        customLogo: '/images/branding/lyori-logo.png',
+        customIcon: '/images/branding/lyori-icon.png'
     },
     'Moafarm': {
         id: '5236043f-a9ce-498c-84c4-c5de16893ccd',
@@ -51,8 +51,8 @@ export const COMPANY_TABLES = {
         dailyReports: 'daily_reports_moafarm',
         finance: 'finance_moafarm',
         sopTable: 'sop_farmer_moafarm',
-        customLogo: '/src/assets/images/moafarm-logo.png',
-        customIcon: '/src/assets/images/moafarm-icon.png'
+        customLogo: '/images/branding/moafarm-logo.png',
+        customIcon: '/images/branding/moafarm-icon.png'
     },
     'Kaja': {
         id: '8523f28b-7f12-4455-a8a8-015d2a826d5c',
@@ -60,8 +60,8 @@ export const COMPANY_TABLES = {
         dailyReports: 'daily_reports_kaja',
         finance: 'finance_kaja',
         sopTable: 'sop_farmer_kaja',
-        customLogo: '/src/assets/images/kaja-logo.png',
-        customIcon: '/src/assets/images/kaja-icon.png'
+        customLogo: '/images/branding/kaja-logo.png',
+        customIcon: '/images/branding/kaja-icon.png'
     },
     'ePanen': {
         id: '3d0e89d1-76f5-421b-ba7b-c2c0dea6ebf0',
