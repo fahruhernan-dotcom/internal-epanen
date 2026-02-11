@@ -63,7 +63,7 @@ export const defaultChartOptions = {
     legend: {
       position: 'bottom',
       labels: {
-        color: '#94a3b8',
+        color: '#475569',
         usePointStyle: true,
         padding: 16,
         font: {
@@ -94,7 +94,7 @@ export const defaultChartOptions = {
         family: "'Inter', sans-serif"
       },
       callbacks: {
-        label: function(context) {
+        label: function (context) {
           const data = createChartTooltip(context)
           let label = context.dataset.label || ''
 
@@ -112,7 +112,7 @@ export const defaultChartOptions = {
 
           return label
         },
-        afterLabel: function(context) {
+        afterLabel: function (context) {
           const data = createChartTooltip(context)
           if (data.comparison !== null) {
             return `Previous: ${data.comparison}`
@@ -129,12 +129,12 @@ export const defaultChartOptions = {
         drawBorder: false
       },
       ticks: {
-        color: '#94a3b8',
+        color: '#334155',
         font: {
           size: 11
         },
         padding: 8,
-        callback: function(value) {
+        callback: function (value) {
           return formatCurrency(value)
         }
       },
@@ -148,7 +148,7 @@ export const defaultChartOptions = {
         drawBorder: false
       },
       ticks: {
-        color: '#94a3b8',
+        color: '#334155',
         font: {
           size: 11
         },
@@ -190,7 +190,7 @@ export const pieChartOptions = {
     legend: {
       position: 'bottom',
       labels: {
-        color: '#94a3b8',
+        color: '#475569',
         usePointStyle: true,
         padding: 16,
         font: {
@@ -208,7 +208,7 @@ export const pieChartOptions = {
       cornerRadius: 8,
       padding: 12,
       callbacks: {
-        label: function(context) {
+        label: function (context) {
           const label = context.label || ''
           const value = context.parsed || 0
           const total = context.dataset.data.reduce((a, b) => a + b, 0)

@@ -291,21 +291,23 @@ export const useReportsStore = defineStore('reports', () => {
                         report.metadata.netProfit = parseFloat(cached.net_profit)
                         report.metadata.aiReasoning = cached.ai_reasoning
                         report.metadata.is_ai_normalized = true
-
-                        totalRev += report.metadata.revenue
-                        totalExp += report.metadata.expenses
-                        totalNet += report.metadata.netProfit
                         normalizedCount++
+                    } else {
+                        // Fallback to raw metadata if not normalized yet
+                        report.metadata.is_ai_normalized = false
                     }
+
+                    // Always add to totals, using standardized if available, raw if not
+                    totalRev += parseRefNumber(report.metadata.revenue)
+                    totalExp += parseRefNumber(report.metadata.expenses)
+                    totalNet += parseRefNumber(report.metadata.netProfit) || (parseRefNumber(report.metadata.revenue) - parseRefNumber(report.metadata.expenses))
                 })
 
-                // If some reports were pre-normalized, update the bucket totals
-                if (normalizedCount > 0) {
-                    bucket.revenue = totalRev
-                    bucket.expenses = totalExp
-                    bucket.netProfit = totalNet
-                    bucket.isNormalized = normalizedCount === bucket.reports.length
-                }
+                // Update bucket totals with the results (Standardized + Raw fallback)
+                bucket.revenue = totalRev
+                bucket.expenses = totalExp
+                bucket.netProfit = totalNet
+                bucket.isNormalized = normalizedCount === bucket.reports.length
             })
 
             await Promise.allSettled(summaryPromises)

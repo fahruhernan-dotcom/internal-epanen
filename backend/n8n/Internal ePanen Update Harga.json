@@ -1,0 +1,164 @@
+{
+  "name": "Internal ePanen Update Harga",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1hbQpZTIXDPUWWNp12NiZRaW-0EC8VNA7BaWWcKEIGa0",
+          "mode": "list",
+          "cachedResultName": "Harga Pasar Purwokerto Live",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hbQpZTIXDPUWWNp12NiZRaW-0EC8VNA7BaWWcKEIGa0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 218488018,
+          "mode": "list",
+          "cachedResultName": "N8n Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hbQpZTIXDPUWWNp12NiZRaW-0EC8VNA7BaWWcKEIGa0/edit#gid=218488018"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        320,
+        96
+      ],
+      "id": "ad4e9211-4d94-4913-a8df-054bff6c482b",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MH3HNVBSswbruwFv",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "product_market_prices",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.row_number }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "product_name",
+              "fieldValue": "={{ $json.Product }}"
+            },
+            {
+              "fieldId": "category",
+              "fieldValue": "={{ $json.Category }}"
+            },
+            {
+              "fieldId": "price",
+              "fieldValue": "={{ parseInt($json.Price.replace(/[^\\d]/g, '')) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        768,
+        96
+      ],
+      "id": "56206b33-b7a9-45d6-9221-5c99b95e384e",
+      "name": "Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "row_number, Product, Category, Price",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        528,
+        96
+      ],
+      "id": "8981e6f7-5437-4e76-af67-d2d0256c337d",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        96
+      ],
+      "id": "deaa1267-3b6b-4b17-aee4-ae3cb4fe8b0c",
+      "name": "Update Harga 1 Jam Sekali"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Harga 1 Jam Sekali": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "211c0df9-3cd1-4f99-8a73-e2d35bf0ac50",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f2d9e660b34c9d92ed2d1946fd6a1cf5eabf8eee0b2182c48836c963c437441a"
+  },
+  "id": "yZe6LOY-NQ0_bukfbFxoL",
+  "tags": []
+}

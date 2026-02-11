@@ -116,6 +116,8 @@ router.beforeEach((to, from, next) => {
         next('/')
     } else if (to.path === '/' && authStore.user?.role === 'farmer') {
         next('/submit-daily')
+    } else if (to.path === '/' && authStore.user?.role === 'cashier') {
+        next('/cashier')
     } else if (to.meta.roles && !to.meta.roles.includes(authStore.user?.role)) {
         // Role not authorized, redirect to home
         next('/')

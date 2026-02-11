@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
     const isOwner = computed(() => user.value?.role === 'owner')
     const isAdmin = computed(() => user.value?.role === 'admin')
     const isManager = computed(() => user.value?.role === 'manager')
+    const isCashier = computed(() => user.value?.role === 'cashier')
     const userName = computed(() => user.value?.full_name || 'User')
 
     // Actions
@@ -54,7 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
             console.log('User found in DB:', users.full_name, 'Role:', users.role)
 
             // Check role - all roles in system allowed to login
-            const allowedRoles = ['owner', 'admin', 'ceo', 'farmer', 'manager']
+            const allowedRoles = ['owner', 'admin', 'ceo', 'farmer', 'manager', 'cashier']
             if (!allowedRoles.includes(users.role)) {
                 console.warn('Unauthorized role:', users.role)
                 throw new Error('Akses ditolak. Role tidak dikenali.')
@@ -108,6 +109,7 @@ export const useAuthStore = defineStore('auth', () => {
         isOwner,
         isAdmin,
         isManager,
+        isCashier,
         userName,
         login,
         logout,

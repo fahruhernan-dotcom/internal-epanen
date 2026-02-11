@@ -1,7 +1,37 @@
 <template>
-  <div class="finance-page animate-fade-in">
+  <div class="finance-page animate-fade-in-up">
+    <!-- Header Section - Elite Style -->
+    <header class="welcome-section-premium animate-fade-in-up">
+      <div class="welcome-text">
+        <div class="header-meta">
+          <span class="status-indicator">
+            <span class="status-dot-pulse"></span>
+            LIVE MONITORING
+          </span>
+          <span class="v-divider-v2"></span>
+          <span class="role-badge-v2">FINANCIAL INTELLIGENCE</span>
+        </div>
+        <h1 class="user-greeting-v2">
+          <span class="text-muted font-light">Monitoring</span><br>
+          <span class="text-gradient-emerald">Laporan Keuangan</span>
+        </h1>
+        <p class="system-desc-v2">Analisa konsolidasi profit, arus kas, dan validasi data finansial berbasis AI secara transparan.</p>
+      </div>
+
+      <div class="quick-status-cards">
+        <div class="mini-card-v2">
+          <span class="mc-label">Skor Akurasi</span>
+          <span class="mc-value text-emerald">98.5%</span>
+        </div>
+        <div class="mini-card-v2">
+          <span class="mc-label">Aktivitas Node</span>
+          <span class="mc-value text-emerald">SYNCHRONIZED</span>
+        </div>
+      </div>
+    </header>
+
     <!-- Filters & Controls Overhaul -->
-    <div class="filters-bar animate-in stagger-1">
+    <div class="filters-bar animate-in stagger-1 mt-spacing-hero-xl">
       <div class="filters-left-group">
         <!-- Company Selector -->
         <div class="filter-logic-box" v-if="compAuth.isAdmin || compAuth.isOwner">
@@ -152,6 +182,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useReportsStore } from '@/stores/reports'
 import { supabase, COMPANY_TABLES, VIEWS } from '@/services/supabase'
 import { aiService } from '@/services/ai'
+import { parseRefNumber } from '@/utils/financialUtils'
 import PeriodInsightCard from '@/components/PeriodInsightCard.vue'
 import AppIcon from '@/components/AppIcon.vue'
 
@@ -197,16 +228,14 @@ const companyOptions = computed(() => {
 
 const DOC_FORMS = {
     'Lyori': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/72b3dbbe-34c7-48f0-b7de-f2e7c017d519',
-    'moafarm': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/4a20bcf8-ed90-4910-9451-45631fc26fe5',
-    'Kaja': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/ea756b54-6155-4de3-be2a-415bb3cd769e'
+    'Moafarm': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/4a20bcf8-ed90-4910-9451-45631fc26fe5',
+    'Kaja': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/ea756b54-6155-4de3-be2a-415bb3cd769e',
+    'ePanen': 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/8487ffd0-325f-455e-bf06-98709dd3b108'
 }
 
 function openUploadForm() {
-    // If admin/owner and 'all' is selected, we need to know WHICH company.
-    // For simplicity, if 'all' is selected, we can't open a specific form.
     let companyName = selectedCompany.value
     
-    // If it's a CEO, they only have one company anyway
     if (authStore.user?.role === 'ceo') {
         companyName = authStore.user?.companies?.name
     }
@@ -216,18 +245,26 @@ function openUploadForm() {
         return
     }
     
-    // Exact match or contains
-    let url = DOC_FORMS[companyName]
-    if (!url) {
-        if (companyName.includes('Lyori')) url = DOC_FORMS['Lyori']
-        if (companyName.toLowerCase().includes('moafarm')) url = DOC_FORMS['moafarm']
-        if (companyName.includes('Kaja')) url = DOC_FORMS['Kaja']
+    // Normalize: remove hyphens, spaces, and case
+    const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const searchName = normalize(companyName)
+    let url = null
+
+    // Find the best match by comparing normalized names
+    const keys = Object.keys(DOC_FORMS)
+    const matchKey = keys.find(k => {
+        const normKey = normalize(k)
+        return normKey === searchName || searchName.includes(normKey) || normKey.includes(searchName)
+    })
+    
+    if (matchKey) {
+        url = DOC_FORMS[matchKey]
     }
     
     if (url) {
         window.open(url, '_blank')
     } else {
-        alert('Form upload untuk perusahaan ini belum tersedia.')
+        alert(`Form upload untuk "${companyName}" belum tersedia di sistem.`)
     }
 }
 
@@ -335,14 +372,10 @@ async function runAINormalization(period, force = false) {
                 const target = consolidatedPeriods.value[idx]
                 
                 // Track totals
-                let totalRev = 0
-                let totalExp = 0
-                let totalNet = 0
 
                 normalizedList.forEach(item => {
                     const doc = target.reports.find(r => r.id === item.id)
                     if (doc) {
-                        // Math safety: ensure netProfit is calculated if missing
                         const extractedNet = (item.netProfit !== undefined && item.netProfit !== null) ? item.netProfit : (item.revenue - item.expenses)
 
                         doc.metadata.revenue = item.revenue
@@ -350,11 +383,18 @@ async function runAINormalization(period, force = false) {
                         doc.metadata.netProfit = extractedNet
                         doc.metadata.aiReasoning = item.reasoning
                         doc.metadata.is_ai_normalized = true 
-                        
-                        totalRev += item.revenue
-                        totalExp += item.expenses
-                        totalNet += extractedNet
                     }
+                })
+
+                // Recalculate totals from ALL reports in target (AI normalized + Fallback for others)
+                let totalRev = 0
+                let totalExp = 0
+                let totalNet = 0
+                
+                target.reports.forEach(doc => {
+                    totalRev += parseRefNumber(doc.metadata?.revenue)
+                    totalExp += parseRefNumber(doc.metadata?.expenses)
+                    totalNet += parseRefNumber(doc.metadata?.netProfit) || (parseRefNumber(doc.metadata?.revenue) - parseRefNumber(doc.metadata?.expenses))
                 })
 
                 target.revenue = totalRev
@@ -465,13 +505,121 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Page Layout & Elite Sync */
 .finance-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
+    max-width: 1600px;
+    margin: 0 auto;
+    padding-bottom: 5rem;
 }
 
-/* Filters Bar Overhaul */
+.welcome-section-premium {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-greeting-v2 {
+    font-size: 2.75rem;
+    line-height: 1.1;
+    font-weight: 850;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.04em;
+}
+
+.header-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.status-indicator {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 6px 14px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.7rem;
+    font-weight: 850;
+    color: #10b981;
+    letter-spacing: 0.1em;
+}
+
+.status-dot-pulse {
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse-emerald 2s infinite;
+}
+
+@keyframes pulse-emerald {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.v-divider-v2 {
+    width: 1px;
+    height: 14px;
+    background: var(--glass-border);
+}
+
+.role-badge-v2 {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #818cf8;
+    letter-spacing: 0.15em;
+}
+
+.quick-status-cards {
+    display: flex;
+    gap: 16px;
+}
+
+.mini-card-v2 {
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    padding: 16px 24px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+    box-shadow: var(--shadow-main);
+}
+
+.mc-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.mc-value {
+    font-size: 1.1rem;
+    font-weight: 850;
+    letter-spacing: -0.02em;
+}
+
+.system-desc-v2 {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    max-width: 500px;
+}
+
+.mt-spacing-hero-xl { margin-top: 6rem; }
+
+/* Filter Bar Styles */
 .filters-bar {
   display: flex;
   align-items: center;

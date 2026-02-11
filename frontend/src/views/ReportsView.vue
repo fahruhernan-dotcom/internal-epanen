@@ -1,64 +1,99 @@
 <template>
   <div class="reports-page animate-fade-in-up">
-    <!-- Header Section -->
-    <div class="page-header mb-2xl">
-      <div>
-        <h2 class="text-gradient-emerald text-3xl font-bold mb-xs">Monitoring Harian</h2>
-        <p class="text-muted">Pantau aktivitas, kondisi cuaca, dan kendala lapangan secara real-time.</p>
+    <!-- Header Section - Elite Style -->
+    <header class="welcome-section-premium animate-fade-in-up">
+      <div class="welcome-text">
+        <div class="header-meta">
+          <span class="status-indicator">
+            <span class="status-dot-pulse"></span>
+            LIVE MONITORING
+          </span>
+          <span class="v-divider-v2"></span>
+          <span class="role-badge-v2">OPERATIONAL LOG</span>
+        </div>
+        <h1 class="user-greeting-v2 text-gradient-emerald">
+          Monitoring Aktivitas Harian
+        </h1>
+        <p class="system-desc-v2">Pantau kondisi cuaca, kendala lapangan, dan progres kerja secara real-time.</p>
       </div>
-    </div>
+
+      <div class="quick-status-cards">
+        <div class="mini-card-v2">
+          <span class="mc-label">Skor Keamanan</span>
+          <span class="mc-value" :class="reportsStore.dailyReports.some(r => hasIssues(r.issues)) ? 'text-rose' : 'text-emerald'">
+            {{ reportsStore.dailyReports.some(r => hasIssues(r.issues)) ? 'WASPADA' : 'OPTIMAL' }}
+          </span>
+        </div>
+        <div class="mini-card-v2">
+          <span class="mc-label">Aktivitas Node</span>
+          <span class="mc-value text-emerald">SYNCHRONIZED</span>
+        </div>
+      </div>
+    </header>
 
     <!-- Control Bar (Filters) -->
-    <div class="premium-card filter-card p-lg mb-2xl flex flex-wrap items-end gap-lg">
+    <div class="premium-card filter-card-premium p-xl mt-spacing-hero-xl mb-spacing-hero-2xl animate-fade-in-up stagger-1 flex flex-wrap items-end gap-xl">
       <!-- Company Filter -->
-      <div class="filter-group">
-        <label class="input-label">Entitas Perusahaan</label>
-        <div class="custom-select-container" v-if="authStore?.isAdmin || authStore?.isOwner" ref="companyDropdownRef">
-          <button class="custom-select-trigger" @click="toggleCompanyDropdown" :class="{ 'is-open': isDropdownOpen }">
-            <span class="font-bold">{{ selectedCompany === 'all' ? 'Semua Entitas' : selectedCompany }}</span>
-            <AppIcon name="chevron-down" :size="18" class="transition-transform duration-200" :class="{ 'rotate-180': isDropdownOpen }" />
-          </button>
+      <div class="filter-logic-box-v2">
+        <div class="filter-label-row-premium">
+          <AppIcon name="building-2" :size="14" class="text-emerald" />
+          <span class="filter-label-premium">ENTITAS PERUSAHAAN</span>
+        </div>
+        
+        <div v-if="authStore?.isAdmin || authStore?.isOwner" class="premium-select-wrapper-v2" ref="companyDropdownRef">
+          <div 
+            class="premium-select-trigger-v2" 
+            :class="{ open: isDropdownOpen }"
+            @click="toggleCompanyDropdown"
+          >
+            <span>{{ selectedCompany === 'all' ? 'Semua Entitas' : selectedCompany }}</span>
+            <AppIcon 
+              name="chevron-down" 
+              :size="16" 
+              class="select-arrow-v2" 
+              :class="{ rotated: isDropdownOpen }" 
+            />
+          </div>
           
-          <transition name="dropdown-fade">
-            <div class="custom-dropdown-menu" v-if="isDropdownOpen">
+          <transition name="dropdown-slide-v2">
+            <div class="premium-options-menu-v2 glass-panel-premium" v-if="isDropdownOpen">
               <div 
-                class="dropdown-item" 
-                :class="{ 'selected': selectedCompany === 'all' }"
+                class="premium-option-v2" 
+                :class="{ selected: selectedCompany === 'all' }"
                 @click="selectCompany('all')"
               >
                 <span>Semua Entitas</span>
-                <AppIcon v-if="selectedCompany === 'all'" name="check" :size="16" class="text-primary" />
+                <AppIcon v-if="selectedCompany === 'all'" name="check" :size="14" class="text-emerald" />
               </div>
-              
-              <div class="dropdown-divider"></div>
-              
               <div 
+                class="premium-option-v2" 
                 v-for="company in companyOptions" 
-                :key="company" 
-                class="dropdown-item"
-                :class="{ 'selected': selectedCompany === company }"
+                :key="company"
+                :class="{ selected: selectedCompany === company }"
                 @click="selectCompany(company)"
               >
                 <span>{{ company }}</span>
-                <AppIcon v-if="selectedCompany === company" name="check" :size="16" class="text-primary" />
+                <AppIcon v-if="selectedCompany === company" name="check" :size="14" class="text-emerald" />
               </div>
             </div>
           </transition>
         </div>
-        <div v-else class="company-badge-static">
-           <AppIcon name="briefcase" :size="16" />
-           <span class="font-bold">{{ authStore?.user?.companies?.name || 'User' }}</span>
+        <div v-else class="company-badge-static-v2">
+           <span class="font-bold text-main">{{ authStore?.user?.companies?.name || 'User' }}</span>
         </div>
       </div>
 
-      <!-- Time Period Selector (Segmented Control) -->
-      <div class="filter-group flex-grow">
-        <label class="input-label">Rentang Waktu</label>
-        <div class="segmented-control">
+      <!-- Time Period Selector -->
+      <div class="filter-logic-box-v2 flex-grow">
+        <div class="filter-label-row-premium">
+          <AppIcon name="calendar" :size="14" class="text-emerald" />
+          <span class="filter-label-premium">RENTANG WAKTU</span>
+        </div>
+        <div class="period-tabs-wrapper-v2">
           <button 
             v-for="type in periodTypes" 
             :key="type.value"
-            class="segment-btn" 
+            class="tab-btn-v2" 
             :class="{ active: selectedPeriodType === type.value }"
             @click="setPeriodType(type.value)"
           >
@@ -69,37 +104,40 @@
 
       <!-- Custom Date Inputs -->
       <div v-if="selectedPeriodType === 'custom'" class="flex gap-md animate-scale-up">
-        <div class="filter-group">
-          <label class="input-label">Mulai</label>
-          <input type="date" v-model="customStartDate" class="elite-input date-input" @change="loadReports" />
+        <div class="filter-logic-box-v2">
+          <div class="filter-label-row-premium">
+            <span class="filter-label-premium">MULAI</span>
+          </div>
+          <input type="date" v-model="customStartDate" class="premium-date-input-v2" @change="loadReports" />
         </div>
-        <div class="filter-group">
-          <label class="input-label">Sampai</label>
-          <input type="date" v-model="customEndDate" class="elite-input date-input" @change="loadReports" />
+        <div class="filter-logic-box-v2">
+          <div class="filter-label-row-premium">
+            <span class="filter-label-premium">SAMPAI</span>
+          </div>
+          <input type="date" v-model="customEndDate" class="premium-date-input-v2" @change="loadReports" />
         </div>
       </div>
 
-      <!-- Refresh Button -->
-      <button class="btn-primary-new h-[46px] px-lg ml-auto hover-lift" @click="loadReports">
+      <!-- Apply Button -->
+      <button class="btn-primary-v2 shimmer-btn h-[52px] px-xl ml-auto" @click="loadReports">
         <AppIcon name="search" :size="18" />
-        <span class="font-semibold ml-sm">Terapkan Filter</span>
+        <span class="font-bold ml-sm">Terapkan Filter</span>
       </button>
     </div>
 
+
     <!-- Reports Table Section -->
     <div class="premium-card overflow-hidden">
-        <div class="card-header-flex p-xl border-b border-glass">
-            <div class="flex items-center gap-md">
-                <div class="icon-box-sm emerald">
-                    <AppIcon name="clipboard" :size="20" />
-                </div>
-                <div>
-                   <h3 class="font-bold text-lg text-main">Log Laporan Lapangan</h3>
-                   <p class="text-xs text-muted">{{ reportsStore?.dailyReports?.length || 0 }} laporan ditemukan periode ini</p>
+        <div class="card-header-flex p-3xl border-b border-glass bg-black/20">
+            <div class="header-title-group">
+                <div class="ai-orb pulse-emerald"></div>
+                <div class="title-stack">
+                   <h3 class="log-title">Log Aktivitas Lapangan</h3>
+                   <span class="log-subtitle">{{ reportsStore?.dailyReports?.length || 0 }} Feed Data Terdeteksi</span>
                 </div>
             </div>
-             <button class="btn-ghost-sm" @click="loadReports" title="Refresh Data">
-                <AppIcon name="refresh-cw" :size="18" :class="{ 'animate-spin': reportsStore.loading }" />
+             <button class="btn-refresh-premium shimmer-btn" @click="loadReports" title="Sync Data">
+                <AppIcon name="refresh-cw" :size="20" :class="{ 'animate-spin': reportsStore.loading }" />
             </button>
         </div>
 
@@ -138,8 +176,8 @@
               <!-- Date Column -->
               <td>
                 <div class="flex flex-col">
-                  <span class="font-bold text-main text-sm">{{ getRelativeDate(report.report_date) }}</span>
-                  <span class="text-xs font-mono text-muted mt-1">{{ formatDateShort(report.report_date) }}</span>
+                  <span class="font-bold text-main text-sm tracking-tight">{{ getRelativeDate(report.report_date) }}</span>
+                  <span class="text-[10px] font-black uppercase tracking-widest text-emerald/60 mt-0.5 font-mono">{{ formatDateShort(report.report_date) }}</span>
                 </div>
               </td>
 
@@ -252,30 +290,41 @@ function setPeriodType(type) {
 }
 
 function calculateDateRange() {
-    const today = new Date()
-    const end = today
-    let start = new Date()
+    // Get current date in Indonesian timezone (UTC+7)
+    const now = new Date()
+    const indonesiaOffset = 7 * 60 // 7 hours in minutes
+    const localOffset = now.getTimezoneOffset() // Local timezone offset in minutes
+
+    // Calculate Indonesia date by adjusting for timezone difference
+    const indonesiaDate = new Date(now.getTime() + (indonesiaOffset + localOffset) * 60 * 1000)
+
+    const end = indonesiaDate
+    let start = new Date(indonesiaDate)
 
     if (selectedPeriodType.value === 'custom') {
-        return { 
-            start: customStartDate.value || undefined, 
-            end: customEndDate.value || undefined 
+        return {
+            start: customStartDate.value || undefined,
+            end: customEndDate.value || undefined
         }
     }
-    
+
     if (selectedPeriodType.value === 'monthly') {
-        start = new Date(today.getFullYear(), today.getMonth(), 1)
+        // First day of current month in Indonesia time
+        start = new Date(indonesiaDate.getFullYear(), indonesiaDate.getMonth(), 1)
     } else {
+        // Calculate days back (7 or 14)
         let daysBack = 7
         if (selectedPeriodType.value === '2weeks') daysBack = 14
-        start.setDate(today.getDate() - daysBack)
+        start.setDate(indonesiaDate.getDate() - daysBack)
     }
-    
+
+    // Reset time to midnight for clean date comparison
     start.setHours(0, 0, 0, 0)
-    
-    return { 
-        start: start.toISOString().split('T')[0], 
-        end: end.toISOString().split('T')[0] 
+    end.setHours(23, 59, 59, 999) // End of day
+
+    return {
+        start: start.toISOString().split('T')[0],
+        end: end.toISOString().split('T')[0]
     }
 }
 
@@ -433,6 +482,7 @@ onMounted(() => {
     loadReports()
 })
 
+
 onUnmounted(() => {
     document.removeEventListener('click', closeCompanyDropdown)
 })
@@ -463,348 +513,524 @@ onUnmounted(() => {
 
 /* Premium Card & Layout */
 .premium-card {
-  background: rgba(var(--bg-card-rgb), 0.3);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  position: relative;
-  overflow: visible; /* Allowing Select dropdowns to overflow */
+    padding-bottom: 5rem;
 }
 
-/* Specific override for Filter Card to ensure Dropdowns flow out */
-.filter-card {
-    overflow: visible !important;
-    z-index: 50; /* Ensure it stacks above the table card */
+/* --- Control Bar (Filters) --- */
+.filter-card-premium {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-premium);
+    position: relative;
+    overflow: visible; /* For dropdowns */
 }
-
-/* FILTER SECTION */
-.filter-group {
+.filter-logic-box-v2 {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.input-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-}
-
-/* CUSTOM ELITE DROPDOWN */
-.custom-select-container {
-    position: relative;
-    min-width: 220px;
-    z-index: 50; /* Ensure it floats above other elements */
-}
-
-.custom-select-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 12px 16px;
-    background: rgba(var(--text-main-rgb), 0.03);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    color: var(--text-main);
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-}
-
-.custom-select-trigger:hover {
-    background: rgba(var(--text-main-rgb), 0.06);
-    transform: translateY(-1px);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
-.custom-select-trigger.is-open {
-    border-color: var(--color-primary);
-    background: rgba(var(--bg-main-rgb), 0.8);
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
-}
-
-/* Dropdown Menu */
-.custom-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    width: 260px; /* Slightly wider for better readability */
-    background: var(--bg-card-solid);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px; /* Smooth corners */
-    padding: 8px;
-    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5); /* Deep shadow for lifting */
-    max-height: 320px;
-    overflow-y: auto;
-    z-index: 9999; /* Top level priority */
-    backdrop-filter: blur(20px);
-}
-
-.dropdown-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-}
-
-.dropdown-item:hover {
-    background: rgba(var(--text-main-rgb), 0.04);
-    color: var(--text-main);
-}
-
-.dropdown-item.selected {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--color-primary);
-    font-weight: 700;
-}
-
-.dropdown-divider {
-    height: 1px;
-    background: var(--glass-border);
-    margin: 6px 0;
-}
-
-/* Animations */
-.dropdown-fade-enter-active,
-.dropdown-fade-leave-active {
-    transition: all 0.2s ease;
-}
-
-.dropdown-fade-enter-from,
-.dropdown-fade-leave-to {
-    opacity: 0;
-    transform: translateY(-10px);
-}
-
-/* Reusing Elite Input Style */
-.elite-input {
-    padding: 10px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--glass-border);
-    background: rgba(var(--text-main-rgb), 0.03);
-    color: var(--text-main);
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.elite-input:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    background: rgba(var(--text-main-rgb), 0.05);
-}
-
-.company-badge-static {
+.filter-label-row-premium {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
-    background: rgba(var(--text-main-rgb), 0.05);
-    border-radius: 10px;
+    padding-left: 4px;
+}
+
+.filter-label-premium {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+/* Premium Select v2 */
+.premium-select-wrapper-v2 {
+    position: relative;
+    min-width: 200px;
+}
+
+.premium-select-trigger-v2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+    padding: 0 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
     color: var(--text-main);
-    border: 1px solid var(--glass-border);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-main);
 }
 
-/* SEGMENTED CONTROL (The Period Selector) */
-.segmented-control {
-    display: inline-flex;
-    background: rgba(var(--text-main-rgb), 0.05);
-    padding: 4px;
+.premium-select-trigger-v2:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(16, 185, 129, 0.4);
+    transform: translateY(-2px);
+}
+
+.premium-select-trigger-v2.open {
+    background: var(--bg-card-solid);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.select-arrow-v2 {
+    transition: transform var(--transition-main);
+    color: var(--text-dim);
+}
+
+.select-arrow-v2.rotated {
+    transform: rotate(180deg);
+}
+
+/* Options Menu v2 */
+.glass-panel-premium {
+    background: var(--bg-card-solid);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-premium);
+}
+
+.premium-options-menu-v2 {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 0;
+    width: 240px;
+    border-radius: 20px;
+    padding: 10px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.premium-option-v2 {
+    padding: 12px 14px;
     border-radius: 12px;
-    border: 1px solid var(--glass-border);
-}
-
-.segment-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+}
+
+.premium-option-v2:hover {
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--color-primary);
+    padding-left: 18px;
+}
+
+.premium-option-v2.selected {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--color-primary);
+    font-weight: 800;
+}
+
+/* Period Tabs v2 */
+.period-tabs-wrapper-v2 {
+    display: flex;
+    background: rgba(var(--bg-card-rgb), 0.5);
+    padding: 4px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+}
+
+.tab-btn-v2 {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dim);
     border: none;
     background: transparent;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-main);
 }
 
-.segment-btn:hover {
+.tab-btn-v2:hover {
     color: var(--text-main);
 }
 
-.segment-btn.active {
-    background: var(--bg-card); /* Should adapt to theme */
+.tab-btn-v2.active {
+    background: var(--bg-card-solid);
     color: var(--color-primary);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.dark-mode .segment-btn.active {
-    background: #2d2d2d;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* TABLE STYLING */
-.premium-card.overflow-hidden {
-    overflow: hidden; /* Restoring overflow hidden for table card */
-}
-
-.card-header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.icon-box-sm {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.icon-box-sm.emerald {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-}
-
-.btn-ghost-sm {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    color: var(--text-muted);
-    transition: background 0.2s;
-}
-.btn-ghost-sm:hover {
-    background: rgba(var(--text-main-rgb), 0.05);
+/* Inputs v2 */
+.premium-date-input-v2 {
+    height: 48px;
+    padding: 0 16px;
+    background: rgba(var(--bg-card-rgb), 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
     color: var(--text-main);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-main);
+    width: 160px;
 }
 
-/* Elite Table Implementation */
+.premium-date-input-v2:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: var(--bg-card-solid);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+/* Button v2 */
+.btn-primary-v2 {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: white;
+    border: none;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 32px;
+    height: 52px;
+    cursor: pointer;
+    transition: all var(--transition-main);
+    box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.3);
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.btn-primary-v2:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 15px 30px -8px rgba(16, 185, 129, 0.5);
+}
+
+/* --- Report Table Section --- */
 .elite-table {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 12px;
+    border-spacing: 0 16px; /* Row Gap for Card look */
+    margin-top: -16px;
 }
 
 .elite-table th {
+    padding: 12px 24px;
     text-align: left;
-    padding: 12px 16px;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-weight: 700;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border: none;
+    letter-spacing: 0.15em;
+    opacity: 0.6;
 }
 
 .elite-table td {
-    padding: 20px 24px;
-    background: rgba(255, 255, 255, 0.02); /* Very subtle card bg */
+    background: rgba(var(--bg-card-rgb), 0.3);
+    padding: 24px;
+    vertical-align: middle;
     border-top: 1px solid var(--glass-border);
     border-bottom: 1px solid var(--glass-border);
-    vertical-align: middle;
-    color: var(--text-main);
-    transition: all 0.2s;
 }
 
 .elite-table td:first-child {
     border-left: 1px solid var(--glass-border);
-    border-top-left-radius: 16px;
-    border-bottom-left-radius: 16px;
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
 }
 
 .elite-table td:last-child {
     border-right: 1px solid var(--glass-border);
-    border-top-right-radius: 16px;
-    border-bottom-right-radius: 16px;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+.hover-row {
+    transition: all var(--transition-main);
 }
 
 .hover-row:hover td {
-    background: rgba(var(--text-main-rgb), 0.03);
-    transform: translateY(-2px);
-    border-color: rgba(var(--color-primary-rgb), 0.3);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background: rgba(var(--bg-card-rgb), 0.6);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: scale(1.005) translateY(-4px);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
 }
 
-/* Cell Contents */
+/* Badges & Tags */
 .company-tag {
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.6rem;
+    font-weight: 900;
+    background: rgba(var(--bg-card-rgb), 0.4);
+    color: var(--text-dim);
+    border: 1px solid var(--glass-border);
+    letter-spacing: 0.1em;
+}
+
+.company-tag.LYORI { border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.05); }
+.company-tag.KAJA { border-color: #f59e0b; color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 12px;
     font-size: 0.75rem;
     font-weight: 700;
-    text-transform: uppercase;
 }
-.company-tag.emerald { color: #10b981; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); }
-.company-tag.blue { color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); }
-.company-tag.neutral { color: var(--text-muted); background: rgba(var(--text-main-rgb), 0.05); }
 
-.user-cell {
+.status-badge.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-badge.warning {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.weather-pill {
     display: flex;
     align-items: center;
     gap: 10px;
+    background: rgba(var(--bg-card-rgb), 0.35);
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--glass-border);
+}
+
+/* User Avatar Cell */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .avatar-circle-sm {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    font-size: 0.8rem;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-.status-badge.warning { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-.status-badge.success { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+/* Spacing Utilities & Global Sync */
+.mt-spacing-hero-xl { margin-top: 6rem; }
+.mb-spacing-hero-2xl { margin-bottom: 9rem; }
 
-.weather-pill {
+.welcome-section-premium {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-greeting-v2 {
+    font-size: 3.2rem;
+    line-height: 1.05;
+    font-weight: 850;
+    margin-bottom: 1rem;
+    letter-spacing: -0.05em;
+}
+
+@media (max-width: 768px) {
+    .user-greeting-v2 {
+        font-size: 2.2rem;
+    }
+}
+
+.header-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: rgba(var(--text-main-rgb), 0.03);
-    padding: 4px 10px;
-    border-radius: 20px;
-    width: fit-content;
+    gap: 12px;
+    margin-bottom: 2rem;
 }
 
-/* Button New */
-.btn-primary-new {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  color: white;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.btn-primary-new:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
+.status-indicator {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 8px 16px;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.75rem;
+    font-weight: 850;
+    color: #10b981;
+    letter-spacing: 0.12em;
 }
 
-/* Animations */
-/* animate-fade-in-up is inherited from global CSS to ensure correct forwards behavior */
-.animate-scale-up { animation: scaleUp 0.3s ease-out forwards; }
-@keyframes scaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.status-dot-pulse {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse-emerald 2s infinite;
+}
+
+@keyframes pulse-emerald {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.v-divider-v2 {
+    width: 2px;
+    height: 16px;
+    background: var(--glass-border);
+}
+
+.role-badge-v2 {
+    font-size: 0.75rem;
+    font-weight: 850;
+    color: #818cf8;
+    letter-spacing: 0.2em;
+}
+
+/* Quick Status Boxes in Header */
+.quick-status-cards {
+    display: flex;
+    gap: 20px;
+}
+
+.mini-card-v2 {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    padding: 20px 28px;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    box-shadow: var(--shadow-main);
+}
+
+.mc-label {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.6;
+}
+
+.mc-value {
+    font-size: 1.25rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+}
+
+.text-rose { color: #f43f5e; text-shadow: 0 0 15px rgba(244, 63, 94, 0.3); }
+.text-emerald { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+
+/* Card Header Specifics */
+.card-header-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.title-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.log-title {
+    font-size: 1.5rem;
+    font-weight: 850;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.log-subtitle {
+    font-size: 0.7rem;
+    color: #10b981;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    opacity: 0.9;
+}
+
+.btn-refresh-premium {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-refresh-premium:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    transform: rotate(30deg) scale(1.1);
+}
+
+.ai-orb {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.6);
+}
+
+
+/* Utiltity Classes */
+.mb-2xl { margin-bottom: 2rem; }
+.mb-xs { margin-bottom: 0.25rem; }
+.p-xl { padding: 2rem; }
+.gap-md { gap: 1rem; }
+.ml-auto { margin-left: auto; }
+.ml-sm { margin-left: 0.5rem; }
+.font-bold { font-weight: 700; }
+.text-lg { font-size: 1.125rem; }
+.text-main { color: var(--text-main); }
+.text-xs { font-size: 0.75rem; }
+.text-muted { color: var(--text-muted); }
+.border-b { border-bottom-width: 1px; }
+.border-glass { border-color: var(--glass-border); }
+.min-h-\[300px\] { min-height: 300px; }
+.flex-col { flex-direction: column; }
+.justify-center { justify-content: center; }
+.p-3xl { padding: 3rem; }
+.px-lg { padding-left: 1.5rem; padding-right: 1.5rem; }
+.pb-lg { padding-bottom: 1.5rem; }
+.pt-md { padding-top: 1rem; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.max-w-sm { max-width: 24rem; }
 </style>

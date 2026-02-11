@@ -91,6 +91,31 @@
                 },
                 "conditions": [
                   {
+                    "id": "f46bf687-3506-4493-a8d0-a1560809c146",
+                    "leftValue": "={{ $json.role }}",
+                    "rightValue": "cashier",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CASHIER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
                     "leftValue": "={{ $json.role }}",
                     "rightValue": "farmer",
                     "operator": {
@@ -115,7 +140,7 @@
       "typeVersion": 3.2,
       "position": [
         1024,
-        496
+        480
       ],
       "id": "role-switch",
       "name": "Route by Role"
@@ -650,7 +675,7 @@
                 "combinator": "and"
               },
               "renameOutput": true,
-              "outputKey": "Holding"
+              "outputKey": "Kaja"
             },
             {
               "conditions": {
@@ -684,8 +709,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        2128,
-        992
+        1088,
+        1440
       ],
       "id": "af450b28-b37a-45ad-b1c3-8afc19269989",
       "name": "Switch1"
@@ -707,97 +732,6 @@
         "openRouterApi": {
           "id": "CmZ9P491twpTIJ5U",
           "name": "OpenRouter account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": "x-ai/grok-4.1-fast",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        1376,
-        1280
-      ],
-      "id": "f21d6b59-039d-4450-a09a-bcf2aaab0ae4",
-      "name": "Agent B LLM5",
-      "credentials": {
-        "openRouterApi": {
-          "id": "CmZ9P491twpTIJ5U",
-          "name": "OpenRouter account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": "x-ai/grok-4.1-fast",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        3120,
-        1296
-      ],
-      "id": "edac950e-d9e9-4d34-97b3-c5538a808f9d",
-      "name": "Agent B LLM6",
-      "credentials": {
-        "openRouterApi": {
-          "id": "CmZ9P491twpTIJ5U",
-          "name": "OpenRouter account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "daily_reports_epanen",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "user_id",
-              "fieldValue": "={{ $('Merge').item.json.full_name }}"
-            },
-            {
-              "fieldId": "company_id",
-              "fieldValue": "={{ $('Merge').item.json.name }}"
-            },
-            {
-              "fieldId": "activities",
-              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
-            },
-            {
-              "fieldId": "issues",
-              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
-            },
-            {
-              "fieldId": "weather",
-              "fieldValue": "={{ $json.weather }}"
-            },
-            {
-              "fieldId": "notes",
-              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
-            },
-            {
-              "fieldId": "report_date",
-              "fieldValue": "={{ $json.currentdate }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        2560,
-        768
-      ],
-      "id": "0ce88a82-02df-4e92-8c2b-b663b06735cd",
-      "name": "epanen",
-      "credentials": {
-        "supabaseApi": {
-          "id": "v6CGf3VKHViurAr5",
-          "name": "Internal Automation System"
         }
       }
     },
@@ -846,403 +780,28 @@
     },
     {
       "parameters": {
-        "mode": "retrieve-as-tool",
-        "toolDescription": "RAG INI BERISI RULES\nAktivitas Harian: Penyiraman, Pemupukan, Monitoring Hama, Penyiangan\nAktivitas Mingguan: Pemangkasan, Penyemprotan Pestisida\nPanduan Panen: Kriteria dan handling\nFormat Pelaporan: Kata kunci yang dipahami AI\nKondisi Alert: Critical dan Warning alerts\nCatatan Penting",
-        "tableName": {
-          "__rl": true,
-          "value": "sop_farmer",
-          "mode": "list",
-          "cachedResultName": "sop_farmer"
-        },
-        "includeDocumentMetadata": false,
-        "useReranker": true,
-        "options": {
-          "queryName": "sop_farmer"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
-      "typeVersion": 1.3,
-      "position": [
-        3184,
-        1440
-      ],
-      "id": "40b103ad-9b6c-4e15-8c78-d8c2aa44f032",
-      "name": "SOP Farmer",
-      "credentials": {
-        "supabaseApi": {
-          "id": "v6CGf3VKHViurAr5",
-          "name": "Internal Automation System"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        3184,
-        1616
-      ],
-      "id": "114928c5-5f54-4e99-bfbe-ba4936d3ba7e",
-      "name": "Embeddings Google Gemini",
-      "credentials": {
-        "googlePalmApi": {
-          "id": "qfzQaCGTyvqdag9P",
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
-      "typeVersion": 1,
-      "position": [
-        3232,
-        1712
-      ],
-      "id": "d8787d43-a736-4dc2-a765-81f0b4e5a979",
-      "name": "Reranker Cohere",
-      "credentials": {
-        "cohereApi": {
-          "id": "irb374qOaFuSlR9h",
-          "name": "CohereApi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
-        "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.dateTimeTool",
-      "typeVersion": 2,
-      "position": [
-        1520,
-        1280
-      ],
-      "id": "69d649b5-ccdd-4d60-afff-da85d7cb9c3e",
-      "name": "Date & Time"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=User: {{ $json.Nama || $json.pushName || $json.firstName || 'CEO' }}\nCompany: {{ $json.company_id || 'company' }}\nRequest: {{ $json.chatInput }}\n\nTugasmu:\n- Memahami bahasa petani, bahasa daerah, dan slang informal\n- Mengekstrak laporan harian menjadi data terstruktur\n- Fokus pada aktivitas, masalah, cuaca, dan catatan tambahan\n- Jangan menambah informasi yang tidak disebutkan user\n\nKamu HARUS memahami variasi bahasa seperti:\n- \"aman bos\" = kondisi aman\n- \"ujan deres / deres banget\" = heavy rain\n- \"gerimis\" = light rain\n- \"panas pol\" = hot\n- \"daun kuning dikit\" = early leaf yellowing\n- \"hama dikit\" = minor pest issue\n- \"pupuk NPK\", \"disemprot\", \"disiram\", \"panen\", \"bersih-bersih\"\n\nAturan output (WAJIB):\n- Output HARUS berupa JSON VALID\n- TIDAK BOLEH ada teks penjelasan di luar JSON\n- Gunakan bahasa Inggris sederhana untuk value teknis (weather, issue)\n- Tanggal saat ini diambil dari tools Date & Time\n- Format tanggal WAJIB: \"DD Month YYYY\" (contoh: \"21 March 2026\")\n- Jika data tidak disebutkan, isi dengan null atau array kosong\n- Jangan mengarang data\n\nFormat output JSON HARUS PERSIS seperti ini:\n\n{\n  \"activities\": {\n    \"summary\": string | null,\n    \"details\": string | null\n  },\n  \"issues\": [\n    {\n      \"type\": string,\n      \"severity\": \"low\" | \"medium\" | \"high\",\n      \"notes\": string\n    }\n  ],\n  \"issue\": string | null,\n  \"weather\": string | null,\n  \"notes\": string | null,\n  \"currentdate\": string | null\n}",
-        "options": {
-          "systemMessage": "=Kamu adalah AI Admin Pencatat Laporan Lapangan Pertanian.\n"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [
-        1376,
-        1056
-      ],
-      "id": "1aa293e1-5776-411d-a59a-9399b6247840",
-      "name": "Farmer"
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        1696,
-        1040
-      ],
-      "id": "50018ad6-67b2-4930-9d97-3c3f8726f9e2",
-      "name": "Merge2"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Ambil string JSON dari node sebelumnya\nconst rawText = $input.first().json.output;\n\n// Parse string JSON\nlet data;\ntry {\n  data = JSON.parse(rawText);\n} catch (e) {\n  throw new Error('Invalid JSON string from AI output');\n}\n\n// Format current date: \"21 March 2026\"\nconst currentDate = new Date().toLocaleDateString('en-GB', {\n  day: '2-digit',\n  month: 'long',\n  year: 'numeric',\n});\n\n// FORCE schema: field wajib ada walaupun tidak dikirim AI\nconst result = {\n  activities: {\n    summary: data.activities?.summary ?? null,\n    details: data.activities?.details ?? null,\n  },\n\n  issues: Array.isArray(data.issues)\n    ? data.issues.map(issue => ({\n        type: issue.type ?? null,\n        severity: issue.severity ?? null,\n        notes: issue.notes ?? null,\n      }))\n    : [],\n\n  weather: data.weather ?? null,\n  notes: data.notes ?? null,\n  currentdate: currentDate,\n};\n\n// Return final output\nreturn [\n  {\n    json: result,\n  },\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1840,
-        1040
-      ],
-      "id": "9c10229c-b13f-4be8-9c55-e12e3528a348",
-      "name": "Code in JavaScript",
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
-        "contextWindowLength": 4
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        3216,
-        1312
-      ],
-      "id": "b8ce02b1-fe6d-4543-a0d9-45bb536b0c46",
-      "name": "Simple Memory"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=User: {{ $json.user_id }}\nCompany: {{ $json.company_id || 'company' }}\nRequest: {{ $('Farmer').item.json.output }}\n\nTUGAS:\n1. Identifikasi aktivitas dan masalah dari laporan harian\n2. Cocokkan dengan SOP pada konteks RAG\n3. Nilai kepatuhan sesuai aturan\n4. Berikan ringkasan singkat yang bisa dipahami petani",
-        "options": {
-          "systemMessage": "Kamu adalah AI Auditor Operasional Farm.\n\nPERAN:\nMenilai kepatuhan laporan kegiatan harian terhadap SOP resmi perusahaan.\n\nSUMBER KEBENARAN:\n- HANYA gunakan dokumen SOP yang diberikan melalui konteks RAG\n- Jangan menggunakan asumsi, pengalaman umum, atau pengetahuan di luar SOP\n- Jika SOP tidak membahas suatu aktivitas, nyatakan \"not_found\"\n\nATURAN WAJIB:\n- Output HARUS PLAIN TEKS\n- Gunakan bahasa yang mudah dipahami petani\n- Jangan mengarang isi SOP\n\nLOGIKA PENILAIAN:\n- compliant → semua aktivitas sesuai SOP\n- partial → sebagian sesuai, sebagian tidak\n- non_compliant → mayoritas melanggar SOP\n- Jika tidak ada SOP relevan → compliance_status = \"not_found\"\n\nFormat Output plain Teks"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [
-        3120,
-        1072
-      ],
-      "id": "3acd2251-1fff-4bab-9f2f-9f78b6c02f3c",
-      "name": "SOP FARMER"
-    },
-    {
-      "parameters": {
-        "tableId": "daily_reports_moafarm",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "user_id",
-              "fieldValue": "={{ $('Merge').item.json.full_name }}"
-            },
-            {
-              "fieldId": "company_id",
-              "fieldValue": "={{ $('Merge').item.json.name }}"
-            },
-            {
-              "fieldId": "activities",
-              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
-            },
-            {
-              "fieldId": "issues",
-              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
-            },
-            {
-              "fieldId": "weather",
-              "fieldValue": "={{ $json.weather }}"
-            },
-            {
-              "fieldId": "notes",
-              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
-            },
-            {
-              "fieldId": "report_date",
-              "fieldValue": "={{ $json.currentdate }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        2560,
-        912
-      ],
-      "id": "195af699-5389-4d38-bdd4-89d79fa1ecc3",
-      "name": "moafarm",
-      "credentials": {
-        "supabaseApi": {
-          "id": "v6CGf3VKHViurAr5",
-          "name": "Internal Automation System"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "daily_reports_lyori",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "user_id",
-              "fieldValue": "={{ $('Merge').item.json.full_name }}"
-            },
-            {
-              "fieldId": "company_id",
-              "fieldValue": "={{ $('Merge').item.json.name }}"
-            },
-            {
-              "fieldId": "activities",
-              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
-            },
-            {
-              "fieldId": "issues",
-              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
-            },
-            {
-              "fieldId": "weather",
-              "fieldValue": "={{ $json.weather }}"
-            },
-            {
-              "fieldId": "notes",
-              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
-            },
-            {
-              "fieldId": "report_date",
-              "fieldValue": "={{ $json.currentdate }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        2560,
-        1056
-      ],
-      "id": "19bb7495-d297-48bb-81fb-4ea8a8d68256",
-      "name": "lyori",
-      "credentials": {
-        "supabaseApi": {
-          "id": "v6CGf3VKHViurAr5",
-          "name": "Internal Automation System"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "daily_reports_holding",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "user_id",
-              "fieldValue": "={{ $('Merge').item.json.full_name }}"
-            },
-            {
-              "fieldId": "company_id",
-              "fieldValue": "={{ $('Merge').item.json.name }}"
-            },
-            {
-              "fieldId": "activities",
-              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
-            },
-            {
-              "fieldId": "issues",
-              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
-            },
-            {
-              "fieldId": "weather",
-              "fieldValue": "={{ $json.weather }}"
-            },
-            {
-              "fieldId": "notes",
-              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
-            },
-            {
-              "fieldId": "report_date",
-              "fieldValue": "={{ $json.currentdate }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        2560,
-        1200
-      ],
-      "id": "8f3244b6-ceb6-4b87-ade9-f7ce508e9e3a",
-      "name": "holding",
-      "credentials": {
-        "supabaseApi": {
-          "id": "v6CGf3VKHViurAr5",
-          "name": "Internal Automation System"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "tableId": "daily_reports_melon",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "user_id",
-              "fieldValue": "={{ $('Merge').item.json.full_name }}"
-            },
-            {
-              "fieldId": "company_id",
-              "fieldValue": "={{ $('Merge').item.json.name }}"
-            },
-            {
-              "fieldId": "activities",
-              "fieldValue": "={{ $json.activities.summary ?? null }}, {{ $('Code in JavaScript').item.json.activities.details ?? null }}"
-            },
-            {
-              "fieldId": "issues",
-              "fieldValue": "={{ $json.issues?.[0]?.type ?? null }}, {{ $json.issues[0].severity ?? null }}, {{ $json.issues[0].notes ?? null }}"
-            },
-            {
-              "fieldId": "weather",
-              "fieldValue": "={{ $json.weather }}"
-            },
-            {
-              "fieldId": "notes",
-              "fieldValue": "={{ $('Code in JavaScript').item.json.notes }}"
-            },
-            {
-              "fieldId": "report_date",
-              "fieldValue": "={{ $json.currentdate }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        2560,
-        1344
-      ],
-      "id": "5dc42810-bd81-4e73-8508-62108bf26655",
-      "name": "melon",
-      "credentials": {
-        "supabaseApi": {
-          "id": "v6CGf3VKHViurAr5",
-          "name": "Internal Automation System"
-        }
-      }
-    },
-    {
-      "parameters": {
         "resource": "Chatting",
         "operation": "Send Text",
         "session": "={{ $('WAHA Trigger').item.json.session }}",
         "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
-        "reply_to": "={{ $('WAHA Trigger').item.json.payload._data.key.remoteJidAlt }}",
+        "reply_to": "={{ $json.me.jid }}",
         "text": "={{ $json.message }}",
         "requestOptions": {}
       },
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        3696,
-        1072
+        2912,
+        1568
       ],
       "id": "b96cc22c-b2e7-4c1a-a20e-f99009bcafc5",
       "name": "Send a text message1",
       "credentials": {
         "wahaApi": {
-          "id": "UhSWIrRi7T5gFYYP",
-          "name": "WAHA account"
+          "id": "tlYysFOCjpI2q2DK",
+          "name": "Epanen Official"
         }
       }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Ambil output dari input AI Agent (FAQ/Onboarding/Support)\nlet text =\n  $input.first()?.json?.output ?? \"\";\n\n// Pastikan string\ntext = typeof text === \"string\" ? text : \"\";\n// Bersihkan '**' (Markdown Standar) jadi '*' (Format Bold WhatsApp)\nlet cleanText = text.replace(/\\*\\*/g, \"*\");\n// Ambil data dari node 'WAHA Trigger' untuk routing balik\n// Return data yang siap dikirim oleh node WAHA Send Message\nreturn [\n  {\n    json: {\n      message: cleanText,\n    }\n  }\n];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3440,
-        1072
-      ],
-      "id": "758674f2-b47a-44b1-a1ba-5579bfb43a4a",
-      "name": "Code in JavaScript3"
     },
     {
       "parameters": {
@@ -1376,8 +935,8 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        2112,
-        1776
+        2752,
+        2288
       ],
       "id": "dbaac610-663a-41c8-b4f4-5b34100fcde9",
       "name": "Embeddings Google Gemini4",
@@ -1397,8 +956,8 @@
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
       "typeVersion": 1.1,
       "position": [
-        2272,
-        1760
+        2912,
+        2272
       ],
       "id": "763d33ba-f221-4571-9d30-aa3fd51c51b9",
       "name": "Default Data Loader"
@@ -1421,8 +980,8 @@
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.5,
       "position": [
-        1920,
-        1552
+        2560,
+        2064
       ],
       "id": "9036fd82-cdb5-434b-8e17-53fbe3382311",
       "name": "On form submission1",
@@ -1442,8 +1001,8 @@
       "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
       "typeVersion": 1.3,
       "position": [
-        2112,
-        1552
+        2752,
+        2064
       ],
       "id": "2342d323-757b-47ca-ac2c-f7bbab61c0dd",
       "name": "Input SOP Farmer",
@@ -2033,7 +1592,9 @@
           "mode": "list",
           "cachedResultName": "finance_epanen"
         },
-        "options": {}
+        "options": {
+          "queryName": "match_finance_epanen"
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
       "typeVersion": 1.3,
@@ -2120,23 +1681,6 @@
         "supabaseApi": {
           "id": "v6CGf3VKHViurAr5",
           "name": "Internal Automation System"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        4672,
-        -224
-      ],
-      "id": "f1bd6dd8-b5f6-4a3b-b48f-01b0b81150d2",
-      "name": "Embeddings Google Gemini10",
-      "credentials": {
-        "googlePalmApi": {
-          "id": "qfzQaCGTyvqdag9P",
-          "name": "Google Gemini(PaLM) Api account"
         }
       }
     },
@@ -2689,11 +2233,13 @@
         "mode": "insert",
         "tableName": {
           "__rl": true,
-          "value": "finance_epanen",
+          "value": "finance_kaja",
           "mode": "list",
-          "cachedResultName": "finance_epanen"
+          "cachedResultName": "finance_kaja"
         },
-        "options": {}
+        "options": {
+          "queryName": "match_finance_kaja"
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
       "typeVersion": 1.3,
@@ -3283,21 +2829,6 @@
     },
     {
       "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}",
-        "contextWindowLength": 3
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        1472,
-        1360
-      ],
-      "id": "19a91b6c-8a65-4727-a7ad-123b63f63a36",
-      "name": "Simple Memory3"
-    },
-    {
-      "parameters": {
         "includeTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Include_Current_Time', ``, 'boolean') }}",
         "outputFieldName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Output_Field_Name', ``, 'string') }}",
         "options": {}
@@ -3426,6 +2957,487 @@
           "name": "Internal Automation System"
         }
       }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v2.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        4672,
+        -224
+      ],
+      "id": "f78cf7fa-c8f5-4052-98c3-114e8d7183f1",
+      "name": "Embeddings Cohere13",
+      "credentials": {
+        "cohereApi": {
+          "id": "irb374qOaFuSlR9h",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "processed_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.id }}"
+            },
+            {
+              "fieldId": "from_number",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3104,
+        1568
+      ],
+      "id": "c6dad55c-c7cc-4ca1-bee6-9482a470d38d",
+      "name": "massage3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Pesan dari Cashier\n",
+        "options": {
+          "systemMessage": "Kamu adalah AI Cashier Specialist untuk ePanen.\nTugas utamamu adalah mengekstrak pesanan pelanggan dari chat WhatsApp menjadi data invoice terstruktur.\n\nPENTING:\n1. Kamu memiliki akses ke database 'product_market_prices'. \n2. Setiap kali user menyebutkan nama produk, kamu HARUS mencari nama produk yang paling mendekati di database untuk mendapatkan \"Harga Satuan (price)\" dan \"Satuan (unit)\" yang benar.\n3. Jika user tidak menyebutkan berat secara detail, asumsikan jumlah yang paling masuk akal atau tanyakan kembali.\n4. Kamu HARUS mendukung input desimal (contoh: 0.5 kg, 1.2 kg).\n\nLOGIKA PENCARIAN HARGA:\n- \"Ayam\" -> Cari di database, ambil harga per kg untuk \"Ayam Broiler\" atau \"Ayam Kampung\".\n- \"Cabe\" -> Cocokkan dengan \"Cabe Merah\" atau \"Cabe Rawit\".\n- JANGAN mengarang harga. Gunakan HANYA harga dari database.\n\nFORMAT OUTPUT (WAJIB JSON):\nKamu harus selalu merespon hanya dalam format JSON valid seperti ini tanpa teks tambahan:\n{\n  \"customer_name\": \"Nama Pengirim\",\n  \"items\": [\n    {\n      \"label\": \"Nama Produk dari Database\",\n      \"qty\": 0.5,\n      \"price\": 35000,\n      \"unit\": \"kg\"\n    }\n  ],\n  \"total_amount\": 17500\n}\n\nINSTRUKSI KHUSUS:\n- Jika nama produk tidak ditemukan sama sekali di database, isikan harga 0 dan berikan catatan di item tersebut.\n- Gunakan bahasa Indonesia yang ramah jika kamu perlu bertanya, tapi hasil akhir untuk invoice tetap harus JSON."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2960,
+        880
+      ],
+      "id": "ada6f667-07f8-48bc-97f9-2b90307d7b83",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        1072
+      ],
+      "id": "3ea636f0-f6d1-466d-b020-116d794bec5d",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Nama Farmer : {{ $json.nickname }}\nPesan User : {{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=Role: Asisten Lapangan ePanen (Cerdas & Ramah).\nGoal: Wawancara petani untuk laporan harian dan mengirimkan data structured JSON ke database.\n\nPROSEDUR WAWANCARA:\n1. Sapa ramah (panggil \"Kak\") dan tanyakan \"Bagaimana cuaca di lokasi hari ini?\".\n2. Tanyakan \"Apa saja kegiatan utama yang dilakukan hari ini?\".\n3. Tanyakan data teknis: \"Berapa angka PPM Nutrisi, pH Air, dan Suhu Air hari ini?\".\n4. Tanyakan \"Apakah ada kendala atau masalah? Jika tidak ada jawab 'aman'\".\n\nGAYA BAHASA:\n- Santai, profesional, 1 pertanyaan per pesan (step-by-step).\n\nLOGIC AKHIR (PENTING):\nSetelah data lengkap, rangkum laporan dalam pesan teks untuk petani, lalu SEGERA panggil tool 'Create a dailyreport_lyori'"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1792,
+        1488
+      ],
+      "id": "c86b4c76-611f-4c18-a6e2-ba9d2ecd8062",
+      "name": "Farmer Lyori"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Nama Farmer : {{ $json.nickname }}\nPesan User : {{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=Role: Asisten Lapangan ePanen (Cerdas & Ramah).\nGoal: Wawancara petani untuk laporan harian dan mengirimkan data structured JSON ke database.\n\nPROSEDUR WAWANCARA:\n1. Sapa ramah (panggil \"Kak\") dan tanyakan \"Bagaimana cuaca di lokasi hari ini?\".\n2. Tanyakan \"Apa saja kegiatan utama yang dilakukan hari ini?\".\n3. Tanyakan data teknis: \"Berapa angka PPM Nutrisi, pH Air, dan Suhu Air hari ini?\".\n4. Tanyakan \"Apakah ada kendala atau masalah? Jika tidak ada jawab 'aman'\".\n\nGAYA BAHASA:\n- Santai, profesional, 1 pertanyaan per pesan (step-by-step).\n\nLOGIC AKHIR (PENTING):\nSetelah data lengkap, rangkum laporan dalam pesan teks untuk petani, lalu SEGERA panggil tool 'Create a dailyreport_kaja'"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1792,
+        1776
+      ],
+      "id": "caf08479-8238-4f07-91c9-9e5cc8f9c301",
+      "name": "Farmer Kaja"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        2032
+      ],
+      "id": "fca15842-8057-4271-ac7f-e3f35c8580bc",
+      "name": "OpenRouter Chat Model7",
+      "credentials": {
+        "openRouterApi": {
+          "id": "CmZ9P491twpTIJ5U",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Nama Farmer : {{ $json.nickname }}\nPesan User : {{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=Role: Asisten Lapangan ePanen (Cerdas & Ramah).\nGoal: Wawancara petani untuk laporan harian dan mengirimkan data structured JSON ke database.\n\nPROSEDUR WAWANCARA:\n1. Sapa ramah (panggil \"Kak\") dan tanyakan \"Bagaimana cuaca di lokasi hari ini?\".\n2. Tanyakan \"Apa saja kegiatan utama yang dilakukan hari ini?\".\n3. Tanyakan data teknis: \"Berapa angka PPM Nutrisi, pH Air, dan Suhu Air hari ini?\".\n4. Tanyakan \"Apakah ada kendala atau masalah? Jika tidak ada jawab 'aman'\".\n\nGAYA BAHASA:\n- Santai, profesional, 1 pertanyaan per pesan (step-by-step).\n\nLOGIC AKHIR (PENTING):\nSetelah data lengkap, rangkum laporan dalam pesan teks untuk petani, lalu SEGERA panggil tool 'Create a dailyreport_moafarm'"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1792,
+        1248
+      ],
+      "id": "eb207d06-825c-4fe9-9f4c-010fc21daf60",
+      "name": "Farmer Moafarm"
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_lyori",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Route by Role').item.json.company_id }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ new Date().toISOString().split('T')[0] }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `activities format example \n{\n  \"details\": \"2 kali di semua blok\",\n  \"summary\": \"Siram tanaman\"\n}`, 'string') }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `issue format example\n[\n  {\n    \"notes\": \"Wereng\",\n    \"status\": \"ongoing\",\n    \"severity\": \"low\"\n  }\n]`, 'string') }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', `weather Hanya ada\n- Cerah\n- Berawan\n- Hujan\n- Badai`, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', `notes`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        1600
+      ],
+      "id": "17ed9df0-47ee-40ad-9242-5ee65ff37937",
+      "name": "Create a dailyreport_lyori",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.phone_number }}",
+        "contextWindowLength": 4
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1616,
+        2032
+      ],
+      "id": "28b0e931-3775-481f-b350-125789683bba",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil output dari input AI Agent (FAQ/Onboarding/Support)\nlet text =\n  $input.first()?.json?.output ?? \"\";\n\n// Pastikan string\ntext = typeof text === \"string\" ? text : \"\";\n// Bersihkan '**' (Markdown Standar) jadi '*' (Format Bold WhatsApp)\nlet cleanText = text.replace(/\\*\\*/g, \"*\");\n// Ambil data dari node 'WAHA Trigger' untuk routing balik\n// Return data yang siap dikirim oleh node WAHA Send Message\nreturn [\n  {\n    json: {\n      message: cleanText,\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        1488
+      ],
+      "id": "b07d9836-2026-4e3f-b399-1f9a78fd1d1b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2624,
+        1568
+      ],
+      "id": "c2914a45-2595-40f8-81c1-8ba03789ff8e",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "reply_to": "={{ $json.me.jid }}",
+        "text": "={{ $json.message }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        3728,
+        960
+      ],
+      "id": "c9c94109-3636-4121-9779-1ebb474a88ed",
+      "name": "Send a text message4",
+      "credentials": {
+        "wahaApi": {
+          "id": "tlYysFOCjpI2q2DK",
+          "name": "Epanen Official"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "processed_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.id }}"
+            },
+            {
+              "fieldId": "from_number",
+              "fieldValue": "={{ $('WAHA Trigger').item.json.payload._data.Info.SenderAlt }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3920,
+        960
+      ],
+      "id": "4bb41e11-a7fe-4fed-8c12-3b77d6a151d8",
+      "name": "massage4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil output dari input AI Agent (FAQ/Onboarding/Support)\nlet text =\n  $input.first()?.json?.output ?? \"\";\n\n// Pastikan string\ntext = typeof text === \"string\" ? text : \"\";\n// Bersihkan '**' (Markdown Standar) jadi '*' (Format Bold WhatsApp)\nlet cleanText = text.replace(/\\*\\*/g, \"*\");\n// Ambil data dari node 'WAHA Trigger' untuk routing balik\n// Return data yang siap dikirim oleh node WAHA Send Message\nreturn [\n  {\n    json: {\n      message: cleanText,\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        880
+      ],
+      "id": "019e887e-fc48-44af-b254-26512956e1d5",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3440,
+        960
+      ],
+      "id": "44ba43e2-59a3-4a19-a201-3320285edc6b",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "product_market_prices",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', ``, 'number') }}",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "product_name",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Nama Produk`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3104,
+        1104
+      ],
+      "id": "7a820417-6ca5-44a5-9509-511d2d6c7625",
+      "name": "Get many rows in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        3056,
+        1264
+      ],
+      "id": "1ea99acf-5008-4969-9968-85c6efe0c35f",
+      "name": "Simple Memory3"
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_kaja",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Route by Role').item.json.company_id }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ new Date().toISOString().split('T')[0] }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `activities format example \n{\n  \"details\": \"2 kali di semua blok\",\n  \"summary\": \"Siram tanaman\"\n}`, 'string') }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `issue format example\n[\n  {\n    \"notes\": \"Wereng\",\n    \"status\": \"ongoing\",\n    \"severity\": \"low\"\n  }\n]`, 'string') }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', `weather Hanya ada\n- Cerah\n- Berawan\n- Hujan\n- Badai`, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', `notes`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        1888
+      ],
+      "id": "adfec62f-93ae-4ca9-97d7-0d11c9f3abf7",
+      "name": "Create a dailyreport_kaja",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "daily_reports_moafarm",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.full_name }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Route by Role').item.json.company_id }}"
+            },
+            {
+              "fieldId": "report_date",
+              "fieldValue": "={{ new Date().toISOString().split('T')[0] }}"
+            },
+            {
+              "fieldId": "activities",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `activities format example \n{\n  \"details\": \"2 kali di semua blok\",\n  \"summary\": \"Siram tanaman\"\n}`, 'string') }}"
+            },
+            {
+              "fieldId": "issues",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `issue format example\n[\n  {\n    \"notes\": \"Wereng\",\n    \"status\": \"ongoing\",\n    \"severity\": \"low\"\n  }\n]`, 'string') }}"
+            },
+            {
+              "fieldId": "weather",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', `weather Hanya ada\n- Cerah\n- Berawan\n- Hujan\n- Badai`, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', `notes`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        1360
+      ],
+      "id": "9d6557e3-1473-4ec2-935f-44b522a66391",
+      "name": "Create a dailyreport_moafarm",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -3464,7 +3476,14 @@
         ],
         [
           {
-            "node": "Farmer",
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch1",
             "type": "main",
             "index": 0
           }
@@ -3565,12 +3584,17 @@
             "index": 0
           },
           {
-            "node": "Merge2",
+            "node": "Merge3",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Merge3",
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
             "type": "main",
             "index": 0
           }
@@ -3723,76 +3747,31 @@
         ]
       ]
     },
-    "Agent B LLM5": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Farmer",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Agent B LLM6": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Switch1": {
       "main": [
+        [],
         [
           {
-            "node": "epanen",
+            "node": "Farmer Moafarm",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "moafarm",
+            "node": "Farmer Lyori",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "lyori",
+            "node": "Farmer Kaja",
             "type": "main",
             "index": 0
           }
         ],
-        [
-          {
-            "node": "holding",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "melon",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "epanen": {
-      "main": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "companny": {
@@ -3817,159 +3796,11 @@
         ]
       ]
     },
-    "SOP Farmer": {
-      "ai_tool": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Embeddings Google Gemini": {
-      "ai_embedding": [
-        [
-          {
-            "node": "SOP Farmer",
-            "type": "ai_embedding",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Reranker Cohere": {
-      "ai_reranker": [
-        [
-          {
-            "node": "SOP Farmer",
-            "type": "ai_reranker",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Date & Time": {
-      "ai_tool": [
-        [
-          {
-            "node": "Farmer",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Farmer": {
-      "main": [
-        [
-          {
-            "node": "Merge2",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge2": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript": {
-      "main": [
-        [
-          {
-            "node": "Switch1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory": {
-      "ai_memory": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "moafarm": {
-      "main": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "lyori": {
-      "main": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "holding": {
-      "main": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "melon": {
-      "main": [
-        [
-          {
-            "node": "SOP FARMER",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Send a text message1": {
       "main": [
-        []
-      ]
-    },
-    "SOP FARMER": {
-      "main": [
         [
           {
-            "node": "Code in JavaScript3",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript3": {
-      "main": [
-        [
-          {
-            "node": "Send a text message1",
+            "node": "massage3",
             "type": "main",
             "index": 0
           }
@@ -4333,17 +4164,6 @@
         [
           {
             "node": "Finance Moafarm",
-            "type": "ai_embedding",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Embeddings Google Gemini10": {
-      "ai_embedding": [
-        [
-          {
-            "node": "Finance Kaja",
             "type": "ai_embedding",
             "index": 0
           }
@@ -4867,17 +4687,6 @@
         ]
       ]
     },
-    "Simple Memory3": {
-      "ai_memory": [
-        [
-          {
-            "node": "Farmer",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Date & Time7": {
       "ai_tool": [
         [
@@ -4953,6 +4762,224 @@
           }
         ]
       ]
+    },
+    "Embeddings Cohere13": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Finance Kaja",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Farmer Kaja",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Farmer Lyori",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Farmer Moafarm",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Farmer Lyori": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a dailyreport_lyori": {
+      "ai_tool": [
+        [
+          {
+            "node": "Farmer Lyori",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Farmer Moafarm": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Farmer Kaja": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Farmer Lyori",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Farmer Kaja",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Farmer Moafarm",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message4": {
+      "main": [
+        [
+          {
+            "node": "massage4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Send a text message4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows in Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a dailyreport_kaja": {
+      "ai_tool": [
+        [
+          {
+            "node": "Farmer Kaja",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a dailyreport_moafarm": {
+      "ai_tool": [
+        [
+          {
+            "node": "Farmer Moafarm",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -4962,7 +4989,7 @@
     "availableInMCP": false,
     "timeSavedMode": "fixed"
   },
-  "versionId": "efb6b858-0573-49e3-8ce9-6565a9875c32",
+  "versionId": "b209636f-6be8-4d3a-a363-b4acd9339251",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "f2d9e660b34c9d92ed2d1946fd6a1cf5eabf8eee0b2182c48836c963c437441a"

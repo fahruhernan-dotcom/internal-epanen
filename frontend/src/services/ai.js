@@ -12,6 +12,48 @@ export class AIService {
         this.temperature = parseFloat(import.meta.env.VITE_AI_TEMPERATURE) || 0.7
     }
 
+    /**
+     * Shared helper to call AI API with basic retry logic for network stability
+     */
+    async callAiApi(payload, retries = 3, delay = 1000) {
+        let lastError = null;
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(this.baseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'SmartFarm Internal System'
+                    },
+                    body: JSON.stringify({
+                        model: this.model,
+                        ...payload
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error?.message || `API HTTP Error ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (err) {
+                lastError = err;
+                console.warn(`AI API Attempt ${i + 1} failed:`, err.message);
+
+                // Don't retry if it's a 4xx error (except 429) as those are usually client errors
+                if (err.message.includes('HTTP Error 4') && !err.message.includes('429')) break;
+
+                if (i < retries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i))); // Exponential backoff
+                }
+            }
+        }
+        throw lastError;
+    }
+
     async summarizeFinancialPeriod(reports, periodName = 'Bulan Ini', periodMetadata = {}, forceRefresh = false) {
         if (!this.apiKey) {
             return this.getPlaceholderInsight(reports, periodName)
@@ -64,25 +106,14 @@ export class AIService {
     `
 
         try {
-            const response = await fetch(this.baseUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'HTTP-Referer': window.location.origin,
-                },
-                body: JSON.stringify({
-                    model: this.model,
-                    messages: [
-                        { role: 'system', content: 'Anda adalah pakar keuangan agribisnis senior.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    max_tokens: this.maxTokens,
-                    temperature: this.temperature
-                })
+            const result = await this.callAiApi({
+                messages: [
+                    { role: 'system', content: 'Anda adalah pakar keuangan agribisnis senior.' },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: this.maxTokens,
+                temperature: this.temperature
             })
-
-            const result = await response.json()
             const generatedText = result.choices[0].message.content
 
             // 2. Save new summary to DB
@@ -228,25 +259,14 @@ export class AIService {
     `
 
         try {
-            const response = await fetch(this.baseUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'HTTP-Referer': window.location.origin,
-                },
-                body: JSON.stringify({
-                    model: this.model,
-                    messages: [
-                        { role: 'system', content: 'Anda adalah pakar analisis bisnis korporasi.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    max_tokens: this.maxTokens,
-                    temperature: 0.5
-                })
+            const result = await this.callAiApi({
+                messages: [
+                    { role: 'system', content: 'Anda adalah pakar analisis bisnis korporasi.' },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: this.maxTokens,
+                temperature: 0.5
             })
-
-            const result = await response.json()
             const text = result.choices[0].message.content
 
             // 2. Save/Update Cache
@@ -270,7 +290,7 @@ export class AIService {
                 .from(TABLES.COMPANY_SUMMARIES) // company_profile_summaries
                 .select('summary_text')
                 .eq('company_id', companyId)
-                .single()
+                .maybeSingle()
 
             if (error) return null
             return data?.summary_text
@@ -386,24 +406,14 @@ export class AIService {
           ${JSON.stringify(dataToAnalyze)}
         `
 
-            const response = await fetch(this.baseUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`,
-                },
-                body: JSON.stringify({
-                    model: this.model,
-                    messages: [
-                        { role: 'system', content: 'Anda adalah Financial Data Normalizer. Kembalikan valid JSON.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    max_tokens: 1500, // more space for reasoning
-                    temperature: 0.1
-                })
+            const result = await this.callAiApi({
+                messages: [
+                    { role: 'system', content: 'Anda adalah Financial Data Normalizer. Kembalikan valid JSON.' },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 1500, // more space for reasoning
+                temperature: 0.1
             })
-
-            const result = await response.json()
             const JSON_TEXT = result.choices[0].message.content.replace(/```json|```/g, '').trim()
             const newExtractions = JSON.parse(JSON_TEXT)
 
@@ -476,24 +486,14 @@ Total Revenue terdeteksi sekitar **Rp ${totalRev.toLocaleString('id-ID')}**.
     `
 
         try {
-            const response = await fetch(this.baseUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`,
-                },
-                body: JSON.stringify({
-                    model: this.model,
-                    messages: [
-                        { role: 'system', content: 'Anda adalah asisten penulisan laporan pertanian profesional.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    max_tokens: 500,
-                    temperature: 0.7
-                })
+            const result = await this.callAiApi({
+                messages: [
+                    { role: 'system', content: 'Anda adalah asisten penulisan laporan pertanian profesional.' },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 500,
+                temperature: 0.7
             })
-
-            const result = await response.json()
             return result.choices[0].message.content.trim()
         } catch (err) {
             console.error('AI Farmer Assist Error:', err)

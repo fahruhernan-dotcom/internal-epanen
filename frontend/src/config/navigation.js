@@ -52,12 +52,14 @@ export const navigationConfig = [
 
     {
         label: 'Support',
-        isSection: true
+        isSection: true,
+        roles: ['admin', 'owner', 'farmer']
     },
     {
         label: 'Buku Saku SOP',
         to: '/sop-reference',
-        icon: 'book-open'
+        icon: 'book-open',
+        roles: ['admin', 'owner', 'farmer']
     },
 
     {

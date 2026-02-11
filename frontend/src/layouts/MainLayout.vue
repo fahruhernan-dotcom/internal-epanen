@@ -115,7 +115,7 @@
     </aside>
 
     <main class="main-content" :class="{ 'no-sidebar': authStore.user?.role === 'farmer' }">
-      <header v-if="authStore.user?.role !== 'farmer'" class="top-header">
+      <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role)" class="top-header">
         <div class="header-left">
           <!-- Breadcrumbs Navigation -->
           <Breadcrumbs />
@@ -163,7 +163,7 @@
         </div>
       </header>
 
-      <div class="content-area" :class="{ 'no-padding': authStore.user?.role === 'farmer' }">
+      <div class="content-area" :class="{ 'no-padding': ['farmer', 'cashier'].includes(authStore.user?.role) }">
         <router-view />
       </div>
     </main>
@@ -364,23 +364,31 @@ onUnmounted(() => {
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: -1; /* Behind everything */
-  background: var(--bg-mesh); /* Use the Design Token Mesh */
+  z-index: -1; 
+  background: var(--bg-main); /* Theme-aware base */
   overflow: hidden;
   pointer-events: none;
+  transition: background 1.2s ease;
 }
 
 .aurora-blob {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.5;
-  animation: float 20s infinite alternate;
+  border-radius: 60% 40% 70% 30% / 40% 50% 60% 50%; /* Organic amorphous shape */
+  filter: blur(160px); /* Massive blur to eliminate sharp color edges */
+  opacity: 0.15; /* Slashed for extreme eye comfort in Light Mode */
+  animation: float 25s infinite alternate ease-in-out;
+  mix-blend-mode: multiply; 
 }
 
-.blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: rgba(16, 185, 129, 0.2); animation-delay: 0s; }
-.blob-2 { top: 20%; right: -20%; width: 60vw; height: 60vw; background: rgba(59, 130, 246, 0.2); animation-delay: -5s; }
-.blob-3 { bottom: -20%; left: 20%; width: 70vw; height: 70vw; background: rgba(139, 92, 246, 0.2); animation-delay: -10s; }
+.dark-mode .aurora-blob {
+  opacity: 0.1; /* Very subtle depth for dark mode */
+  mix-blend-mode: screen; 
+}
+
+.blob-1 { top: -15%; left: -15%; width: 60vw; height: 60vw; background: rgba(16, 185, 129, 0.25); animation-delay: 0s; }
+.blob-2 { top: 10%; right: -25%; width: 70vw; height: 70vw; background: rgba(59, 130, 246, 0.2); animation-delay: -5s; }
+.blob-3 { bottom: -25%; left: 10%; width: 80vw; height: 80vw; background: rgba(139, 92, 246, 0.25); animation-delay: -10s; }
+.blob-4 { bottom: 30%; right: 10%; width: 50vw; height: 50vw; background: rgba(236, 72, 153, 0.15); animation-delay: -15s; }
 
 @keyframes float {
   0% { transform: translate(0, 0) scale(1); }
@@ -390,18 +398,22 @@ onUnmounted(() => {
 /* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
-  background: rgba(var(--bg-card-rgb), 0.4);
+  background: var(--sidebar-bg);
   backdrop-filter: blur(20px) saturate(180%);
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 1.2s cubic-bezier(0.3, 1, 0.2, 1), transform 1.2s cubic-bezier(0.3, 1, 0.2, 1), background 1.2s ease;
   position: fixed;
   left: 0;
   top: 0;
   bottom: 0;
   z-index: 1000;
   overflow: hidden; /* Container stay fixed, internal nav scrolls */
+}
+
+.dark-mode .sidebar {
+  background: rgba(var(--bg-card-rgb), 0.4); /* Revert to original transparency */
 }
 
 .sidebar.collapsed {
@@ -414,7 +426,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
 }
 
@@ -426,20 +438,27 @@ onUnmounted(() => {
 }
 
 .logo-icon {
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.3));
+}
+
+.dark-mode .logo-icon {
   color: #fff;
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
 }
 
 /* Company Icons - Revert to Expert Pods (Rounded Square) */
 .company-icon-img {
-  width: 90%;
-  height: 90%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   transition: transform 0.3s ease;
+  transform: scale(1.15); /* Zoom in more */
 }
 
-.nav-item-v2:hover .company-icon-img {
-  transform: scale(1.15) rotate(5deg);
+.nav-item-v2:hover .company-icon-img,
+.nav-item-v2.active .company-icon-img {
+  transform: scale(1.3) rotate(5deg);
 }
 
 .nav-icon-pod {
@@ -447,11 +466,11 @@ onUnmounted(() => {
   height: 38px;
   background: #fff !important; /* Force white for 3D pop */
   border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 12px; /* Smooth rounded square as per screenshot */
+  border-radius: 18px; /* Softer organic pod */
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 1.2s cubic-bezier(0.3, 1, 0.2, 1);
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
@@ -488,6 +507,10 @@ onUnmounted(() => {
   font-size: 1.5rem;
   font-weight: 900; 
   letter-spacing: -0.04em;
+  color: var(--text-main);
+}
+
+.dark-mode .logo-text {
   color: #fff;
 }
 
@@ -499,24 +522,30 @@ onUnmounted(() => {
 }
 
 .company-icon-img {
-  width: 20px;
-  height: 20px;
+  width: 25px; /* Increased from 20px */
+  height: 25px;
   object-fit: contain;
 }
 
 .sidebar-toggle {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: 14px;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .sidebar-toggle {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .sidebar-toggle:hover {
@@ -537,6 +566,7 @@ onUnmounted(() => {
   gap: 8px; /* Increased gap for 3D weight */
   overflow-y: auto;
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 /* Custom Sidebar Scrollbar */
@@ -562,9 +592,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 14px;
   padding: 10px 14px;
-  border-radius: 18px; /* Large rounding as seen in screenshot */
-  color: var(--text-dim);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 28px; /* Ultra-soft organic shape */
+  color: var(--text-muted);
+  transition: all 1.0s cubic-bezier(0.3, 1, 0.2, 1);
   text-decoration: none;
   font-weight: 650;
   font-size: 0.875rem;
@@ -578,9 +608,13 @@ onUnmounted(() => {
 }
 
 .nav-item-v2.active {
-  background: rgba(16, 185, 129, 0.15); /* Premium active glow as seen in screenshot */
-  color: #10b981;
+  background: var(--sidebar-active-bg);
+  color: var(--color-primary);
   font-weight: 800;
+}
+
+.dark-mode .nav-item-v2.active {
+  background: rgba(16, 185, 129, 0.15); /* Revert to original dark mode intensity */
 }
 
 /* physical Icon Pod - Redundant anchor removed, unified above at line 440+ */
@@ -592,7 +626,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 1.2s cubic-bezier(0.3, 1, 0.2, 1);
 }
 
 .icon-3d-img {
@@ -601,7 +635,8 @@ onUnmounted(() => {
     object-fit: cover; /* Fill the rounded tile */
     filter: saturate(1.2) contrast(1.05);
     mix-blend-mode: multiply; /* Surgical fix: removes white background in Light Mode */
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 1.5s cubic-bezier(0.3, 1, 0.2, 1);
+    transform: scale(1.2); /* Zoom in for 3D icons too */
 }
 
 .dark-mode .icon-3d-img {
@@ -609,8 +644,8 @@ onUnmounted(() => {
 }
 
 .nav-icon-svg {
-    opacity: 0.7;
-    color: var(--text-dim);
+    opacity: 0.8;
+    color: var(--sidebar-text);
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
@@ -641,6 +676,7 @@ onUnmounted(() => {
     background: #10b981;
     border-radius: 100px 0 0 100px;
     box-shadow: -4px 0 12px rgba(16, 185, 129, 0.4);
+    transition: all 1.3s cubic-bezier(0.3, 1, 0.2, 1);
 }
 
 .nav-section {
@@ -650,7 +686,7 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.15em;
   padding: 16px 16px 8px;
-  opacity: 0.7;
+  opacity: 0.9; /* Increased for better visibility */
 }
 .sidebar-footer {
   padding: 16px;
@@ -660,7 +696,7 @@ onUnmounted(() => {
 .user-card-premium {
     background: rgba(var(--bg-card-rgb), 0.3);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border-radius: 24px;
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -678,7 +714,7 @@ onUnmounted(() => {
     width: 36px;
     height: 36px;
     background: linear-gradient(135deg, var(--color-primary), #10b981);
-    border-radius: 12px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -719,7 +755,7 @@ onUnmounted(() => {
     height: 32px;
     background: rgba(var(--bg-card-rgb), 0.2);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: 12px;
     color: var(--text-muted);
     cursor: pointer;
     display: flex;
@@ -831,7 +867,7 @@ onUnmounted(() => {
   right: 0;
   width: 360px;
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border-radius: 32px;
   box-shadow: var(--shadow-main);
   border: 1px solid var(--glass-border);
   overflow: hidden;
@@ -962,7 +998,7 @@ onUnmounted(() => {
 .item-icon {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: 14px;
     background: rgba(var(--bg-card-rgb), 0.5);
     display: flex;
     align-items: center;

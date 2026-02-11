@@ -62,14 +62,14 @@
       </div>
 
       <div class="stat-glass-card">
-        <div class="stat-icon-wrapper emerald">
+        <div class="stat-icon-wrapper pink">
           <AppIcon name="receipt" :size="24" />
         </div>
         <div class="stat-info">
           <span class="stat-label">KASIR</span>
           <span class="stat-value">{{ usersByRole.cashier || 0 }}</span>
         </div>
-        <div class="stat-bg-glow emerald"></div>
+        <div class="stat-bg-glow pink"></div>
       </div>
     </div>
 
@@ -253,7 +253,7 @@
                   <div class="premium-options-menu glass-panel" v-if="isCompanyDropdownOpen">
                     <div 
                       class="premium-option" 
-                      v-for="co in companies" 
+                      v-for="co in selectableCompanies" 
                       :key="co.id"
                       :class="{ selected: formData.company_id === co.id }"
                       @click="selectCompany(co)"
@@ -354,6 +354,11 @@ const filteredUsers = computed(() => {
     list = list.filter(u => u.full_name?.toLowerCase().includes(q))
   }
   return list
+})
+
+const selectableCompanies = computed(() => {
+  // Hide 'Owner' from manual selection to prevent admin confusion
+  return companies.value.filter(c => c.name !== 'Owner' && c.code !== 'OWNER')
 })
 
 const usersByRole = computed(() => {
@@ -705,6 +710,10 @@ onMounted(() => {
   background: linear-gradient(135deg, #f59e0b, #d97706); 
   box-shadow: 0 8px 16px -4px rgba(245, 158, 11, 0.5); 
 }
+.stat-icon-wrapper.pink { 
+  background: linear-gradient(135deg, #ec4899, #be185d); 
+  box-shadow: 0 8px 16px -4px rgba(236, 72, 153, 0.5); 
+}
 
 .stat-info { z-index: 2; }
 .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; display: block; }
@@ -724,6 +733,7 @@ onMounted(() => {
 .stat-bg-glow.red { background: #ef4444; }
 .stat-bg-glow.purple { background: #8b5cf6; }
 .stat-bg-glow.amber { background: #f59e0b; }
+.stat-bg-glow.pink { background: #ec4899; }
 
 /* Directory Container */
 .directory-container {
@@ -839,7 +849,7 @@ onMounted(() => {
 .user-avatar-premium.owner { background: linear-gradient(135deg, #8b5cf6, #4c1d95); }
 .user-avatar-premium.ceo { background: linear-gradient(135deg, #f59e0b, #92400e); }
 .user-avatar-premium.farmer { background: linear-gradient(135deg, #10b981, #065f46); }
-.user-avatar-premium.cashier { background: linear-gradient(135deg, #10b981, #065f46); }
+.user-avatar-premium.cashier { background: linear-gradient(135deg, #ec4899, #be185d); }
 
 .status-indicator-ring {
   position: absolute;
@@ -876,14 +886,14 @@ onMounted(() => {
 .access-pill.owner { background: rgba(139, 92, 246, 0.08); color: #7c3aed; border-color: rgba(139, 92, 246, 0.15); }
 .access-pill.ceo { background: rgba(245, 158, 11, 0.08); color: #d97706; border-color: rgba(245, 158, 11, 0.15); }
 .access-pill.farmer { background: rgba(16, 185, 129, 0.08); color: #059669; border-color: rgba(16, 185, 129, 0.15); }
-.access-pill.cashier { background: rgba(16, 185, 129, 0.08); color: #059669; border-color: rgba(16, 185, 129, 0.15); }
+.access-pill.cashier { background: rgba(236, 72, 153, 0.08); color: #db2777; border-color: rgba(236, 72, 153, 0.15); }
 
 /* Dark Mode Overrides - Neon Aesthetic */
 .dark-mode .access-pill.admin { color: #fca5a5; background: rgba(239, 68, 68, 0.15); }
 .dark-mode .access-pill.owner { color: #c4b5fd; background: rgba(139, 92, 246, 0.15); }
 .dark-mode .access-pill.ceo { color: #fcd34d; background: rgba(245, 158, 11, 0.15); }
 .dark-mode .access-pill.farmer { color: #a7f3d0; background: rgba(16, 185, 129, 0.15); }
-.dark-mode .access-pill.cashier { color: #a7f3d0; background: rgba(16, 185, 129, 0.15); }
+.dark-mode .access-pill.cashier { color: #f9a8d4; background: rgba(236, 72, 153, 0.15); }
 
 .entity-name { font-size: 0.85rem; color: var(--text-dim); font-weight: 600; }
 
