@@ -365,7 +365,7 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   z-index: -1; 
-  background: var(--bg-main); /* Theme-aware base */
+  background: transparent; /* Mesh shows through */
   overflow: hidden;
   pointer-events: none;
   transition: background 1.2s ease;
@@ -375,13 +375,13 @@ onUnmounted(() => {
   position: absolute;
   border-radius: 60% 40% 70% 30% / 40% 50% 60% 50%; /* Organic amorphous shape */
   filter: blur(160px); /* Massive blur to eliminate sharp color edges */
-  opacity: 0.15; /* Slashed for extreme eye comfort in Light Mode */
+  opacity: 0.45; /* Back to High-Fidelity Premium */
   animation: float 25s infinite alternate ease-in-out;
-  mix-blend-mode: multiply; 
+  mix-blend-mode: normal; 
 }
 
 .dark-mode .aurora-blob {
-  opacity: 0.1; /* Very subtle depth for dark mode */
+  opacity: 0.35; /* Stronger depth for dark mode */
   mix-blend-mode: screen; 
 }
 
