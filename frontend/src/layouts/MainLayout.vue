@@ -380,19 +380,14 @@ onUnmounted(() => {
   mix-blend-mode: normal; 
 }
 
-.dark-mode .aurora-blob {
-  opacity: 0.35; /* Stronger depth for dark mode */
-  mix-blend-mode: screen; 
-}
-
-.blob-1 { top: -15%; left: -15%; width: 60vw; height: 60vw; background: rgba(16, 185, 129, 0.25); animation-delay: 0s; }
-.blob-2 { top: 10%; right: -25%; width: 70vw; height: 70vw; background: rgba(59, 130, 246, 0.2); animation-delay: -5s; }
-.blob-3 { bottom: -25%; left: 10%; width: 80vw; height: 80vw; background: rgba(139, 92, 246, 0.25); animation-delay: -10s; }
-.blob-4 { bottom: 30%; right: 10%; width: 50vw; height: 50vw; background: rgba(236, 72, 153, 0.15); animation-delay: -15s; }
+/* Blobs rely on global design-tokens.css for radial-gradients and smoothness */
+.blob-1 { top: -20%; left: -10%; animation-delay: 0s; }
+.blob-2 { bottom: -15%; right: -5%; animation-delay: -7s; }
+.blob-3 { top: 20%; left: 25%; animation-duration: 40s; }
 
 @keyframes float {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(30px, 30px) scale(1.1); }
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(30px, 30px) scale(1.1) rotate(10deg); }
 }
 
 /* Sidebar */
@@ -806,14 +801,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-2xl);
-  background: rgba(var(--bg-card-rgb), 0.35);
-  backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 1px solid var(--glass-border);
+  background: transparent; /* Clear and clean */
+  backdrop-filter: none; /* Removed for better blending */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Very thin clean line */
   position: sticky;
   top: 0;
-  z-index: 999; /* Boosted to ensure it overlays all page content including filter bars */
+  z-index: 999;
   height: 72px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .header-left {

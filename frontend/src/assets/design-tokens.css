@@ -158,16 +158,29 @@ body {
     overflow-x: hidden;
 }
 
-/* Aurora Mesh Background Ambience */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+
+    33% {
+        transform: translate(8%, 12%) scale(1.15) rotate(120deg);
+    }
+
+    66% {
+        transform: translate(-12%, 8%) scale(0.9) rotate(240deg);
+    }
+}
+
 .aurora-container {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    inset: 0;
     z-index: -1;
     overflow: hidden;
-    background: transparent;
+    background: var(--bg-main);
+    transition: background 1.2s ease;
 }
 
 .aurora-container::after {
@@ -175,73 +188,64 @@ body {
     position: absolute;
     inset: 0;
     background-image: var(--noise-texture);
-    opacity: 0.035;
-    /* Subtle grain texture */
-    pointer-events: none;
+    opacity: 0;
+    /* Disabled for silk-smooth look */
     mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .aurora-blob {
     position: absolute;
-    width: 70vmax;
-    height: 70vmax;
+    width: 80vmax;
+    height: 80vmax;
     border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.5;
-    /* Increased for visibility */
+    filter: blur(180px);
+    /* Maximum silk diffusion */
+    opacity: 0.4;
+    animation: float 35s infinite alternate ease-in-out;
     mix-blend-mode: normal;
-    /* Normal for better color accuracy */
-    animation: float 25s infinite ease-in-out;
+}
+
+.dark-mode .aurora-blob {
+    opacity: 0.3;
+    mix-blend-mode: screen;
 }
 
 .blob-1 {
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 70%);
-    top: -25%;
-    left: -15%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, transparent 70%);
+    top: -20%;
+    left: -10%;
+    animation-delay: 0s;
 }
 
 .blob-2 {
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
-    bottom: -25%;
-    right: -15%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, transparent 70%);
+    bottom: -15%;
+    right: -5%;
     animation-delay: -7s;
 }
 
 .blob-3 {
-    background: radial-gradient(circle, rgba(129, 140, 248, 0.25) 0%, transparent 70%);
-    top: 25%;
-    left: 20%;
-    opacity: 0.25;
-    animation-duration: 30s;
-}
-
-.dark-mode .blob-3 {
-    opacity: 0.05;
-}
-
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    33% {
-        transform: translate(10%, 10%) scale(1.1);
-    }
-
-    66% {
-        transform: translate(-5%, 15%) scale(0.9);
-    }
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);
+    top: 20%;
+    left: 25%;
+    transform-origin: center;
+    animation-duration: 40s;
 }
 
 /* Components */
 .premium-card {
     background: var(--bg-card);
-    backdrop-filter: var(--glass-blur);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-main);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Precision Hairline Border */
+    box-shadow:
+        0 4px 24px -1px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    /* Inner Glow */
     transition: var(--transition-main);
     position: relative;
     overflow: hidden;
