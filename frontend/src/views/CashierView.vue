@@ -411,7 +411,7 @@
               </div>
             </div>
 
-            <div class="modal-footer-premium mt-lg">
+            <div class="modal-footer-premium" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
               <button type="button" class="btn-cancel" @click="showManualModal = false">BATALKAN</button>
               <button type="button" class="btn-confirm" @click="createManualOrder">SIMPAN ORDER</button>
             </div>
@@ -1059,7 +1059,7 @@ async function generateAndProcess() {
 
 /* Modals */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-card-premium { width: 500px; border-radius: 32px; overflow: hidden; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255,255,255,0.1); }
+.modal-card-premium { width: 650px; border-radius: 32px; overflow: hidden; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
 .modal-header-premium { padding: 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .header-icon-box { min-width: 56px; height: 56px; border-radius: 20px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
 .header-icon-box.amber { color: #f59e0b; background: rgba(245,158,11,0.1); }
@@ -1071,21 +1071,27 @@ async function generateAndProcess() {
 .field-container { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; display: flex; align-items: center; padding: 0 1rem; color: #475569; }
 .field-container input, .field-container textarea { background: none; border: none; padding: 14px 10px; color: white; width: 100%; font-family: inherit; }
 .field-container.textarea { align-items: flex-start; }
-.btn-confirm { background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 16px; font-weight: 700; cursor: pointer; }
-.btn-cancel { background: transparent; color: #94a3b8; border: none; font-weight: 700; cursor: pointer; }
+.btn-confirm { background: #10b981; color: white; border: none; padding: 14px 32px; border-radius: 20px; font-weight: 800; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4); }
+.btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.5); }
+.btn-cancel { background: transparent; color: #64748b; border: none; font-weight: 700; cursor: pointer; padding: 10px 20px; transition: color 0.3s; }
+.btn-cancel:hover { color: #f8fafc; }
 
 /* Modal Autocomplete Styles */
 .manual-item-row-wrapper { position: relative; }
 .relative-field { position: relative; flex: 1; }
 .modal-autocomplete-card {
   position: absolute;
-  top: 110%;
+  top: 115%;
   left: 0;
   right: 0;
-  z-index: 1100;
-  border-radius: 14px;
+  z-index: 100;
+  border-radius: 18px;
   overflow: hidden;
-  padding: 4px;
+  padding: 6px;
+  background: rgba(30, 41, 59, 0.98);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.5);
 }
 .suggestion-item {
   padding: 10px 14px;
@@ -1114,25 +1120,28 @@ async function generateAndProcess() {
 .notif-count { background: #ef4444; color: white; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; }
 
 /* Manual Modal Items Styling */
-.items-list-manual { display: flex; flex-direction: column; gap: 10px; }
-.manual-item-row { display: grid; grid-template-columns: 1fr 60px 100px 30px; gap: 8px; align-items: center; }
+.items-list-manual { display: flex; flex-direction: column; gap: 14px; padding-bottom: 10px; }
+.manual-item-row { display: grid; grid-template-columns: 1fr 90px 140px 40px; gap: 12px; align-items: center; }
 .btn-remove-lite { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; }
 .btn-add-lite { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px dashed rgba(16, 185, 129, 0.4); padding: 8px; border-radius: 14px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; }
 
 .qty-input-wrapper-lite {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 14px;
-  padding-right: 0.75rem;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 0 10px;
+  height: 42px;
 }
 
 .qty-input-wrapper-lite .item-input.qty {
   background: transparent;
   border: none !important;
-  width: 60px !important;
-  padding-right: 0 !important;
+  width: 45px !important;
+  padding: 0 !important;
+  text-align: center;
 }
 
 .unit-label-lite {
