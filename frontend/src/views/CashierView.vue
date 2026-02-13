@@ -860,12 +860,13 @@ async function generateAndProcess() {
 
 <style scoped>
 .cashier-page {
-  height: 100vh;
+  height: calc(100vh - 140px); /* Dynamic adjustment to fit dashboard layout */
+  min-height: 650px;
   background: transparent;
   color: #f8fafc;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   gap: 1rem;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
@@ -1167,11 +1168,12 @@ async function generateAndProcess() {
   display: grid;
   grid-template-columns: 380px 1fr;
   flex: 1;
+  min-height: 0; /* Allow grid to shrink/fill as flex item */
   overflow: hidden;
   border-radius: 40px;
   background: rgba(15, 23, 42, 0.3);
-  border: 1px solid rgba(255,255,255,0.05);
-  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 /* Sidebar */
