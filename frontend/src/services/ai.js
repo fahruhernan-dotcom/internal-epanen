@@ -25,7 +25,7 @@ export class AIService {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${this.apiKey}`,
                         'HTTP-Referer': window.location.origin,
-                        'X-Title': 'SmartFarm Internal System'
+                        'X-Title': 'ePanen Intelligence System.'
                     },
                     body: JSON.stringify({
                         model: this.model,
@@ -79,7 +79,7 @@ export class AIService {
         }))
 
         const prompt = `
-      Anda adalah Chief Financial Officer (CFO) virtual untuk holding SmartFarm.
+      Anda adalah Chief Financial Officer (CFO) virtual untuk holding ePanen.
       Berikut adalah data laporan keuangan yang sudah divalidasi untuk periode ${periodName}:
       
       TOTAL KEUANGAN VALID (Gunakan angka ini sebagai sumber utama):
@@ -466,7 +466,7 @@ Total Revenue terdeteksi sekitar **Rp ${totalRev.toLocaleString('id-ID')}**.
         }
 
         const prompt = `
-      Anda adalah asisten virtual cerdas untuk petani/pekerja di ${context.company || 'SmartFarm'}.
+      Anda adalah sistem AI administrator Official ePanen.s untuk petani/pekerja di ${context.company || 'ePanen'}.
       Tugas Anda adalah MEMPERLUAS ringkasan singkat menjadi laporan harian profesional yang detail dan rapi.
       
       DATA SAAT INI:

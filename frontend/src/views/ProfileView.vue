@@ -3,7 +3,7 @@
     <header class="dashboard-header mb-lg">
       <span class="section-label">User Settings</span>
       <h2 class="gradient-text">Akun & Keamanan</h2>
-      <p class="text-muted">Kelola informasi profil dan keamanan akun SmartFarm Anda.</p>
+      <p class="text-muted">Kelola informasi profil dan keamanan akun ePanen Anda.</p>
     </header>
 
     <div class="profile-grid">
@@ -135,8 +135,8 @@ async function handleUpdatePassword() {
     // 1. Verify current password
     // For this implementation, we check against the stored user data or a hardcoded default
     // In a real app, we'd verify with the DB
-    const storedUser = JSON.parse(localStorage.getItem('smartfarm_user'))
-    const currentPassword = storedUser.password || 'smartfarm2026'
+    const storedUser = JSON.parse(localStorage.getItem('epanen_user'))
+    const currentPassword = storedUser.password || 'epanen2026'
 
     if (passwordForm.current !== currentPassword) {
       throw new Error('Password saat ini salah.')
@@ -152,7 +152,7 @@ async function handleUpdatePassword() {
 
     // 3. Update local storage user object
     storedUser.password = passwordForm.new
-    localStorage.setItem('smartfarm_user', JSON.stringify(storedUser))
+    localStorage.setItem('epanen_user', JSON.stringify(storedUser))
     
     // Update authStore state if needed (user object might need refresh)
     authStore.user.password = passwordForm.new

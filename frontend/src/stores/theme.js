@@ -7,7 +7,7 @@ export const useThemeStore = defineStore('theme', () => {
 
     // Initialize from localStorage
     function initTheme() {
-        const stored = localStorage.getItem('smartfarm_theme')
+        const stored = localStorage.getItem('epanen_theme')
         if (stored) {
             isDarkMode.value = stored === 'dark'
         } else {
@@ -20,7 +20,7 @@ export const useThemeStore = defineStore('theme', () => {
     // Toggle theme
     function toggleTheme() {
         isDarkMode.value = !isDarkMode.value
-        localStorage.setItem('smartfarm_theme', isDarkMode.value ? 'dark' : 'light')
+        localStorage.setItem('epanen_theme', isDarkMode.value ? 'dark' : 'light')
         applyTheme()
     }
 

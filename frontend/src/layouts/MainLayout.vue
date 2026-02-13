@@ -8,7 +8,7 @@
     </div>
 
     <aside v-if="authStore.user?.role !== 'farmer'" class="sidebar" :class="{ 'collapsed': sidebarCollapsed, 'mobile-visible': isMobileVisible }">
-      <div class="sidebar-header desktop-only">
+      <div class="sidebar-header">
         <div class="logo">
           <AppIcon name="leaf" :size="24" class="logo-icon" />
           <span v-if="!sidebarCollapsed" class="logo-text">
@@ -125,7 +125,7 @@
             <AppIcon :name="isMobileVisible ? 'x' : 'menu'" :size="22" />
           </button>
           <div class="mobile-brand mobile-only">
-            <span>Smart<span class="text-emerald">Farm</span></span>
+            <span>Official <span class="text-emerald">ePanen</span></span>
           </div>
           <!-- Breadcrumbs Navigation -->
           <Breadcrumbs class="desktop-only" />
@@ -220,7 +220,7 @@ const pageTitle = computed(() => {
         const company = companies.value.find(c => c.id === route.params.id)
         return company?.name || 'Detail Perusahaan'
     }
-    return 'SmartFarm'
+    return 'ePanen'
 })
 
 const navigationItems = computed(() => navigationConfig)
@@ -447,7 +447,7 @@ onUnmounted(() => {
 
 .sidebar-header {
   height: 80px; 
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
@@ -1082,6 +1082,9 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.mobile-only { display: none; }
+.desktop-only { display: block; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .mobile-only { display: block !important; }
@@ -1129,6 +1132,16 @@ onUnmounted(() => {
 
   .sidebar.mobile-visible {
     transform: translateX(0);
+  }
+
+  .sidebar :deep(.nav-link) {
+    padding: 16px 20px !important;
+    font-size: 1rem !important;
+    margin: 4px 12px !important;
+  }
+
+  .sidebar :deep(.nav-icon) {
+    scale: 1.1;
   }
 
   .sidebar-overlay {

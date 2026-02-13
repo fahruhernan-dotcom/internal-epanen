@@ -18,7 +18,7 @@
             </span>
             <div class="summary-text">
               <span class="label">Perusahaan</span>
-              <span class="value">{{ report._company || report.company_name || 'SmartFarm' }}</span>
+              <span class="value">{{ report._company || report.company_name || 'ePanen' }}</span>
             </div>
           </div>
           <div class="summary-item card">

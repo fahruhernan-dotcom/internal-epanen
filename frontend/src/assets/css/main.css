@@ -819,100 +819,39 @@ a:hover {
 }
 
 /* ==========================================
-   GLOBAL MOBILE UI/UX OPTIMIZATION (EXPERT PASS)
+   GLOBAL MOBILE UI/UX UTILITIES
    ========================================== */
 @media (max-width: 768px) {
 
   /* Layout & Spacing */
   .content-area {
-    padding: 12px !important;
-    margin: 0 !important;
+    padding: 16px !important;
   }
 
   .p-xl,
   .p-3xl,
   .p-2xl {
-    padding: 16px !important;
+    padding: 20px !important;
   }
 
-  /* Typography Scale */
-  h1 {
-    font-size: 1.35rem !important;
-  }
-
-  h2 {
-    font-size: 1.15rem !important;
-  }
-
-  .user-greeting-v2 {
-    font-size: 1.25rem !important;
-  }
-
-  /* Auto-stacking for Flex & Grid */
+  /* Core Layout Fixes */
   .flex-wrap,
-  .flex.items-end,
-  .flex.justify-between {
+  .flex.items-end {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 12px !important;
-  }
-
-  /* Premium Components Overrides */
-  .premium-card,
-  .card {
-    border-radius: 16px !important;
-    padding: 16px !important;
-    margin-bottom: 12px !important;
-  }
-
-  .welcome-section-premium {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    padding: 16px !important;
     gap: 16px !important;
   }
 
-  .quick-status-cards {
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-  }
-
-  .mini-card-v2 {
-    width: auto !important;
-    margin: 0 !important;
-  }
-
-  /* Form & Filters Optimization */
-  .filter-logic-box-v2,
-  .premium-select-wrapper-v2 {
-    width: 100% !important;
-  }
-
-  .tab-btn-v2 {
-    padding: 8px 12px !important;
-    font-size: 0.75rem !important;
-    flex: 1;
-    text-align: center;
-  }
-
-  .period-tabs-wrapper-v2 {
-    display: flex !important;
-    width: 100% !important;
-    overflow-x: auto;
-  }
-
   /* Global Tables Scrollable */
-  .table-container {
-    margin: 0 -12px !important;
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
+  .table-container,
+  .table-scroll {
+    margin: 0 -16px;
+    border-radius: 0;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
-/* Ensure no horizontal scroll on body */
+/* Base Body Protection */
 body {
   overflow-x: hidden;
   position: relative;

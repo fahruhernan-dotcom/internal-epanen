@@ -282,7 +282,7 @@ async function generateAIReport() {
       summary: formData.value.activities.summary,
       notes: formData.value.notes,
       issues: formData.value.issues,
-      company: authStore.user?.companies?.name || 'SmartFarm'
+      company: authStore.user?.companies?.name || 'ePanen'
     }
     
     const result = await aiService.assistFarmerReport(context)

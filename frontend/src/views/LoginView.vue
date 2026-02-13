@@ -96,7 +96,7 @@
         <!-- Footer -->
         <div class="card-footer">
           <p class="copyright">
-            &copy; 2026 SmartFarm Ecosystem. <br>
+            &copy; 2026 Official ePanen. <br>
             <span class="opacity-60">Secured by ePanen Protocol</span>
           </p>
         </div>

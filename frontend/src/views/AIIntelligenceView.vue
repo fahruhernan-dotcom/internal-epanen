@@ -149,7 +149,7 @@ const agentInsights = {
     ]
   },
   'Moafarm': {
-    role: 'Operations Expert for Moafarm SmartFarm',
+    role: 'Operations Expert for Moafarm ePanen',
     tools: [
       { name: 'Moafarm Daily RAG', iconName: 'bar-chart-3', desc: 'Audit daily operations data' },
       { name: 'Financial Ingest', iconName: 'download', desc: 'Automated extraction from finance forms' }

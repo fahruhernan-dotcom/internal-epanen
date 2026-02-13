@@ -3,7 +3,7 @@
     <header class="dashboard-header mb-lg">
       <span class="section-label">System Security</span>
       <h2 class="gradient-text">Audit Trail & Activity Logs</h2>
-      <p class="text-muted">Pemantauan aktivitas sistem untuk transparansi dan keamanan SmartFarm.</p>
+      <p class="text-muted">Pemantauan aktivitas sistem untuk transparansi dan keamanan ePanen.</p>
     </header>
 
     <div class="tabs mb-lg">

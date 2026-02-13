@@ -1,5 +1,15 @@
 <template>
   <FarmerDashboardView v-if="authStore.user?.role === 'farmer'" />
+  <MobileDashboardView 
+    v-else-if="isMobile"
+    :stats="stats"
+    :recentReports="recentReports"
+    :aiSummary="formattedAISummary"
+    :loading="loading"
+    @go-to-company="goToCompany"
+    @go-to-doc="goToDoc"
+    @open-upload="openUploadForm"
+  />
   <div v-else class="dashboard-expert-view">
     <!-- Welcome Header Section -->
     <header class="welcome-section-premium animate-fade-in-up">
@@ -337,7 +347,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useReportsStore } from '@/stores/reports'
@@ -345,9 +355,15 @@ import { supabase, VIEWS, TABLES, COMPANY_TABLES } from '@/services/supabase'
 import { groupChunksToDocuments } from '@/utils/financialUtils'
 import AppIcon from '@/components/AppIcon.vue'
 import FarmerDashboardView from './FarmerDashboardView.vue'
+import MobileDashboardView from './mobile/MobileDashboardView.vue'
 import TrendAnalysisChart from '@/components/TrendAnalysisChart.vue'
 
 const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
+
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768
+}
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -766,6 +782,11 @@ function openUploadForm() {
 onMounted(() => {
   fetchStats()
   fetchTrendData()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

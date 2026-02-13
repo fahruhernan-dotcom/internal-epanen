@@ -135,7 +135,7 @@
               <span>{{ user.role.toUpperCase() }}</span>
             </div>
             <span class="entity-name">
-              {{ user.role === 'admin' ? 'System Global' : (user.companies?.name || 'SmartFarm') }}
+              {{ user.role === 'admin' ? 'System Global' : (user.companies?.name || 'ePanen') }}
             </span>
           </div>
 
@@ -270,7 +270,7 @@
               <label>Password Login</label>
               <div class="field-container">
                 <AppIcon name="key" :size="18" />
-                <input type="text" v-model="formData.password" placeholder="smartfarm2026 (default)" />
+                <input type="text" v-model="formData.password" placeholder="epanen2026 (default)" />
               </div>
             </div>
           </div>
@@ -451,7 +451,7 @@ function openAddModal() {
     phone_number: '',
     role: '',
     company_id: '',
-    password: 'smartfarm2026',
+    password: 'epanen2026',
     is_active: true
   }
   formError.value = ''
@@ -497,7 +497,7 @@ async function saveUser() {
       phone_number: phone ? parseInt(phone) : null,
       role: formData.value.role,
       company_id: formData.value.company_id || null,
-      password: formData.value.password || 'smartfarm2026',
+      password: formData.value.password || 'epanen2026',
       is_active: formData.value.is_active
     }
 

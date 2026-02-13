@@ -1,5 +1,17 @@
 <template>
-  <div class="reports-page animate-fade-in-up">
+  <MobileReportsView 
+    v-if="isMobile"
+    :reports="filteredReports"
+    :company-options="companyOptions"
+    :selected-company="selectedCompany"
+    :period-types="periodTypes"
+    :selected-period-type="selectedPeriodType"
+    :loading="reportsStore.loading"
+    @select-company="selectCompany"
+    @set-period="setPeriodType"
+    @view-detail="openReportDetail"
+  />
+  <div v-else class="reports-page animate-fade-in-up">
     <!-- Header Section - Elite Style -->
     <header class="welcome-section-premium animate-fade-in-up">
       <div class="welcome-text">
@@ -251,8 +263,14 @@ import { useReportsStore } from '@/stores/reports'
 import { useAuthStore } from '@/stores/auth'
 import { COMPANY_TABLES } from '@/services/supabase'
 import AppIcon from '@/components/AppIcon.vue'
+import MobileReportsView from './mobile/MobileReportsView.vue'
 
 const ReportDetailModal = defineAsyncComponent(() => import('@/components/ReportDetailModal.vue'))
+
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768
+}
 
 const reportsStore = useReportsStore()
 const authStore = useAuthStore()
@@ -478,8 +496,14 @@ onMounted(() => {
     
     // Global click listener for dropdown
     document.addEventListener('click', closeCompanyDropdown)
+    window.addEventListener('resize', handleResize)
     
     loadReports()
+})
+
+onUnmounted(() => {
+    document.removeEventListener('click', closeCompanyDropdown)
+    window.removeEventListener('resize', handleResize)
 })
 
 

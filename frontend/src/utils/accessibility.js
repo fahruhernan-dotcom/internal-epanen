@@ -1,6 +1,6 @@
 /**
  * Accessibility Utilities
- * WCAG AA compliance helpers for SmartFarm Dashboard
+ * WCAG AA compliance helpers for ePanen Dashboard
  */
 
 /**
@@ -60,7 +60,7 @@ export const ariaLabels = {
   list: 'Daftar item',
   detail: 'Detail informasi',
 
-  // Companies (SmartFarm specific)
+  // Companies (ePanen specific)
   lyori: 'Perusahaan pertanian Lyori',
   moafarm: 'Perusahaan peternakan Moafarm',
   kaja: 'Perusahaan pertanian Kaja',

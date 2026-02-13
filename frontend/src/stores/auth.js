@@ -63,7 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             // Enhanced password check: check DB password if available, otherwise fallback to default
             const dbPassword = users.password
-            const expectedPassword = dbPassword || 'smartfarm2026'
+            const expectedPassword = dbPassword || 'epanen2026'
 
             if (password !== expectedPassword) {
                 console.warn('Invalid password attempt for:', normalizedPhone)
@@ -74,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
             user.value = users
 
             // Store in localStorage for persistence
-            localStorage.setItem('smartfarm_user', JSON.stringify(users))
+            localStorage.setItem('epanen_user', JSON.stringify(users))
 
             return true
         } catch (err) {
@@ -87,16 +87,16 @@ export const useAuthStore = defineStore('auth', () => {
 
     function logout() {
         user.value = null
-        localStorage.removeItem('smartfarm_user')
+        localStorage.removeItem('epanen_user')
     }
 
     function initAuth() {
-        const stored = localStorage.getItem('smartfarm_user')
+        const stored = localStorage.getItem('epanen_user')
         if (stored) {
             try {
                 user.value = JSON.parse(stored)
             } catch (e) {
-                localStorage.removeItem('smartfarm_user')
+                localStorage.removeItem('epanen_user')
             }
         }
     }
