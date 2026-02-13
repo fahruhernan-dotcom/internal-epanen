@@ -118,7 +118,7 @@
     <div v-if="isMobileVisible" class="sidebar-overlay" @click="isMobileVisible = false"></div>
 
     <main class="main-content" :class="{ 'no-sidebar': authStore.user?.role === 'farmer' }">
-      <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role)" class="top-header mobile-compact">
+      <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role) && (route.name !== 'Cashier' || windowWidth > 768)" class="top-header mobile-compact">
         <div class="header-left">
           <!-- Hamburger for Mobile -->
           <button class="mobile-menu-toggle" @click="isMobileVisible = !isMobileVisible">
@@ -199,6 +199,11 @@ const notificationStore = useNotificationStore()
 
 const sidebarCollapsed = ref(false)
 const isMobileVisible = ref(false)
+const windowWidth = ref(window.innerWidth)
+
+const updateWidth = () => {
+  windowWidth.value = window.innerWidth
+}
 const showNotifications = ref(false)
 const companies = ref([])
 let notificationInterval = null
@@ -362,11 +367,13 @@ onMounted(async () => {
   }
 
   window.addEventListener('toggle-sidebar', handleToggleSidebar)
+  window.addEventListener('resize', updateWidth)
 })
 
 onUnmounted(() => {
   if (notificationInterval) clearInterval(notificationInterval)
   window.removeEventListener('toggle-sidebar', handleToggleSidebar)
+  window.removeEventListener('resize', updateWidth)
 })
 </script>
 

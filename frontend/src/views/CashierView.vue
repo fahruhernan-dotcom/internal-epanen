@@ -4,31 +4,19 @@
     <div class="cashier-header-premium glass-premium-dark">
       <div class="header-content">
         <div class="brand-group">
-          <!-- Global Hamburger for Cashier on Mobile -->
-          <button class="global-menu-toggle" @click="dispatchToggleMenu">
-            <AppIcon name="menu" :size="24" />
+          <!-- Global Hamburger -->
+          <button class="mobile-menu-trigger mobile-only" @click="dispatchToggleMenu">
+            <AppIcon name="menu" :size="22" />
           </button>
-          <div class="brand-icon-wrapper desktop-only">
-            <AppIcon name="receipt" :size="28" />
-          </div>
           <div class="brand-text">
             <h1 class="premium-title">Kasir <span class="text-gradient">ePanen</span></h1>
-            <p class="premium-subtitle desktop-only">Terminal Invoice Real-time</p>
           </div>
         </div>
 
-        <div class="header-controls-mobile">
-          <div class="mobile-toggles-integrated">
-            <button class="tgl-btn" :class="{ 'active': mobileSidebarOpen }" @click="mobileSidebarOpen = !mobileSidebarOpen; mobileMonitorOpen = false">
-              <AppIcon name="list" :size="18" />
-            </button>
-            <button class="tgl-btn" :class="{ 'active': mobileMonitorOpen }" @click="mobileMonitorOpen = !mobileMonitorOpen; mobileSidebarOpen = false">
-              <AppIcon name="calendar" :size="18" />
-            </button>
-          </div>
-          <div class="status-indicator-mini" :class="{ 'online': isConnected }">
-            <div class="status-dot"></div>
-            <span class="desktop-only">{{ isConnected ? 'Sistem Aktif' : 'Offline' }}</span>
+        <div class="header-right-tools">
+          <div class="status-pill-mini" :class="{ 'online': isConnected }">
+             <div class="dot"></div>
+             <span>{{ isConnected ? 'Live' : 'Off' }}</span>
           </div>
         </div>
       </div>
@@ -544,6 +532,26 @@
         </div>
       </div>
     </Transition>
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav mobile-only">
+       <button class="nav-btn" :class="{ active: !mobileSidebarOpen && !mobileMonitorOpen }" @click="mobileSidebarOpen = false; mobileMonitorOpen = false">
+         <AppIcon name="layout" :size="20" />
+         <span>Kasir</span>
+       </button>
+       <button class="nav-btn" :class="{ active: mobileSidebarOpen }" @click="mobileSidebarOpen = true; mobileMonitorOpen = false">
+         <AppIcon name="list" :size="20" />
+         <span>Orders</span>
+       </button>
+       <button class="nav-btn" :class="{ active: mobileMonitorOpen }" @click="mobileMonitorOpen = true; mobileSidebarOpen = false">
+         <AppIcon name="activity" :size="20" />
+         <span>Monitor</span>
+       </button>
+       <div class="nav-separator"></div>
+       <button class="nav-btn accent" @click="showManualModal = true">
+         <AppIcon name="plus" :size="20" />
+         <span>Baru</span>
+       </button>
+    </nav>
   </div>
 </template>
 
@@ -1729,125 +1737,161 @@ async function generateAndProcess() {
   .preview-canvas { transform: scale(0.95); margin-top: 0; }
 }
 
-/* Expert Mobile Polish */
+/* Expert Mobile Cleanup */
 @media (max-width: 1200px) {
-  .cashier-page { padding: 0; }
+  .cashier-page { 
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
   
   .cashier-header-premium {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
     border-radius: 0;
-    margin-bottom: 0;
-    position: sticky;
-    top: 0;
-    z-index: 1100;
+    z-index: 1200;
   }
 
-  .header-content { justify-content: space-between; gap: 8px; }
-  
-  .header-controls-mobile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .mobile-toggles-integrated {
-    display: flex;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    padding: 2px;
-  }
-
-  .tgl-btn {
-    width: 40px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    border: none;
+  .premium-title { font-size: 1.1rem; }
+  .mobile-menu-trigger {
     background: transparent;
-    color: #64748b;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-
-  .tgl-btn.active {
-    background: #10b981;
+    border: none;
     color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    margin-right: 12px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
   }
 
-  .status-indicator-mini {
+  .status-pill-mini {
+    background: rgba(0,0,0,0.3);
+    padding: 4px 10px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(0,0,0,0.2);
-    padding: 6px 10px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #94a3b8;
   }
 
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ef4444;
-  }
-
-  .online .status-dot {
-    background: #10b981;
-    box-shadow: 0 0 8px #10b981;
-  }
+  .status-pill-mini.online { color: #10b981; }
+  .status-pill-mini .dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
+  .status-pill-mini.online .dot { background: #10b981; box-shadow: 0 0 8px #10b981; }
 
   .cashier-stats-strip {
-    margin: 10px;
-    border-radius: 20px;
-    padding: 12px;
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: 0;
+    background: rgba(15, 23, 42, 0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
   }
 
-  .stats-header-row { margin-bottom: 10px; }
-  .stats-title { font-size: 0.75rem; }
-
+  .stats-header-row { display: none; } /* Hide title on mobile to save space */
+  
   .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
   }
 
   .stat-mini-card {
-    padding: 10px;
-    border-radius: 16px;
+    flex: 0 0 auto;
+    width: 150px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
   }
-  
-  .smc-icon { width: 32px; height: 32px; font-size: 1rem; }
-  .smc-label { font-size: 0.55rem; }
-  .smc-value { font-size: 0.85rem; }
 
   .main-layout-grid {
-    border-radius: 0;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    padding-bottom: 70px; /* Space for bottom nav */
   }
 
+  /* Layered UI */
   .sidebar-panel, .delivery-monitor-section {
-    top: 60px; /* Space for sticky header */
-    bottom: 0;
-    border-radius: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 70px;
+    width: 100% !important;
+    height: auto;
+    z-index: 1050;
+    background: #0f172a;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 20px 20px 0 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .delivery-monitor-section { right: 0; left: 0; }
+
+  .mobile-popout {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: all;
   }
 
   .workspace-area {
     padding: 10px;
+    height: 100%;
+    overflow-y: auto;
   }
-}
 
-@media (max-width: 640px) {
-  .premium-title { font-size: 1rem; }
-  .global-menu-toggle { width: 36px; height: 36px; margin-right: 6px; }
-  .sidebar-panel, .delivery-monitor-section { width: 90% !important; }
+  /* Bottom Nav Styling */
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(15px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 16px;
+    z-index: 1300;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    transition: 0.2s;
+    flex: 1;
+  }
+
+  .nav-btn.active { color: #10b981; }
+  .nav-btn.accent {
+    background: #10b981;
+    color: white;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    border-radius: 16px;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    margin-bottom: 20px; /* Float effect */
+  }
+
+  .nav-separator { width: 1px; height: 30px; background: rgba(255,255,255,0.1); margin: 0 5px; }
 }
 
 @media (min-width: 1201px) {
-  .header-controls-mobile { display: none; }
+  .mobile-bottom-nav { display: none; }
 }
 </style>
