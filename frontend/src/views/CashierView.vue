@@ -4,6 +4,10 @@
     <div class="cashier-header-premium glass-premium-dark">
       <div class="header-content">
         <div class="brand-group">
+          <!-- Global Hamburger for Cashier on Mobile -->
+          <button class="global-menu-toggle" @click="dispatchToggleMenu">
+            <AppIcon name="menu" :size="24" />
+          </button>
           <div class="brand-icon-wrapper">
             <AppIcon name="receipt" :size="28" />
           </div>
@@ -14,9 +18,19 @@
         </div>
 
         <div class="header-status">
+          <div class="mobile-toggles">
+            <button class="toggle-btn" :class="{ 'active': mobileSidebarOpen }" @click="mobileSidebarOpen = !mobileSidebarOpen; mobileMonitorOpen = false">
+              <AppIcon name="list" :size="20" />
+              <span>Orders</span>
+            </button>
+            <button class="toggle-btn" :class="{ 'active': mobileMonitorOpen }" @click="mobileMonitorOpen = !mobileMonitorOpen; mobileSidebarOpen = false">
+              <AppIcon name="calendar" :size="20" />
+              <span>Monitor</span>
+            </button>
+          </div>
           <div class="status-indicator" :class="{ 'online': isConnected }">
             <div class="pulse-ring"></div>
-            <span>{{ isConnected ? 'Sistem Aktif' : 'Menghubungkan...' }}</span>
+            <span>{{ isConnected ? 'Aktif' : '...' }}</span>
           </div>
         </div>
       </div>
@@ -89,9 +103,13 @@
     </div>
 
     <!-- Main Content Grid -->
-    <div class="main-layout-grid">
+    <div class="main-layout-grid" :class="{ 'sidebar-open': mobileSidebarOpen, 'monitor-open': mobileMonitorOpen }">
+      <!-- Sidebar Overlays -->
+      <div v-if="mobileSidebarOpen" class="mobile-grid-overlay" @click="mobileSidebarOpen = false"></div>
+      <div v-if="mobileMonitorOpen" class="mobile-grid-overlay" @click="mobileMonitorOpen = false"></div>
+
       <!-- Sidebar: Order List -->
-      <aside class="sidebar-panel glass-premium-dark">
+      <aside class="sidebar-panel glass-premium-dark" :class="{ 'mobile-popout': mobileSidebarOpen }">
         <div class="panel-nav">
           <div class="tab-pill-group">
             <button 
@@ -340,9 +358,15 @@
                 <div class="preview-canvas">
                   <div id="invoice-preview" class="premium-invoice-paper shadow-2xl">
                     <div class="inv-brand-header">
-                      <div class="inv-logo">
-                        <AppIcon name="sprout" :size="24" />
-                        <span>ePanen</span>
+                      <div class="brand-info">
+                        <div class="inv-logo">
+                          <AppIcon name="sprout" :size="24" />
+                          <span>ePanen</span>
+                        </div>
+                        <div class="company-address">
+                          Gedung Hyundai Indonesia Lantai 3A. Jl. Teuku Nyak Arief No.14, RT.4/RW.2<br>
+                          Grogol Utara, Kebayoran Lama, Jakarta Selatan, 12210
+                        </div>
                       </div>
                       <div class="inv-type">OFFICIAL INVOICE</div>
                     </div>
@@ -396,7 +420,7 @@
                       </div>
                       <div class="footer-msg">
                         <p class="main-msg">Terima kasih atas kepercayaannya.</p>
-                        <p class="sub-msg">Official ePanen System © 2026 Solo, Jawa Tengah</p>
+                        <p class="sub-msg">Official ePanen System © 2026 Jakarta Selatan, Indonesia</p>
                       </div>
                     </div>
                   </div>
@@ -418,6 +442,34 @@
           </div>
         </Transition>
       </main>
+
+      <!-- Delivery Monitor Panel (3rd Column) -->
+      <aside class="delivery-monitor-section" :class="{ 'mobile-popout': mobileMonitorOpen }">
+        <div class="dm-header">
+          <AppIcon name="calendar" :size="16" />
+          <span>Antrean Hari Ini</span>
+          <div class="dm-badge">{{ todayOrders.length }}</div>
+        </div>
+        <div class="dm-scroll-view">
+          <div 
+            v-for="order in todayOrders" 
+            :key="order.id" 
+            class="dm-mini-card"
+            :class="{ 'status-pending': order.status === 'pending' }"
+            @click="selectOrder(order)"
+          >
+            <div class="dm-card-info">
+              <span class="dm-time">{{ formatTime(order.created_at) }}</span>
+              <span class="dm-name">{{ order.customer_name || 'Pelanggan' }}</span>
+            </div>
+            <span class="dm-status-dot" :class="order.status"></span>
+          </div>
+          
+          <div v-if="todayOrders.length === 0" class="dm-empty">
+            Belum ada order hari ini
+          </div>
+        </div>
+      </aside>
     </div>
 
     <!-- Modals -->
@@ -505,6 +557,8 @@ import AppIcon from '@/components/AppIcon.vue'
 // Synchronizing view state...
 
 const isConnected = ref(false)
+const mobileSidebarOpen = ref(false)
+const mobileMonitorOpen = ref(false)
 const activeTab = ref('pending')
 const pendingOrders = ref([])
 const historyOrders = ref([])
@@ -573,12 +627,26 @@ function selectSuggestionModal(prod, idx) {
 
 let subscription = null
 
+const todayOrders = ref([])
+
 onMounted(async () => {
   await fetchPendingOrders()
   await fetchMarketPrices()
   await fetchDailyStats()
+  await fetchTodayOrders()
   subscribeToOrders()
 })
+
+async function fetchTodayOrders() {
+  const startISO = new Date(new Date().setHours(0,0,0,0)).toISOString()
+  const { data } = await supabase
+    .from(TABLES.INVOICES)
+    .select('*')
+    .gte('created_at', startISO)
+    .order('created_at', { ascending: false })
+  
+  if (data) todayOrders.value = data
+}
 
 async function fetchMarketPrices() {
   const { data } = await supabase
@@ -646,7 +714,7 @@ async function fetchHistoryOrders() {
   if (data) historyOrders.value = data
 }
 
-// === NEW: Filtered History (Search) ===
+// === NEW: Filtered Views ===
 const filteredHistoryOrders = computed(() => {
   if (!historySearch.value) return historyOrders.value
   const q = historySearch.value.toLowerCase()
@@ -725,8 +793,10 @@ function subscribeToOrders() {
       if (payload.new.status === 'pending') {
         pendingOrders.value.unshift(payload.new)
       }
+      fetchTodayOrders()
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'invoices' }, payload => {
+      fetchTodayOrders()
       if (payload.new.status !== 'pending') {
         const idx = pendingOrders.value.findIndex(o => o.id === payload.new.id)
         if (idx !== -1) pendingOrders.value.splice(idx, 1)
@@ -736,6 +806,10 @@ function subscribeToOrders() {
         // Refresh stats when an invoice is completed
         fetchDailyStats()
       }
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'invoices' }, () => {
+      fetchPendingOrders()
+      fetchTodayOrders()
     })
     .subscribe(status => {
       isConnected.value = status === 'SUBSCRIBED'
@@ -772,6 +846,10 @@ function formatCurrency(val) {
 
 function formatTime(iso) {
   return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+}
+
+function dispatchToggleMenu() {
+  window.dispatchEvent(new CustomEvent('toggle-sidebar'))
 }
 
 function formatDate(iso) {
@@ -877,7 +955,7 @@ async function generateAndProcess() {
 
 .main-layout-grid {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 320px 1fr 260px;
   flex: 1;
   min-height: 400px;
   overflow: hidden;
@@ -1425,9 +1503,11 @@ async function generateAndProcess() {
   box-shadow: 0 20px 40px rgba(0,0,0,0.5);
 }
 
-.inv-brand-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10mm; border-bottom: 2px solid #f1f5f9; padding-bottom: 4mm; }
+.inv-brand-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10mm; border-bottom: 2px solid #f1f5f9; padding-bottom: 4mm; }
+.brand-info { display: flex; flex-direction: column; gap: 4px; }
 .inv-logo { display: flex; align-items: center; gap: 8px; font-weight: 900; color: #10b981; font-size: 1.2rem; }
-.inv-type { font-weight: 800; color: #cbd5e1; letter-spacing: 2px; font-size: 0.8rem; }
+.company-address { font-size: 0.65rem; color: #64748b; font-weight: 500; line-height: 1.4; max-width: 80mm; }
+.inv-type { font-weight: 800; color: #cbd5e1; letter-spacing: 2px; font-size: 0.8rem; margin-top: 4px; }
 .inv-details { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8mm; gap: 4mm; }
 .inv-details label { font-size: 0.6rem; font-weight: 900; color: #94a3b8; display: block; margin-bottom: 1mm; }
 .client-name { font-weight: 700; font-size: 1rem; color: #0f172a; }
@@ -1554,6 +1634,85 @@ async function generateAndProcess() {
 .empty-workspace-premium { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.5; }
 .icon-circle { width: 120px; height: 120px; background: rgba(30,39,59,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; border: 2px solid rgba(255,255,255,0.05); color: #475569; }
 
+/* Delivery Monitor (3rd Column on the Right) */
+.delivery-monitor-section {
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dm-header {
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.dm-badge {
+  margin-left: auto;
+  background: #10b981;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+}
+
+.dm-scroll-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dm-scroll-view::-webkit-scrollbar { width: 4px; }
+.dm-scroll-view::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+.dm-mini-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dm-mini-card:hover { background: rgba(30, 41, 59, 0.6); border-color: rgba(16, 185, 129, 0.3); }
+.dm-mini-card.status-pending { border-left: 3px solid #f59e0b; }
+
+.dm-card-info { display: flex; flex-direction: column; gap: 2px; }
+.dm-time { font-size: 0.65rem; font-weight: 800; color: #10b981; }
+.dm-name { font-size: 0.78rem; font-weight: 600; color: #e2e8f0; }
+
+.dm-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981; /* Selesai */
+}
+.dm-status-dot.status-pending { background: #f59e0b; }
+.dm-status-dot.pending { background: #f59e0b; }
+
+.dm-empty {
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-style: italic;
+}
+
 /* Scrollbar */
 .scroll-thin::-webkit-scrollbar { width: 4px; }
 .scroll-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
@@ -1574,5 +1733,115 @@ async function generateAndProcess() {
 
 @media (max-height: 600px) {
   .preview-canvas { transform: scale(0.75); margin-top: -1rem; }
+}
+
+/* Mobile Responsiveness for Cashier Layout */
+@media (max-width: 1200px) {
+  .global-menu-toggle {
+    display: none;
+  }
+  
+  .main-layout-grid {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+
+  .sidebar-panel, .delivery-monitor-section {
+    position: fixed;
+    top: 70px;
+    bottom: 20px;
+    z-index: 1000;
+    width: 320px !important;
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+    border-radius: 0 24px 24px 0;
+  }
+
+  .delivery-monitor-section {
+    right: 0;
+    left: auto;
+    transform: translateX(100%);
+    border-radius: 24px 0 0 24px;
+    box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+    width: 280px !important;
+  }
+
+  .sidebar-panel.mobile-popout, 
+  .delivery-monitor-section.mobile-popout {
+    transform: translateX(0);
+  }
+
+  .mobile-grid-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+  }
+
+  .mobile-toggles {
+    display: flex;
+    gap: 10px;
+    margin-right: 15px;
+  }
+
+  .mobile-toggles .toggle-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 8px 12px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .mobile-toggles .toggle-btn.active {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    color: #10b981;
+  }
+
+  .cashier-stats-strip {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-text { display: none; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .mobile-toggles span { display: none; }
+  .mobile-toggles .toggle-btn { padding: 10px; }
+  .sidebar-panel, .delivery-monitor-section { width: 85% !important; }
+}
+
+@media (max-width: 768px) {
+  .global-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    color: white;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+}
+
+@media (min-width: 1201px) {
+  .mobile-toggles, .global-menu-toggle { display: none; }
 }
 </style>

@@ -7,7 +7,7 @@
       <div class="aurora-blob blob-3"></div>
     </div>
 
-    <aside v-if="authStore.user?.role !== 'farmer'" class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+    <aside v-if="authStore.user?.role !== 'farmer'" class="sidebar" :class="{ 'collapsed': sidebarCollapsed, 'mobile-visible': isMobileVisible }">
       <div class="sidebar-header">
         <div class="logo">
           <AppIcon name="leaf" :size="24" class="logo-icon" />
@@ -114,11 +114,18 @@
       </div>
     </aside>
 
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div v-if="isMobileVisible" class="sidebar-overlay" @click="isMobileVisible = false"></div>
+
     <main class="main-content" :class="{ 'no-sidebar': authStore.user?.role === 'farmer' }">
       <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role)" class="top-header">
         <div class="header-left">
+          <!-- Hamburger for Mobile -->
+          <button class="mobile-menu-toggle" @click="isMobileVisible = !isMobileVisible">
+            <AppIcon :name="isMobileVisible ? 'x' : 'menu'" :size="24" />
+          </button>
           <!-- Breadcrumbs Navigation -->
-          <Breadcrumbs />
+          <Breadcrumbs class="desktop-only" />
           <h2 class="page-title">{{ pageTitle }}</h2>
         </div>
         <div class="header-right">
@@ -171,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
@@ -188,6 +195,7 @@ const themeStore = useThemeStore()
 const notificationStore = useNotificationStore()
 
 const sidebarCollapsed = ref(false)
+const isMobileVisible = ref(false)
 const showNotifications = ref(false)
 const companies = ref([])
 let notificationInterval = null
@@ -316,6 +324,15 @@ function capitalizeRole(role) {
   return roleMap[role] || role.charAt(0).toUpperCase() + role.slice(1)
 }
 
+const handleToggleSidebar = () => {
+  isMobileVisible.value = !isMobileVisible.value
+}
+
+// Close sidebar on route change for mobile
+watch(() => route.path, () => {
+  isMobileVisible.value = false
+})
+
 onMounted(async () => {
   themeStore.initTheme()
   authStore.initAuth()
@@ -340,10 +357,13 @@ onMounted(async () => {
   } catch (err) {
     console.error('Failed to load companies:', err)
   }
+
+  window.addEventListener('toggle-sidebar', handleToggleSidebar)
 })
 
 onUnmounted(() => {
   if (notificationInterval) clearInterval(notificationInterval)
+  window.removeEventListener('toggle-sidebar', handleToggleSidebar)
 })
 </script>
 
@@ -1055,13 +1075,70 @@ onUnmounted(() => {
 /* Responsive */
 @media (max-width: 1024px) {
   .content-area { padding: var(--space-xl); }
+  .desktop-only { display: none !important; }
 }
 
 @media (max-width: 768px) {
-  .sidebar { width: var(--sidebar-collapsed-width); }
-  .nav-text, .nav-section, .user-name, .user-role, .logo-text { display: none; }
-  .user-info { justify-content: center; }
-  .main-content { margin-left: var(--sidebar-collapsed-width); }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 2000;
+    width: 280px !important;
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #0f172a; /* Darker background for mobile popout */
+  }
+
+  .sidebar.mobile-visible {
+    transform: translateX(0);
+  }
+
+  .sidebar.collapsed { width: 280px !important; }
+  .nav-text, .nav-section, .user-name, .user-role, .logo-text { display: block; }
+  
+  .sidebar-toggle { display: none; } /* Hide the collapse toggle on mobile */
+
+  .main-content {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1999;
+    animation: fade-in 0.3s ease;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--bg-card-rgb), 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    color: var(--text-main);
+    cursor: pointer;
+    margin-right: 12px;
+  }
+
   .top-header { padding: 0 var(--space-lg); }
+  
+  .nav-item-v2 { padding: 12px 20px; }
+  .sidebar-header { padding: 20px; }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu-toggle { display: none; }
 }
 </style>
