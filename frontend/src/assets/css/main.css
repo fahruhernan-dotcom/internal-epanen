@@ -63,6 +63,24 @@
   --sidebar-collapsed-width: 80px;
 }
 
+/* Global Mobile Adaptation Tokens */
+@media (max-width: 768px) {
+  :root {
+    --space-xl: 1rem;
+    --space-2xl: 1.25rem;
+    --radius-xl: 16px;
+    --radius-lg: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --space-xl: 1.25rem;
+    --space-2xl: 1.5rem;
+    --radius-xl: 20px;
+  }
+}
+
 
 /* Reset & Base */
 *,
@@ -210,6 +228,12 @@ a:hover {
   transition: all var(--transition-normal);
 }
 
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-md);
+  }
+}
+
 .card:hover {
   box-shadow: var(--shadow-card-hover);
   /* Elevated shadow */
@@ -270,6 +294,7 @@ a:hover {
   /* 8px - ORDIXA standard */
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-xs);
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -791,4 +816,104 @@ a:hover {
 
 .success-message::before {
   background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2322c55e" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>') center/contain;
+}
+
+/* ==========================================
+   GLOBAL MOBILE UI/UX OPTIMIZATION (EXPERT PASS)
+   ========================================== */
+@media (max-width: 768px) {
+
+  /* Layout & Spacing */
+  .content-area {
+    padding: 12px !important;
+    margin: 0 !important;
+  }
+
+  .p-xl,
+  .p-3xl,
+  .p-2xl {
+    padding: 16px !important;
+  }
+
+  /* Typography Scale */
+  h1 {
+    font-size: 1.35rem !important;
+  }
+
+  h2 {
+    font-size: 1.15rem !important;
+  }
+
+  .user-greeting-v2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Auto-stacking for Flex & Grid */
+  .flex-wrap,
+  .flex.items-end,
+  .flex.justify-between {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  /* Premium Components Overrides */
+  .premium-card,
+  .card {
+    border-radius: 16px !important;
+    padding: 16px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .welcome-section-premium {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+
+  .quick-status-cards {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .mini-card-v2 {
+    width: auto !important;
+    margin: 0 !important;
+  }
+
+  /* Form & Filters Optimization */
+  .filter-logic-box-v2,
+  .premium-select-wrapper-v2 {
+    width: 100% !important;
+  }
+
+  .tab-btn-v2 {
+    padding: 8px 12px !important;
+    font-size: 0.75rem !important;
+    flex: 1;
+    text-align: center;
+  }
+
+  .period-tabs-wrapper-v2 {
+    display: flex !important;
+    width: 100% !important;
+    overflow-x: auto;
+  }
+
+  /* Global Tables Scrollable */
+  .table-container {
+    margin: 0 -12px !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+}
+
+/* Ensure no horizontal scroll on body */
+body {
+  overflow-x: hidden;
+  position: relative;
 }

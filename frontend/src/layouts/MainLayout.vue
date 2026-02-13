@@ -8,7 +8,7 @@
     </div>
 
     <aside v-if="authStore.user?.role !== 'farmer'" class="sidebar" :class="{ 'collapsed': sidebarCollapsed, 'mobile-visible': isMobileVisible }">
-      <div class="sidebar-header">
+      <div class="sidebar-header desktop-only">
         <div class="logo">
           <AppIcon name="leaf" :size="24" class="logo-icon" />
           <span v-if="!sidebarCollapsed" class="logo-text">
@@ -118,15 +118,18 @@
     <div v-if="isMobileVisible" class="sidebar-overlay" @click="isMobileVisible = false"></div>
 
     <main class="main-content" :class="{ 'no-sidebar': authStore.user?.role === 'farmer' }">
-      <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role)" class="top-header">
+      <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role)" class="top-header mobile-compact">
         <div class="header-left">
           <!-- Hamburger for Mobile -->
           <button class="mobile-menu-toggle" @click="isMobileVisible = !isMobileVisible">
-            <AppIcon :name="isMobileVisible ? 'x' : 'menu'" :size="24" />
+            <AppIcon :name="isMobileVisible ? 'x' : 'menu'" :size="22" />
           </button>
+          <div class="mobile-brand mobile-only">
+            <span>Smart<span class="text-emerald">Farm</span></span>
+          </div>
           <!-- Breadcrumbs Navigation -->
           <Breadcrumbs class="desktop-only" />
-          <h2 class="page-title">{{ pageTitle }}</h2>
+          <h2 class="page-title desktop-only">{{ pageTitle }}</h2>
         </div>
         <div class="header-right">
           <div class="header-action-group">
@@ -162,7 +165,7 @@
                 </div>
               </div>
             </div>
-            <div class="current-date">
+            <div class="current-date desktop-only">
               <AppIcon name="calendar" :size="16" class="date-icon" />
               <span>{{ currentDate }}</span>
             </div>
@@ -170,7 +173,7 @@
         </div>
       </header>
 
-      <div class="content-area" :class="{ 'no-padding': ['farmer', 'cashier'].includes(authStore.user?.role) }">
+      <div class="content-area" :class="{ 'no-padding': ['farmer', 'cashier'].includes(authStore.user?.role), 'mobile-full': true }">
         <router-view />
       </div>
     </main>
@@ -1073,12 +1076,35 @@ onUnmounted(() => {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-  .content-area { padding: var(--space-xl); }
-  .desktop-only { display: none !important; }
-}
-
 @media (max-width: 768px) {
+  .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
+  
+  .top-header.mobile-optimized {
+    height: 60px;
+    padding: 0 16px;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .header-brand-mobile {
+    font-weight: 900;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    color: white;
+  }
+
+  .text-emerald { color: #10b981; }
+
+  .mobile-menu-toggle {
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    margin-right: 8px;
+  }
+
   .sidebar {
     position: fixed;
     left: 0;

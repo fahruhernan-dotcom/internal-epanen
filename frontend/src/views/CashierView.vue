@@ -8,29 +8,27 @@
           <button class="global-menu-toggle" @click="dispatchToggleMenu">
             <AppIcon name="menu" :size="24" />
           </button>
-          <div class="brand-icon-wrapper">
+          <div class="brand-icon-wrapper desktop-only">
             <AppIcon name="receipt" :size="28" />
           </div>
           <div class="brand-text">
-            <h1 class="premium-title">Official <span class="text-gradient">ePanen</span></h1>
-            <p class="premium-subtitle">Terminal Kasir & Invoice Real-time</p>
+            <h1 class="premium-title">Kasir <span class="text-gradient">ePanen</span></h1>
+            <p class="premium-subtitle desktop-only">Terminal Invoice Real-time</p>
           </div>
         </div>
 
-        <div class="header-status">
-          <div class="mobile-toggles">
-            <button class="toggle-btn" :class="{ 'active': mobileSidebarOpen }" @click="mobileSidebarOpen = !mobileSidebarOpen; mobileMonitorOpen = false">
-              <AppIcon name="list" :size="20" />
-              <span>Orders</span>
+        <div class="header-controls-mobile">
+          <div class="mobile-toggles-integrated">
+            <button class="tgl-btn" :class="{ 'active': mobileSidebarOpen }" @click="mobileSidebarOpen = !mobileSidebarOpen; mobileMonitorOpen = false">
+              <AppIcon name="list" :size="18" />
             </button>
-            <button class="toggle-btn" :class="{ 'active': mobileMonitorOpen }" @click="mobileMonitorOpen = !mobileMonitorOpen; mobileSidebarOpen = false">
-              <AppIcon name="calendar" :size="20" />
-              <span>Monitor</span>
+            <button class="tgl-btn" :class="{ 'active': mobileMonitorOpen }" @click="mobileMonitorOpen = !mobileMonitorOpen; mobileSidebarOpen = false">
+              <AppIcon name="calendar" :size="18" />
             </button>
           </div>
-          <div class="status-indicator" :class="{ 'online': isConnected }">
-            <div class="pulse-ring"></div>
-            <span>{{ isConnected ? 'Aktif' : '...' }}</span>
+          <div class="status-indicator-mini" :class="{ 'online': isConnected }">
+            <div class="status-dot"></div>
+            <span class="desktop-only">{{ isConnected ? 'Sistem Aktif' : 'Offline' }}</span>
           </div>
         </div>
       </div>
@@ -1731,117 +1729,125 @@ async function generateAndProcess() {
   .preview-canvas { transform: scale(0.95); margin-top: 0; }
 }
 
-@media (max-height: 600px) {
-  .preview-canvas { transform: scale(0.75); margin-top: -1rem; }
-}
-
-/* Mobile Responsiveness for Cashier Layout */
+/* Expert Mobile Polish */
 @media (max-width: 1200px) {
-  .global-menu-toggle {
-    display: none;
-  }
+  .cashier-page { padding: 0; }
   
-  .main-layout-grid {
-    grid-template-columns: 1fr;
-    position: relative;
+  .cashier-header-premium {
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    margin-bottom: 0;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
   }
 
-  .sidebar-panel, .delivery-monitor-section {
-    position: fixed;
-    top: 70px;
-    bottom: 20px;
-    z-index: 1000;
-    width: 320px !important;
-    transform: translateX(-100%);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 20px 0 50px rgba(0,0,0,0.5);
-    border-radius: 0 24px 24px 0;
-  }
-
-  .delivery-monitor-section {
-    right: 0;
-    left: auto;
-    transform: translateX(100%);
-    border-radius: 24px 0 0 24px;
-    box-shadow: -20px 0 50px rgba(0,0,0,0.5);
-    width: 280px !important;
-  }
-
-  .sidebar-panel.mobile-popout, 
-  .delivery-monitor-section.mobile-popout {
-    transform: translateX(0);
-  }
-
-  .mobile-grid-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px);
-    z-index: 999;
-  }
-
-  .mobile-toggles {
-    display: flex;
-    gap: 10px;
-    margin-right: 15px;
-  }
-
-  .mobile-toggles .toggle-btn {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 8px 12px;
-    color: #94a3b8;
+  .header-content { justify-content: space-between; gap: 8px; }
+  
+  .header-controls-mobile {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
+    gap: 12px;
   }
 
-  .mobile-toggles .toggle-btn.active {
-    background: rgba(16, 185, 129, 0.2);
-    border-color: #10b981;
-    color: #10b981;
+  .mobile-toggles-integrated {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 2px;
+  }
+
+  .tgl-btn {
+    width: 40px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .tgl-btn.active {
+    background: #10b981;
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .status-indicator-mini {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.2);
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+  }
+
+  .online .status-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
   }
 
   .cashier-stats-strip {
-    padding: 1rem;
+    margin: 10px;
+    border-radius: 20px;
+    padding: 12px;
   }
+
+  .stats-header-row { margin-bottom: 10px; }
+  .stats-title { font-size: 0.75rem; }
 
   .stats-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    gap: 10px;
+  }
+
+  .stat-mini-card {
+    padding: 10px;
+    border-radius: 16px;
+  }
+  
+  .smc-icon { width: 32px; height: 32px; font-size: 1rem; }
+  .smc-label { font-size: 0.55rem; }
+  .smc-value { font-size: 0.85rem; }
+
+  .main-layout-grid {
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .sidebar-panel, .delivery-monitor-section {
+    top: 60px; /* Space for sticky header */
+    bottom: 0;
+    border-radius: 0;
+  }
+
+  .workspace-area {
+    padding: 10px;
   }
 }
 
 @media (max-width: 640px) {
-  .brand-text { display: none; }
-  .stats-grid { grid-template-columns: 1fr; }
-  .mobile-toggles span { display: none; }
-  .mobile-toggles .toggle-btn { padding: 10px; }
-  .sidebar-panel, .delivery-monitor-section { width: 85% !important; }
-}
-
-@media (max-width: 768px) {
-  .global-menu-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    width: 44px;
-    height: 44px;
-    color: white;
-    margin-right: 10px;
-    cursor: pointer;
-  }
+  .premium-title { font-size: 1rem; }
+  .global-menu-toggle { width: 36px; height: 36px; margin-right: 6px; }
+  .sidebar-panel, .delivery-monitor-section { width: 90% !important; }
 }
 
 @media (min-width: 1201px) {
-  .mobile-toggles, .global-menu-toggle { display: none; }
+  .header-controls-mobile { display: none; }
 }
 </style>
