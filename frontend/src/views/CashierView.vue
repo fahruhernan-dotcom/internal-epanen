@@ -190,7 +190,7 @@
                 </div>
               </div>
               <!-- Spacer to force scroll -->
-              <div class="scroll-spacer" style="height: 15rem; width: 100%; flex-shrink: 0;"></div>
+              <div class="scroll-spacer" style="height: 10rem; width: 100%; flex-shrink: 0;"></div>
             </div>
           </TransitionGroup>
         </div>
@@ -715,7 +715,7 @@ const topProducts = computed(() => {
   })
   return Object.values(map)
     .sort((a, b) => b.qty - a.qty)
-    .slice(0, 5)
+    .slice(0, 10)
 })
 
 function subscribeToOrders() {
@@ -860,17 +860,31 @@ async function generateAndProcess() {
 
 <style scoped>
 .cashier-page {
-  height: calc(100vh - 140px); /* Dynamic adjustment to fit dashboard layout */
-  min-height: 650px;
+  flex: 1;
+  height: 0;
+  width: 100%;
+  max-width: 100%;
   background: transparent;
   color: #f8fafc;
   display: flex;
   flex-direction: column;
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.5rem 1.5rem 1.5rem; /* Restored bottom padding */
   gap: 1rem;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.main-layout-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  flex: 1;
+  min-height: 400px;
+  overflow: hidden;
+  border-radius: 32px; /* Full rounding */
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05); /* Restored bottom border */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 /* Stats Strip */
@@ -972,15 +986,25 @@ async function generateAndProcess() {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.tp-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.tp-list { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 0.2rem; 
+  max-height: 200px; /* Space for roughly 5 items */
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.tp-list::-webkit-scrollbar { width: 4px; }
+.tp-list::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.2); border-radius: 10px; }
 
 .tp-item {
   display: grid;
   grid-template-columns: 28px 1fr 120px 70px 90px;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: 10px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
   transition: background 0.2s;
 }
 
@@ -1163,24 +1187,11 @@ async function generateAndProcess() {
   100% { transform: scale(3); opacity: 0; }
 }
 
-/* Layout Grid */
-.main-layout-grid {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  flex: 1;
-  min-height: 0; /* Allow grid to shrink/fill as flex item */
-  overflow: hidden;
-  border-radius: 40px;
-  background: rgba(15, 23, 42, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-}
-
 /* Sidebar */
 .sidebar-panel {
   border-right: 1px solid rgba(255, 255, 255, 0.05);
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   height: 100%;
 }
@@ -1254,7 +1265,7 @@ async function generateAndProcess() {
   display: flex; 
   flex-direction: column; 
   gap: 1rem; 
-  padding-bottom: 8rem;
+  padding-bottom: 5rem;
 }
 
 .premium-order-card {
@@ -1278,8 +1289,21 @@ async function generateAndProcess() {
 .card-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin: 0; }
 
 /* Workspace Area */
-.workspace-area { flex: 1; position: relative; display: flex; flex-direction: column; padding: 1.5rem; background: rgba(0,0,0,0.2); }
-.workspace-container { display: flex; flex-direction: column; height: 100%; gap: 1.5rem; }
+.workspace-area { 
+  flex: 1; 
+  position: relative; 
+  display: flex; 
+  flex-direction: column; 
+  padding: 1.5rem; 
+  background: rgba(0,0,0,0.2); 
+  overflow-y: auto;
+  min-height: 0; /* Important for flex-child scrolling */
+}
+.workspace-area::-webkit-scrollbar { width: 6px; }
+.workspace-area::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+.workspace-area:hover::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.2); }
+
+.workspace-container { display: flex; flex-direction: column; min-height: 100%; gap: 1.5rem; }
 
 .workspace-toolbar {
   padding: 1rem 1.5rem;

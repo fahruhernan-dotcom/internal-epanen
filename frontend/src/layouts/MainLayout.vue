@@ -1043,6 +1043,13 @@ onUnmounted(() => {
   flex: 1;
   padding: var(--space-2xl);
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-area.no-padding {
+  padding: 0 !important;
+  overflow: hidden;
 }
 
 /* Responsive */
