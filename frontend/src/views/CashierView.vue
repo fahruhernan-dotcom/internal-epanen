@@ -22,6 +22,72 @@
       </div>
     </div>
 
+    <!-- Daily Stats Bar -->
+    <div class="cashier-stats-strip">
+      <div class="stats-header-row">
+        <h3 class="stats-title"><AppIcon name="bar-chart-2" :size="16" /> Ringkasan Penjualan</h3>
+        <div class="date-filter-pills">
+          <button 
+            v-for="f in dateFilters" :key="f.key"
+            class="filter-pill" 
+            :class="{ active: activeDateFilter === f.key }"
+            @click="activeDateFilter = f.key; fetchDailyStats()"
+          >{{ f.label }}</button>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-mini-card">
+          <div class="smc-icon emerald"><AppIcon name="dollar-sign" :size="18" /></div>
+          <div class="smc-data">
+            <span class="smc-label">TOTAL PENJUALAN</span>
+            <span class="smc-value">{{ formatCurrency(dailyStats.totalRevenue) }}</span>
+          </div>
+        </div>
+        <div class="stat-mini-card">
+          <div class="smc-icon blue"><AppIcon name="file-text" :size="18" /></div>
+          <div class="smc-data">
+            <span class="smc-label">JUMLAH INVOICE</span>
+            <span class="smc-value">{{ dailyStats.invoiceCount }}</span>
+          </div>
+        </div>
+        <div class="stat-mini-card">
+          <div class="smc-icon purple"><AppIcon name="package" :size="18" /></div>
+          <div class="smc-data">
+            <span class="smc-label">ITEM TERJUAL</span>
+            <span class="smc-value">{{ dailyStats.totalItemsSold.toFixed(1) }} kg</span>
+          </div>
+        </div>
+        <div class="stat-mini-card">
+          <div class="smc-icon amber"><AppIcon name="trending-up" :size="18" /></div>
+          <div class="smc-data">
+            <span class="smc-label">RATA-RATA / INV</span>
+            <span class="smc-value">{{ formatCurrency(dailyStats.avgPerInvoice) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Products -->
+      <Transition name="slide-down">
+        <div v-if="showTopProducts && topProducts.length > 0" class="top-products-panel">
+          <div class="tp-list">
+            <div v-for="(p, i) in topProducts" :key="p.label" class="tp-item">
+              <span class="tp-rank">#{{ i + 1 }}</span>
+              <span class="tp-name">{{ p.label }}</span>
+              <div class="tp-bar-container">
+                <div class="tp-bar" :style="{ width: (p.qty / topProducts[0].qty * 100) + '%' }"></div>
+              </div>
+              <span class="tp-qty">{{ p.qty.toFixed(1) }} kg</span>
+              <span class="tp-rev">{{ formatCurrency(p.revenue) }}</span>
+            </div>
+          </div>
+        </div>
+      </Transition>
+      <button class="btn-toggle-products" @click="showTopProducts = !showTopProducts">
+        <AppIcon :name="showTopProducts ? 'chevron-up' : 'chevron-down'" :size="14" />
+        <span>{{ showTopProducts ? 'Sembunyikan' : 'Produk Terlaris' }}</span>
+      </button>
+    </div>
+
     <!-- Main Content Grid -->
     <div class="main-layout-grid">
       <!-- Sidebar: Order List -->
@@ -50,6 +116,12 @@
           <button v-if="activeTab === 'pending'" class="btn-add-order" @click="showManualModal = true">
             <AppIcon name="plus" :size="18" />
           </button>
+        </div>
+
+        <!-- Search Bar (History Tab) -->
+        <div v-if="activeTab === 'history'" class="search-bar-compact">
+          <AppIcon name="search" :size="14" />
+          <input v-model="historySearch" type="text" placeholder="Cari nama / ID invoice..." />
         </div>
 
         <div class="scroll-area">
@@ -90,13 +162,13 @@
 
             <!-- History Orders -->
             <div v-if="activeTab === 'history'" class="order-stack" key="history list">
-              <div v-if="historyOrders.length === 0" class="empty-state-card">
-                <h3>Riwayat Kosong</h3>
-                <p>Terus layani pelanggan Anda!</p>
+              <div v-if="filteredHistoryOrders.length === 0" class="empty-state-card">
+                <h3>{{ historySearch ? 'Tidak Ditemukan' : 'Riwayat Kosong' }}</h3>
+                <p>{{ historySearch ? 'Coba kata kunci lain.' : 'Terus layani pelanggan Anda!' }}</p>
               </div>
 
               <div 
-                v-for="order in historyOrders" 
+                v-for="order in filteredHistoryOrders" 
                 :key="order.id" 
                 class="premium-order-card history"
                 :class="{ 'selected': selectedOrder?.id === order.id }"
@@ -110,7 +182,10 @@
                   <h4 class="card-title">{{ order.customer_name || 'Pelanggan' }}</h4>
                   <div class="card-footer">
                     <span class="access-pill ready">SELESAI</span>
-                    <AppIcon name="check-circle" :size="14" class="text-emerald" />
+                    <a v-if="order.pdf_url" :href="order.pdf_url" target="_blank" class="btn-reprint" @click.stop>
+                      <AppIcon name="printer" :size="12" /> Cetak
+                    </a>
+                    <AppIcon v-else name="check-circle" :size="14" class="text-emerald" />
                   </div>
                 </div>
               </div>
@@ -441,6 +516,25 @@ const showReference = ref(false)
 const marketPrices = ref([])
 const refSearch = ref('')
 
+// === NEW: Stats, Search, Top Products ===
+const historySearch = ref('')
+const showTopProducts = ref(false)
+const activeDateFilter = ref('today')
+const completedInvoices = ref([])
+
+const dateFilters = [
+  { key: 'today', label: 'Hari Ini' },
+  { key: 'week', label: 'Minggu Ini' },
+  { key: 'month', label: 'Bulan Ini' }
+]
+
+const dailyStats = reactive({
+  totalRevenue: 0,
+  invoiceCount: 0,
+  totalItemsSold: 0,
+  avgPerInvoice: 0
+})
+
 const localOrderData = reactive({
   customer_name: '',
   items: []
@@ -482,6 +576,7 @@ let subscription = null
 onMounted(async () => {
   await fetchPendingOrders()
   await fetchMarketPrices()
+  await fetchDailyStats()
   subscribeToOrders()
 })
 
@@ -546,10 +641,82 @@ async function fetchHistoryOrders() {
     .select('*')
     .neq('status', 'pending')
     .order('created_at', { ascending: false })
-    .limit(50)
+    .limit(100)
   
   if (data) historyOrders.value = data
 }
+
+// === NEW: Filtered History (Search) ===
+const filteredHistoryOrders = computed(() => {
+  if (!historySearch.value) return historyOrders.value
+  const q = historySearch.value.toLowerCase()
+  return historyOrders.value.filter(o =>
+    (o.customer_name || '').toLowerCase().includes(q) ||
+    String(o.id).includes(q)
+  )
+})
+
+// === NEW: Fetch Daily Stats ===
+function getDateFilterRange() {
+  const now = new Date()
+  let start
+  if (activeDateFilter.value === 'today') {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  } else if (activeDateFilter.value === 'week') {
+    const day = now.getDay() || 7
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1)
+  } else {
+    start = new Date(now.getFullYear(), now.getMonth(), 1)
+  }
+  return start.toISOString()
+}
+
+async function fetchDailyStats() {
+  const startISO = getDateFilterRange()
+  const { data } = await supabase
+    .from(TABLES.INVOICES)
+    .select('*')
+    .neq('status', 'pending')
+    .gte('created_at', startISO)
+    .order('created_at', { ascending: false })
+
+  if (!data) return
+  completedInvoices.value = data
+
+  const invoiceCount = data.length
+  let totalRevenue = 0
+  let totalItemsSold = 0
+
+  data.forEach(inv => {
+    totalRevenue += (inv.total_amount || 0)
+    const items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || [])
+    items.forEach(item => {
+      totalItemsSold += (item.qty || 0)
+    })
+  })
+
+  dailyStats.totalRevenue = totalRevenue
+  dailyStats.invoiceCount = invoiceCount
+  dailyStats.totalItemsSold = totalItemsSold
+  dailyStats.avgPerInvoice = invoiceCount > 0 ? totalRevenue / invoiceCount : 0
+}
+
+// === NEW: Top Products (computed from completedInvoices) ===
+const topProducts = computed(() => {
+  const map = {}
+  completedInvoices.value.forEach(inv => {
+    const items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || [])
+    items.forEach(item => {
+      const key = (item.label || 'Unknown').trim()
+      if (!map[key]) map[key] = { label: key, qty: 0, revenue: 0 }
+      map[key].qty += (item.qty || 0)
+      map[key].revenue += ((item.qty || 0) * (item.price || 0))
+    })
+  })
+  return Object.values(map)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5)
+})
 
 function subscribeToOrders() {
   subscription = supabase
@@ -566,6 +733,8 @@ function subscribeToOrders() {
         if (selectedOrder.value?.id === payload.new.id) {
           selectedOrder.value = { ...selectedOrder.value, ...payload.new }
         }
+        // Refresh stats when an invoice is completed
+        fetchDailyStats()
       }
     })
     .subscribe(status => {
@@ -697,11 +866,214 @@ async function generateAndProcess() {
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
-  gap: 1.5rem;
+  gap: 1rem;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
   box-sizing: border-box;
 }
+
+/* Stats Strip */
+.cashier-stats-strip {
+  flex-shrink: 0;
+  background: rgba(30, 41, 59, 0.35);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 1rem 1.5rem;
+}
+
+.stats-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.stats-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.date-filter-pills {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.filter-pill {
+  padding: 4px 12px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.filter-pill.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.filter-pill:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.stat-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+}
+
+.smc-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.smc-icon.emerald { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.smc-icon.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.smc-icon.purple { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+.smc-icon.amber { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+
+.smc-data { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.smc-label { font-size: 0.6rem; font-weight: 600; color: #64748b; letter-spacing: 0.04em; text-transform: uppercase; }
+.smc-value { font-size: 1rem; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Top Products Panel */
+.top-products-panel {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tp-list { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.tp-item {
+  display: grid;
+  grid-template-columns: 28px 1fr 120px 70px 90px;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.tp-item:hover { background: rgba(255, 255, 255, 0.03); }
+
+.tp-rank { font-size: 0.7rem; font-weight: 800; color: #10b981; text-align: center; }
+.tp-name { font-size: 0.78rem; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.tp-bar-container {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.tp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+
+.tp-qty { font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-align: right; }
+.tp-rev { font-size: 0.72rem; font-weight: 700; color: #10b981; text-align: right; }
+
+.btn-toggle-products {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle-products:hover { color: #10b981; background: rgba(16, 185, 129, 0.05); }
+
+/* Search Bar */
+.search-bar-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  margin: 0 1rem 0.5rem;
+  height: 36px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  color: #64748b;
+}
+
+.search-bar-compact input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-family: inherit;
+}
+
+.search-bar-compact input::placeholder { color: #475569; }
+
+/* Re-print Button */
+.btn-reprint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  color: #10b981;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-reprint:hover { background: rgba(16, 185, 129, 0.2); }
+
+/* Slide Down Transition */
+.slide-down-enter-active, .slide-down-leave-active { transition: all 0.3s ease; }
+.slide-down-enter-from, .slide-down-leave-to { opacity: 0; max-height: 0; transform: translateY(-8px); }
+.slide-down-enter-to, .slide-down-leave-from { opacity: 1; max-height: 300px; }
 
 /* Header Premium */
 .cashier-header-premium {
