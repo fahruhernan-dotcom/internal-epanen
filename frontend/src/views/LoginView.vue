@@ -493,12 +493,44 @@ async function handleLogin() {
 
 /* Mobile */
 @media (max-width: 640px) {
+  .login-container {
+    padding: 16px;
+  }
+
   .login-card {
     padding: 32px 24px;
     border-radius: 24px;
+    gap: 24px;
   }
+  
   .brand-title {
     font-size: 1.75rem;
+  }
+
+  .logo-wrapper {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 16px;
+  }
+
+  .brand-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .form-group {
+    margin-bottom: 4px;
+  }
+}
+
+@media (max-height: 700px) and (max-width: 640px) {
+  .login-card {
+    padding: 24px 20px;
+  }
+  .card-header {
+    margin-bottom: 0;
+  }
+  .logo-wrapper {
+    display: none; /* Hide logo on very short screens to save space */
   }
 }
 </style>

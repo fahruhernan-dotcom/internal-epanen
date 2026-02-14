@@ -493,4 +493,40 @@ const liveLogs = ref([
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .header-section {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .architecture-container {
+    padding: var(--space-md);
+  }
+
+  .map-visualization {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    padding-bottom: var(--space-xl);
+  }
+
+  .nodes-container {
+    min-width: 600px; /* Keep the map structure but allow scroll */
+    height: 450px;
+  }
+
+  .orchestrator-node {
+    width: 180px;
+  }
+
+  .agent-node {
+    width: 120px;
+  }
+
+  .legend {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+}
 </style>

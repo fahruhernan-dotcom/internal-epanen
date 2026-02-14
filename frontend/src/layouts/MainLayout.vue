@@ -1176,6 +1176,19 @@ onUnmounted(() => {
   .main-content {
     margin-left: 0 !important;
   }
+
+  .content-area {
+    padding: 12px !important;
+  }
+
+  .content-area.mobile-full {
+    padding: 12px !important;
+  }
+
+  .top-header.mobile-compact {
+    height: 56px;
+    padding: 0 12px;
+  }
 }
 
 @media (min-width: 769px) {

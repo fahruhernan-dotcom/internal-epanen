@@ -1889,6 +1889,132 @@ async function generateAndProcess() {
   }
 
   .nav-separator { width: 1px; height: 30px; background: rgba(255,255,255,0.1); margin: 0 5px; }
+
+  /* Modal - Full screen on mobile */
+  .modal-card-premium {
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  .modal-form-content {
+    padding: 16px !important;
+  }
+
+  .manual-item-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .manual-item-row .item-input.label {
+    width: 100% !important;
+  }
+
+  .manual-item-row-wrapper {
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(0,0,0,0.2);
+    margin-bottom: 4px;
+  }
+
+  .qty-input-wrapper-lite {
+    width: 100% !important;
+  }
+
+  .manual-item-row .item-input.price {
+    width: 100% !important;
+  }
+
+  .btn-remove-lite {
+    width: 100% !important;
+    height: 36px !important;
+  }
+
+  .modal-footer-premium {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .modal-footer-premium .btn-cancel,
+  .modal-footer-premium .btn-confirm {
+    width: 100% !important;
+    padding: 14px !important;
+    text-align: center !important;
+  }
+
+  /* Workspace editor - vertical stacking */
+  .editor-visual-split {
+    flex-direction: column !important;
+  }
+
+  .editor-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  }
+  
+  /* Hide reference panel on mobile */
+  .market-reference-panel {
+    display: none !important;
+  }
+
+  /* Editor form items */
+  .item-row-edit {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .item-row-edit .item-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .qty-input-wrapper {
+    width: 100% !important;
+  }
+
+  /* Invoice preview scaling */
+  .visual-preview {
+    width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  .preview-canvas {
+    transform: scale(0.55) !important;
+    transform-origin: top left !important;
+    margin-bottom: -40% !important;
+  }
+
+  /* Toolbar vertical on mobile */
+  .workspace-toolbar {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .toolbar-right {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .toolbar-right .btn-group {
+    width: 100% !important;
+  }
+
+  .toolbar-right .btn-primary-glow,
+  .toolbar-right .btn-emerald,
+  .toolbar-right .btn-secondary-dark {
+    width: 100% !important;
+    justify-content: center !important;
+  }
 }
 
 @media (min-width: 1201px) {

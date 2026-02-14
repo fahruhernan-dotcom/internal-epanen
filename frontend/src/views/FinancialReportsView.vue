@@ -1,5 +1,23 @@
 <template>
-  <div class="finance-page animate-fade-in-up">
+  <MobileFinancialReportsView
+    v-if="isMobile"
+    :periods="consolidatedPeriods"
+    :company-options="companyOptions"
+    :selected-company="selectedCompany"
+    :period-types="periodTypes"
+    :selected-period-type="selectedPeriodType"
+    :period-label="getPeriodLabel()"
+    :loading="loading"
+    :show-company-filter="compAuth.isAdmin || compAuth.isOwner"
+    :can-upload="compAuth.isAdmin || compAuth.isOwner || authStore.user?.role === 'ceo'"
+    :generating-id="currentGeneratingId"
+    @select-company="selectCompany"
+    @set-period="setPeriodType"
+    @refresh="loadReports(true)"
+    @upload="openUploadForm"
+    @generate-ai="generateInsight"
+  />
+  <div v-else class="finance-page animate-fade-in-up">
     <!-- Header Section - Elite Style -->
     <header class="welcome-section-premium animate-fade-in-up">
       <div class="welcome-text">
@@ -176,7 +194,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { useReportsStore } from '@/stores/reports'
@@ -185,6 +203,11 @@ import { aiService } from '@/services/ai'
 import { parseRefNumber } from '@/utils/financialUtils'
 import PeriodInsightCard from '@/components/PeriodInsightCard.vue'
 import AppIcon from '@/components/AppIcon.vue'
+import MobileFinancialReportsView from './mobile/MobileFinancialReportsView.vue'
+
+// --- Mobile Detection ---
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
 
 // --- State ---
 const authStore = useAuthStore()
@@ -202,6 +225,13 @@ const isCompanyDropdownOpen = ref(false)
 const expandedPeriodId = ref(null)
 const generationStatus = ref({}) // Track loading per card
 const normalizationStatus = ref({}) // Track AI normalization progress
+
+// Computed for mobile
+const currentGeneratingId = computed(() => {
+  const entries = Object.entries(generationStatus.value)
+  const active = entries.find(([, v]) => v)
+  return active ? active[0] : null
+})
 
 // Constants
 const periodTypes = [
@@ -501,6 +531,11 @@ onMounted(() => {
     }
 
     loadReports()
+    window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
 })
 </script>
 

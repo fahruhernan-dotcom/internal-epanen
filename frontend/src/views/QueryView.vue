@@ -210,6 +210,25 @@ function truncate(str, len) {
 @media (max-width: 768px) {
   .query-layout {
     grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .query-input-card {
+    padding: var(--space-lg);
+  }
+
+  .btn-ask {
+    width: 100%;
+    align-self: center;
+  }
+
+  .query-history {
+    height: auto;
+    max-height: 400px;
+  }
+
+  .dashboard-header h2 {
+    font-size: 1.5rem;
   }
 }
 </style>

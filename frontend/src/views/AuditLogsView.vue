@@ -192,4 +192,29 @@ onMounted(() => {
   padding: var(--space-2xl);
   color: var(--text-tertiary);
 }
+
+@media (max-width: 768px) {
+  .logs-page {
+    padding: 0 !important;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+
+  .tab-btn {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.85rem;
+  }
+
+  .dashboard-header h2 {
+    font-size: 1.5rem;
+  }
+}
 </style>

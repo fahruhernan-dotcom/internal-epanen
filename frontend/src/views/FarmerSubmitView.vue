@@ -385,8 +385,24 @@ onMounted(() => {
   padding: 0 4px;
 }
 
-.btn-block {
-  width: 100%;
-  padding: var(--space-lg);
+@media (max-width: 600px) {
+  .weather-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .weather-btn {
+    padding: var(--space-sm);
+  }
+
+  .weather-icon {
+    font-size: 1.25rem;
+  }
+
+  .draft-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: var(--space-md);
+  }
 }
 </style>

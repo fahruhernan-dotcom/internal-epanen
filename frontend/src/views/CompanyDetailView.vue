@@ -539,8 +539,80 @@ onMounted(() => loadCompanyData())
 @keyframes pulse-green { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Error State */
-.error-slate { height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.error-icon { font-size: 5rem; opacity: 0.2; margin-bottom: 1.5rem; }
-.btn-back { margin-top: 2rem; padding: 12px 24px; background: var(--color-primary); color: white; border-radius: 12px; font-weight: 800; font-size: 0.9rem; }
+@media (max-width: 1024px) {
+  .elite-header-composite {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  .kpi-hub {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .intelligence-suite {
+    padding: 1.5rem;
+  }
+
+  .suite-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .suite-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .suite-actions .action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .company-detail {
+    padding: 0 !important;
+  }
+
+  .brand-name {
+    font-size: 1.5rem;
+  }
+
+  .brand-icon-pod {
+    width: 48px;
+    height: 48px;
+  }
+
+  .kpi-item {
+    min-width: 120px;
+  }
+
+  .insight-card {
+    padding: 1.25rem;
+  }
+
+  .log-viewport {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .elite-table {
+    min-width: 700px;
+  }
+
+  .log-suite-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .table-row td {
+    padding: 1rem 1.25rem;
+  }
+}
 </style>

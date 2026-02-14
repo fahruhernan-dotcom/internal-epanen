@@ -252,7 +252,34 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
   .col-span-2 { grid-column: span 1; }
-  .pie-wrapper { width: 100%; }
+  .pie-wrapper { 
+    width: 100%; 
+    height: 300px;
+    display: flex;
+    justify-content: center;
+  }
+  .chart-container {
+    min-height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table {
+    min-width: 500px;
+  }
+
+  .stat-widget {
+    min-height: 120px;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem;
+  }
 }
 </style>
 

@@ -244,4 +244,43 @@ async function handleUpdatePassword() {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 0 !important;
+  }
+
+  .profile-grid {
+    gap: 16px;
+  }
+
+  .user-avatar-large {
+    width: 64px;
+    height: 64px;
+    font-size: 2rem;
+  }
+
+  .card {
+    border-radius: 16px !important;
+  }
+
+  .card-body {
+    padding: 16px !important;
+  }
+
+  .form-input {
+    height: 48px !important;
+    font-size: 1rem !important;
+  }
+
+  .btn {
+    height: 48px !important;
+    font-size: 0.95rem !important;
+    border-radius: 14px !important;
+  }
+
+  .dashboard-header h2 {
+    font-size: 1.4rem !important;
+  }
+}
 </style>

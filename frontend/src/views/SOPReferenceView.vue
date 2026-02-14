@@ -8,7 +8,7 @@
 
     <div class="sop-grid" :class="{ 'single-col': embedded }">
       <!-- SOP List Sidebar -->
-      <div v-if="!selectedSOP || !embedded" class="sop-list card glass-premium">
+      <div v-if="!selectedSOP || !isMobile" class="sop-list card glass-premium">
         <div class="search-box mb-md">
           <input type="text" v-model="searchQuery" placeholder="Cari SOP..." class="form-input" />
         </div>
@@ -30,7 +30,7 @@
 
       <!-- SOP Content Viewer -->
       <div v-if="selectedSOP" class="sop-content card-nature glass-premium">
-        <div class="back-btn-wrapper mb-md" v-if="embedded">
+        <div class="back-btn-wrapper mb-md" v-if="isMobile">
             <button class="btn-text" @click="selectedSOP = null">← Kembali ke Daftar</button>
         </div>
 
@@ -43,11 +43,11 @@
               </div>
               <button class="btn btn-secondary btn-sm" @click="printSOP" aria-label="Print SOP">
                 <AppIcon name="printer" :size="16" />
-                <span class="ml-sm">Cetak</span>
+                <span class="ml-sm" v-if="!isMobile">Cetak</span>
               </button>
             </div>
             <div class="sop-meta mt-sm text-tiny">
-              Diterbitkan: {{ selectedSOP.date }} • Penulis: {{ selectedSOP.author }}
+              Diterbitkan: {{ selectedSOP.date }} <span v-if="!isMobile">• Penulis: {{ selectedSOP.author }}</span>
             </div>
           </div>
           
@@ -62,7 +62,7 @@
         </div>
       </div>
       
-      <div v-else-if="!embedded" class="empty-state">
+      <div v-else-if="!embedded && !isMobile" class="empty-state">
         <AppIcon name="book-open" :size="48" />
         <p>Pilih salah satu SOP di sebelah kiri untuk membaca detailnya.</p>
       </div>
@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
@@ -80,6 +80,20 @@ const props = defineProps({
 
 const searchQuery = ref('')
 const selectedSOP = ref(null)
+const isMobile = ref(false)
+
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+onMounted(() => {
+  handleResize()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 const sops = ref([
   {
