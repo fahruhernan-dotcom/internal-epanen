@@ -22,6 +22,7 @@
       ],
       "id": "get-internal-user",
       "name": "Get Internal User",
+      "alwaysOutputData": true,
       "credentials": {
         "supabaseApi": {
           "id": "v6CGf3VKHViurAr5",
@@ -756,6 +757,7 @@
       ],
       "id": "59adefc6-b850-4fcb-86ed-9d4a4493fb1c",
       "name": "companny",
+      "alwaysOutputData": true,
       "credentials": {
         "supabaseApi": {
           "id": "v6CGf3VKHViurAr5",
@@ -2717,7 +2719,7 @@
       "typeVersion": 2,
       "position": [
         5248,
-        512
+        464
       ],
       "id": "24aac4cf-8875-4183-a8cc-e9a0ce24afc0",
       "name": "Code in JavaScript5"
@@ -3011,9 +3013,9 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "Pesan dari Cashier\n",
+        "text": "=Pesan dari Cashier {{ $json.nickname }}\n{{ $json.chatInput }}",
         "options": {
-          "systemMessage": "Kamu adalah AI Cashier Specialist untuk ePanen.\nTugas utamamu adalah mengekstrak pesanan pelanggan dari chat WhatsApp menjadi data invoice terstruktur.\n\nPENTING:\n1. Kamu memiliki akses ke database 'product_market_prices'. \n2. Setiap kali user menyebutkan nama produk, kamu HARUS mencari nama produk yang paling mendekati di database untuk mendapatkan \"Harga Satuan (price)\" dan \"Satuan (unit)\" yang benar.\n3. Jika user tidak menyebutkan berat secara detail, asumsikan jumlah yang paling masuk akal atau tanyakan kembali.\n4. Kamu HARUS mendukung input desimal (contoh: 0.5 kg, 1.2 kg).\n\nLOGIKA PENCARIAN HARGA:\n- \"Ayam\" -> Cari di database, ambil harga per kg untuk \"Ayam Broiler\" atau \"Ayam Kampung\".\n- \"Cabe\" -> Cocokkan dengan \"Cabe Merah\" atau \"Cabe Rawit\".\n- JANGAN mengarang harga. Gunakan HANYA harga dari database.\n\nFORMAT OUTPUT (WAJIB JSON):\nKamu harus selalu merespon hanya dalam format JSON valid seperti ini tanpa teks tambahan:\n{\n  \"customer_name\": \"Nama Pengirim\",\n  \"items\": [\n    {\n      \"label\": \"Nama Produk dari Database\",\n      \"qty\": 0.5,\n      \"price\": 35000,\n      \"unit\": \"kg\"\n    }\n  ],\n  \"total_amount\": 17500\n}\n\nINSTRUKSI KHUSUS:\n- Jika nama produk tidak ditemukan sama sekali di database, isikan harga 0 dan berikan catatan di item tersebut.\n- Gunakan bahasa Indonesia yang ramah jika kamu perlu bertanya, tapi hasil akhir untuk invoice tetap harus JSON."
+          "systemMessage": "Kamu adalah AI Cashier Specialist untuk ePanen.\nTugas utamamu adalah mengekstrak pesanan pelanggan dari chat WhatsApp menjadi data invoice JSON yang valid dan lengkap.\n\nAkses Database Harga:\n1. Kamu wajib menggunakan tool 'product_market_prices' (Tabel Epanen) untuk mencari harga.\n2. JANGAN PERNAH mengarang harga. Jika produk tidak ada, beri harga 0.\n3. Prioritaskan harga \"per unit\" (kg, ikat, bang, dll) sesuai database.\n\nAturan Respon:\n- Jika user menyapa (Halo/Pagi), jawab ramah: \"Halo! Mau pesan apa hari ini?\"\n- Jika user memesan barang, proses pesanan dan akhiri respon HANYA dengan blok kode JSON (tanpa teks lain).\n- Format JSON HARUS persis seperti ini:\n\n```json\n{\n  \"customer_name\": \"Nama Pengirim\",\n  \"items\": [\n    {\n      \"label\": \"Nama Produk\",\n      \"qty\": 1.5,\n      \"price\": 15000,\n      \"unit\": \"kg\",\n      \"subtotal\": 22500\n    }\n  ],\n  \"total_amount\": 22500,\n  \"summary_text\": \"1.5 kg Cabe Merah @15000\\n2 ikat Kangkung @2000\", \n  \"status\": \"pending\"\n}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -3217,14 +3219,14 @@
         "session": "={{ $('WAHA Trigger').item.json.session }}",
         "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
         "reply_to": "={{ $json.me.jid }}",
-        "text": "={{ $json.message }}",
+        "text": "={{ $('Code in JavaScript3').item.json.message }}",
         "requestOptions": {}
       },
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        3728,
-        960
+        4000,
+        1488
       ],
       "id": "c9c94109-3636-4121-9779-1ebb474a88ed",
       "name": "Send a text message4",
@@ -3254,8 +3256,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3920,
-        960
+        4240,
+        1488
       ],
       "id": "4bb41e11-a7fe-4fed-8c12-3b77d6a151d8",
       "name": "massage4",
@@ -3268,12 +3270,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Ambil output dari input AI Agent (FAQ/Onboarding/Support)\nlet text =\n  $input.first()?.json?.output ?? \"\";\n\n// Pastikan string\ntext = typeof text === \"string\" ? text : \"\";\n// Bersihkan '**' (Markdown Standar) jadi '*' (Format Bold WhatsApp)\nlet cleanText = text.replace(/\\*\\*/g, \"*\");\n// Ambil data dari node 'WAHA Trigger' untuk routing balik\n// Return data yang siap dikirim oleh node WAHA Send Message\nreturn [\n  {\n    json: {\n      message: cleanText,\n    }\n  }\n];"
+        "jsCode": "const output = $input.first().json.output || \"\";\nconst jsonRegex = /```json\\s*([\\s\\S]*?)\\s*```/i;\nconst match = output.match(jsonRegex);\nlet invoiceData = null;\nlet cleanMessage = output.replace(/\\*\\*/g, \"*\"); // Bersihkan bold markdown\nif (match) {\n    try {\n        invoiceData = JSON.parse(match[1]);\n        cleanMessage = `*Invoice Berhasil Diterima!*\\n\\n${invoiceData.summary_text}\\n\\n*Total: ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(invoiceData.total_amount)}*`;\n    } catch (e) {\n        // Gagal parse JSON\n    }\n}\nconst triggerData = $('WAHA Trigger').first().json;\nconst userData = $('Code in JavaScript2').first().json || {};\nreturn [{\n    json: {\n        is_invoice: !!invoiceData,\n        invoice_payload: invoiceData ? {\n            summary_text: invoiceData.summary_text,\n            whatsapp_raw: triggerData.payload.body || triggerData.payload._data.RawMessage.conversation || \"\",\n            customer_name: invoiceData.customer_name || userData.full_name || 'Pelanggan',\n            status: 'pending',\n            company_id: userData.company_id,\n            customer_phone: (triggerData.payload.from || \"\").split('@')[0],\n            items: JSON.stringify(invoiceData.items),\n            total_amount: invoiceData.total_amount\n        } : null,\n        message: cleanMessage\n    }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3440,
+        3392,
         880
       ],
       "id": "019e887e-fc48-44af-b254-26512956e1d5",
@@ -3288,51 +3290,23 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3440,
-        960
+        3712,
+        1488
       ],
       "id": "44ba43e2-59a3-4a19-a201-3320285edc6b",
       "name": "Merge5"
     },
     {
       "parameters": {
-        "operation": "getAll",
-        "tableId": "product_market_prices",
-        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', ``, 'number') }}",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "product_name",
-              "condition": "eq",
-              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', `Nama Produk`, 'string') }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabaseTool",
-      "typeVersion": 1,
-      "position": [
-        3104,
-        1104
-      ],
-      "id": "7a820417-6ca5-44a5-9509-511d2d6c7625",
-      "name": "Get many rows in Supabase",
-      "credentials": {
-        "supabaseApi": {
-          "id": "v6CGf3VKHViurAr5",
-          "name": "Internal Automation System"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey"
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.phone_number }}",
+        "contextWindowLength": 4
       },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        3056,
-        1264
+        3008,
+        1280
       ],
       "id": "1ea99acf-5008-4969-9968-85c6efe0c35f",
       "name": "Simple Memory3"
@@ -3438,6 +3412,150 @@
           "name": "Internal Automation System"
         }
       }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        3232,
+        1104
+      ],
+      "id": "5ad6034b-9a63-4fc1-b215-9c14a9594860",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "product_market_prices",
+        "returnAll": true,
+        "matchType": "allFilters"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3104,
+        1104
+      ],
+      "id": "7a820417-6ca5-44a5-9509-511d2d6c7625",
+      "name": "product_market_prices",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9ff1d614-a8eb-4ecf-9d1b-8a7b21900c25",
+              "leftValue": "={{ $json.role }}",
+              "rightValue": "cashier",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        80
+      ],
+      "id": "3d178aa4-1f8d-4f7a-83b9-86edef057215",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ce90691d-a833-4ed5-b4e2-c8996e79724a",
+              "leftValue": "={{ $json.is_invoice }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3648,
+        880
+      ],
+      "id": "d4fc552b-bd68-40f6-a762-2a79f7986787",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "tableId": "invoices",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "summary_text",
+              "fieldValue": "={{ $json.invoice_payload.summary_text }}"
+            },
+            {
+              "fieldId": "whatsapp_raw",
+              "fieldValue": "={{ $json.invoice_payload.whatsapp_raw }}"
+            },
+            {
+              "fieldId": "customer_name",
+              "fieldValue": "={{ $json.invoice_payload.customer_name\n  .toLowerCase()\n  .split(' ')\n  .map(word => word.charAt(0).toUpperCase() + word.slice(1))\n  .join(' ') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.invoice_payload.status }}"
+            },
+            {
+              "fieldId": "items",
+              "fieldValue": "={{ $json.invoice_payload.items }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3856,
+        864
+      ],
+      "id": "8677b147-e445-44c9-8084-a4dc64b0559e",
+      "name": "Create invoice",
+      "credentials": {
+        "supabaseApi": {
+          "id": "v6CGf3VKHViurAr5",
+          "name": "Internal Automation System"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -3446,12 +3564,12 @@
       "main": [
         [
           {
-            "node": "companny",
+            "node": "Code in JavaScript2",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Code in JavaScript2",
+            "node": "If",
             "type": "main",
             "index": 0
           }
@@ -4908,9 +5026,9 @@
       "main": [
         [
           {
-            "node": "Merge5",
+            "node": "If1",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
@@ -4932,17 +5050,6 @@
           {
             "node": "Code in JavaScript3",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get many rows in Supabase": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
             "index": 0
           }
         ]
@@ -4980,6 +5087,75 @@
           }
         ]
       ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "product_market_prices": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "companny",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Create invoice": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -4989,7 +5165,7 @@
     "availableInMCP": false,
     "timeSavedMode": "fixed"
   },
-  "versionId": "b209636f-6be8-4d3a-a363-b4acd9339251",
+  "versionId": "cd56d437-6230-4795-9d7b-1835870aa239",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "f2d9e660b34c9d92ed2d1946fd6a1cf5eabf8eee0b2182c48836c963c437441a"

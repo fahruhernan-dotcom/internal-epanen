@@ -224,15 +224,29 @@
                 </button>
 
                 <div class="btn-group">
-                  <a 
-                    v-if="selectedOrder.pdf_url" 
-                    :href="selectedOrder.pdf_url" 
-                    target="_blank" 
-                    class="btn-emerald"
-                  >
-                    <AppIcon name="download" :size="18" />
-                    Buka PDF
-                  </a>
+                  <template v-if="selectedOrder.status === 'ready'">
+                    <a 
+                      :href="selectedOrder.pdf_url" 
+                      target="_blank" 
+                      class="btn-emerald"
+                    >
+                      <AppIcon name="external-link" :size="18" />
+                      <span>Buka PDF</span>
+                    </a>
+                    
+                    <button 
+                      class="btn-primary-glow" 
+                      @click="generateAndProcess" 
+                      :disabled="isProcessing"
+                      style="background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.5);"
+                    >
+                      <span v-if="isProcessing" class="premium-loader-sm"></span>
+                      <template v-else>
+                        <AppIcon name="printer" :size="18" />
+                        <span>Re-generate PDF</span>
+                      </template>
+                    </button>
+                  </template>
 
                   <button 
                     v-else
@@ -242,8 +256,8 @@
                   >
                     <span v-if="isProcessing" class="premium-loader-sm"></span>
                     <template v-else>
-                      <AppIcon name="printer" :size="18" />
-                      <span>Generate & Upload</span>
+                      <AppIcon name="zap" :size="18" />
+                      <span>Proses & Siapkan Invoice</span>
                     </template>
                   </button>
                 </div>
@@ -342,67 +356,78 @@
               <!-- Right: Live Preview -->
               <div class="visual-preview">
                 <div class="preview-canvas">
-                  <div id="invoice-preview" class="premium-invoice-paper shadow-2xl">
+                  <div id="invoice-preview" class="premium-invoice-paper">
+                    <!-- Brand Header -->
                     <div class="inv-brand-header">
-                      <div class="brand-info">
+                      <div class="header-top-row">
                         <div class="inv-logo">
                           <AppIcon name="sprout" :size="24" />
                           <span>ePanen</span>
                         </div>
-                        <div class="company-address">
-                          Gedung Hyundai Indonesia Lantai 3A. Jl. Teuku Nyak Arief No.14, RT.4/RW.2<br>
-                          Grogol Utara, Kebayoran Lama, Jakarta Selatan, 12210
-                        </div>
+                        <div class="inv-type">OFFICIAL INVOICE</div>
                       </div>
-                      <div class="inv-type">OFFICIAL INVOICE</div>
+                      <div class="company-address">
+                        Gedung Hyundai Indonesia Lantai 3A. Jl. Teuku Nyak Arief<br>
+                        No.14, RT.4/RW.2. Grogol Utara, Kebayoran Lama,<br>
+                        Jakarta Selatan, 12210
+                      </div>
                     </div>
 
+                    <div class="inv-divider"></div>
+
+                    <!-- Details Section -->
                     <div class="inv-details">
-                      <div class="details-left">
-                        <label>DITAGIHKAN KEPADA</label>
-                        <div class="client-name">{{ localOrderData.customer_name || 'Pelanggan Umum' }}</div>
-                        <div v-if="selectedOrder.customer_phone" class="client-phone">{{ selectedOrder.customer_phone }}</div>
-                      </div>
-                      <div class="details-right">
-                        <div class="meta-row">
-                          <label>INVOICE NO.</label>
-                          <span>#EP-{{ selectedOrder.id }}</span>
+                      <div class="details-row">
+                        <div class="details-left">
+                          <label>DITAGIHKAN KEPADA</label>
                         </div>
-                        <div class="meta-row">
-                          <label>TANGGAL</label>
-                          <span>{{ formatDate(selectedOrder.created_at) }}</span>
+                        <div class="details-right">
+                          <span class="meta-label">INVOICE NO.</span>
+                          <span class="meta-val">#EP-{{ selectedOrder.id }}</span>
                         </div>
                       </div>
-                    </div>
-
-                    <div class="inv-table-header">
-                      <span class="col-desc">DESKRIPSI</span>
-                      <span class="col-qty">QTY</span>
-                      <span class="col-price">HARGA</span>
-                      <span class="col-total">TOTAL</span>
-                    </div>
-
-                    <div class="inv-body-content">
-                      <div v-for="(item, idx) in previewItems" :key="idx" class="inv-item-row">
-                        <span class="col-desc">{{ item.label }}</span>
-                        <span class="col-qty">{{ item.qty }} kg</span>
-                        <span class="col-price">{{ formatCurrency(item.price) }}</span>
-                        <span class="col-total">{{ formatCurrency(item.qty * item.price) }}</span>
-                      </div>
-                      
-                      <div v-if="!localOrderData.items.length" class="empty-inv-msg">
-                        Belum ada item pesanan.
-                      </div>
-
-                      <div class="inv-grand-total">
-                        <div class="total-label">TOTAL AKHIR</div>
-                        <div class="total-value">{{ formatCurrency(calculateTotal()) }}</div>
+                      <div class="details-row">
+                        <div class="details-left">
+                          <div class="client-name">{{ localOrderData.customer_name || 'Pelanggan Umum' }}</div>
+                        </div>
+                        <div class="details-right">
+                          <span class="meta-label">TANGGAL</span>
+                          <span class="meta-val">{{ formatDate(selectedOrder.created_at) }}</span>
+                        </div>
                       </div>
                     </div>
 
+                    <!-- Table Section -->
+                    <div class="inv-table-container">
+                      <div class="inv-table-header">
+                        <span class="col-desc">DESKRIPSI</span>
+                        <span class="col-qty">QTY</span>
+                        <span class="col-price">HARGA</span>
+                        <span class="col-total">TOTAL</span>
+                      </div>
+
+                      <div class="inv-body-content">
+                        <div v-for="(item, idx) in previewItems" :key="idx" class="inv-item-row">
+                          <span class="col-desc">{{ item.label }}</span>
+                          <span class="col-qty">{{ item.qty }} kg</span>
+                          <span class="col-price">{{ formatCurrency(item.price) }}</span>
+                          <span class="col-total">{{ formatCurrency(item.qty * item.price) }}</span>
+                        </div>
+                        
+                        <!-- Auto-fill empty space to keep layout consistent -->
+                        <div class="flex-spacer"></div>
+
+                        <div class="inv-grand-total">
+                          <div class="total-label">TOTAL AKHIR</div>
+                          <div class="total-value">{{ formatCurrency(calculateTotal()) }}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Footer -->
                     <div class="inv-footer-premium">
                       <div class="qr-placeholder">
-                        <AppIcon name="qr-code" :size="48" style="opacity: 0.1" />
+                        <AppIcon name="qr-code" :size="64" />
                       </div>
                       <div class="footer-msg">
                         <p class="main-msg">Terima kasih atas kepercayaannya.</p>
@@ -417,19 +442,29 @@
 
           <!-- Selection Empty State -->
           <div v-else class="empty-workspace-premium">
-            <div class="hero-graphic">
-              <div class="icon-circle animate-pulse-slow">
-                <AppIcon name="receipt" :size="64" />
+            <div class="empty-content">
+              <div class="empty-illustration">
+                <AppIcon name="inbox" :size="80" />
               </div>
-              <div class="glow-bg"></div>
+              <h2>Pilih Invoice untuk Memproses</h2>
+              <p>Kelola pesanan pelanggan Anda dengan sistem kasir cerdas ePanen.</p>
             </div>
-            <h2>Pilih Pesanan</h2>
-            <p>Klik salah satu kartu di sebelah kiri untuk mulai mengolah invoice.</p>
           </div>
         </Transition>
       </main>
 
-      <!-- Delivery Monitor Panel (3rd Column) -->
+    <!-- Success Toast Notification -->
+    <Transition name="toast-slide">
+      <div v-if="showSuccessToast" class="premium-toast">
+        <div class="toast-content">
+          <div class="toast-icon">
+            <AppIcon name="check-circle" :size="20" />
+          </div>
+          <span class="toast-text">{{ toastMsg }}</span>
+        </div>
+        <div class="toast-progress"></div>
+      </div>
+    </Transition>    <!-- Delivery Monitor Panel (3rd Column) -->
       <aside class="delivery-monitor-section" :class="{ 'mobile-popout': mobileMonitorOpen }">
         <div class="dm-header">
           <AppIcon name="calendar" :size="16" />
@@ -551,7 +586,20 @@
          <AppIcon name="plus" :size="20" />
          <span>Baru</span>
        </button>
-    </nav>
+     </nav>
+
+    <!-- Success Toast Notification -->
+    <Transition name="toast-slide">
+      <div v-if="showSuccessToast" class="premium-toast">
+        <div class="toast-content">
+          <div class="toast-icon">
+            <AppIcon name="check-circle" :size="20" />
+          </div>
+          <span class="toast-text">{{ toastMsg }}</span>
+        </div>
+        <div class="toast-progress"></div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -571,6 +619,16 @@ const historyOrders = ref([])
 const selectedOrder = ref(null)
 const isEditing = ref(false)
 const isProcessing = ref(false)
+const showSuccessToast = ref(false)
+const toastMsg = ref('')
+
+function triggerToast(msg) {
+  toastMsg.value = msg
+  showSuccessToast.value = true
+  setTimeout(() => {
+    showSuccessToast.value = false
+  }, 3000)
+}
 const showManualModal = ref(false)
 const showReference = ref(false)
 const marketPrices = ref([])
@@ -885,34 +943,63 @@ async function createManualOrder() {
     newOrderForm.customer_name = ''
     newOrderForm.items = [{ label: '', qty: 1, price: 0 }]
     showManualModal.value = false
+    triggerToast('Order manual berhasil ditambahkan!')
   } catch (err) {
-    alert('Gagal: ' + err.message)
+    triggerToast('Error: ' + err.message)
   }
 }
 
 async function generateAndProcess() {
   if (!window.html2pdf) {
-    alert('Library PDF belum siap!')
+    triggerToast('Library PDF belum siap!')
     return
   }
 
   isProcessing.value = true
   const element = document.getElementById('invoice-preview')
+  
+  // 1. Create a dedicated capture container at the very top of the body
+  // This avoids all flex/transform/scroll issues from the main app
+  const captureDiv = document.createElement('div')
+  captureDiv.style.position = 'fixed'
+  captureDiv.style.top = '-10000px' // Way off-screen
+  captureDiv.style.left = '0'
+  captureDiv.style.width = '148mm' // Match A5 width exactly
+  captureDiv.style.background = '#ffffff'
+  document.body.appendChild(captureDiv)
+
+  const clone = element.cloneNode(true)
+  clone.style.transform = 'none' 
+  clone.style.margin = '0'
+  clone.style.boxShadow = 'none'
+  clone.style.height = 'auto' // Grow naturally
+  clone.style.minHeight = 'auto'
+  clone.style.position = 'relative'
+  captureDiv.appendChild(clone)
+
   const opt = {
-    margin: 0, // No margin to avoid clipping, we use padding in CSS
+    margin: 0,
     filename: `inv_${selectedOrder.value.id}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
-      scale: 2, 
+      scale: 3, 
       useCORS: true,
-      logging: false,
-      letterRendering: true
+      scrollX: 0,
+      scrollY: 0,
+      width: clone.offsetWidth,
+      height: clone.offsetHeight
     },
-    jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait', compress: true },
+    pagebreak: { mode: 'internal' } // Dynamic breaking
   }
 
   try {
-    const pdfBlob = await window.html2pdf().set(opt).from(element).output('blob')
+    // 2. Generate PDF from the clean CLONE
+    const pdfBlob = await window.html2pdf().set(opt).from(clone).output('blob')
+    
+    // 3. Cleanup
+    document.body.removeChild(captureDiv)
+
     const fileName = `public/${Date.now()}_inv_${selectedOrder.value.id}.pdf`
     
     const { error: uploadError } = await supabase.storage.from('invoices').upload(fileName, pdfBlob, {
@@ -933,9 +1020,10 @@ async function generateAndProcess() {
     }).eq('id', selectedOrder.value.id)
 
     if (updateError) throw updateError
-    alert('✅ Invoice Siap!')
+    triggerToast('Invoice Berhasil Diperbarui!')
   } catch (error) {
-    alert('Error: ' + error.message)
+    if (document.body.contains(captureDiv)) document.body.removeChild(captureDiv)
+    triggerToast('Error: ' + error.message)
   } finally {
     isProcessing.value = false
   }
@@ -1186,8 +1274,8 @@ async function generateAndProcess() {
 
 /* Header Premium */
 .cashier-header-premium {
-  height: 80px;
-  padding: 0 2.5rem;
+  height: 64px;
+  padding: 0 1.5rem;
   display: flex;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -1197,7 +1285,7 @@ async function generateAndProcess() {
   background: rgba(30, 41, 59, 0.4);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 32px;
+  border-radius: 20px;
 }
 
 .header-content {
@@ -1210,23 +1298,22 @@ async function generateAndProcess() {
 .brand-group {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .brand-icon-wrapper {
-  width: 52px;
-  height: 52px;
+  width: 40px;
+  height: 40px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05));
   border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 24px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #10b981;
-  box-shadow: 0 8px 16px -4px rgba(16, 185, 129, 0.2);
 }
 
-.premium-title { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; margin: 0; }
+.premium-title { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.02em; margin: 0; }
 .text-gradient { background: linear-gradient(to right, #10b981, #34d399); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .premium-subtitle { font-size: 0.85rem; color: #94a3b8; margin: 0; font-weight: 500; }
 
@@ -1496,50 +1583,168 @@ async function generateAndProcess() {
 
 /* Visual Preview */
 .visual-preview { flex: 1; overflow: auto; padding: 2rem; background: rgba(0,0,0,0.2); display: flex; justify-content: center; }
-.preview-canvas { transform: scale(1.1); transform-origin: top center; flex-shrink: 0; }
+.preview-canvas { transform: scale(1.0); transform-origin: top center; flex-shrink: 0; }
 
 .premium-invoice-paper {
   background: #ffffff;
   width: 148mm;
-  min-height: 210mm;
-  padding: 10mm;
+  min-height: 209.8mm; /* Minimum height for A5, but can grow */
+  padding: 10mm 12mm;
   display: flex;
   flex-direction: column;
   color: #1e293b;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  box-sizing: border-box;
+  position: relative;
 }
 
-.inv-brand-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10mm; border-bottom: 2px solid #f1f5f9; padding-bottom: 4mm; }
-.brand-info { display: flex; flex-direction: column; gap: 4px; }
-.inv-logo { display: flex; align-items: center; gap: 8px; font-weight: 900; color: #10b981; font-size: 1.2rem; }
-.company-address { font-size: 0.65rem; color: #64748b; font-weight: 500; line-height: 1.4; max-width: 80mm; }
-.inv-type { font-weight: 800; color: #cbd5e1; letter-spacing: 2px; font-size: 0.8rem; margin-top: 4px; }
-.inv-details { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8mm; gap: 4mm; }
-.inv-details label { font-size: 0.6rem; font-weight: 900; color: #94a3b8; display: block; margin-bottom: 1mm; }
-.client-name { font-weight: 700; font-size: 1rem; color: #0f172a; }
-.meta-row { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 2px; font-size: 0.85rem; }
-.meta-row span { font-weight: 700; color: #475569; }
+.inv-brand-header { 
+  margin-bottom: 2mm;
+}
 
-.inv-table-header { display: flex; background: #f8fafc; padding: 3mm 4mm; border-radius: 4px; font-weight: 900; font-size: 0.65rem; color: #64748b; margin-bottom: 4mm; }
-.inv-item-row { display: flex; padding: 3mm 4mm; border-bottom: 1px solid #f8fafc; font-size: 0.85rem; font-weight: 500; }
-.col-desc { flex: 1; }
-.col-qty { width: 15mm; text-align: center; }
-.col-price { width: 25mm; text-align: right; }
-.col-total { width: 25mm; text-align: right; }
+.header-top-row {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-start;
+  margin-bottom: 1mm;
+}
 
-.inv-body-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.empty-inv-msg { flex: 1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-style: italic; }
-.summary-text-area { white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: #334155; font-family: 'Inter', sans-serif; }
+.inv-logo { 
+  display: flex; 
+  align-items: center; 
+  gap: 4px; 
+  font-weight: 800; 
+  color: #10b981; 
+  font-size: 0.9rem;
+}
 
-.inv-grand-total { margin-top: auto; padding: 4mm; background: #f8fafc; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
-.total-label { font-size: 0.7rem; font-weight: 900; color: #94a3b8; }
-.total-value { font-size: 1.2rem; font-weight: 900; color: #10b981; }
-.client-phone { font-size: 0.75rem; color: #64748b; margin-top: 1px; }
+.company-address { 
+  font-size: 0.5rem; 
+  color: #64748b; 
+  font-weight: 500; 
+  line-height: 1.3; 
+  max-width: 90mm;
+}
 
-.inv-footer-premium { margin-top: 10mm; border-top: 1px dashed #e2e8f0; padding-top: 8mm; display: flex; align-items: center; gap: 15px; }
-.footer-msg p { margin: 0; }
-.main-msg { font-weight: 800; color: #0f172a; font-size: 0.9rem; }
-.sub-msg { font-size: 0.75rem; color: #94a3b8; }
+.inv-type { 
+  font-weight: 800; 
+  color: #94a3b8; 
+  font-size: 0.65rem; 
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.inv-divider {
+  width: 100%;
+  height: 1px;
+  background: #f1f5f9;
+  margin: 2mm 0 4mm;
+}
+
+.inv-details { 
+  display: flex; 
+  flex-direction: column;
+  gap: 2mm;
+  margin-bottom: 6mm; 
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.inv-details label, .meta-label { 
+  font-size: 0.5rem; 
+  font-weight: 700; 
+  color: #94a3b8; 
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.client-name { 
+  font-weight: 700; 
+  font-size: 0.95rem; 
+  color: #0f172a; 
+  line-height: 1.2;
+}
+
+.details-right {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  text-align: right;
+}
+
+.meta-val { font-weight: 700; color: #1e293b; font-size: 0.85rem; letter-spacing: -0.01em; }
+
+.inv-table-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.inv-table-header { 
+  display: grid;
+  grid-template-columns: 1fr 60px 100px 100px;
+  background: #f8fafc; 
+  padding: 2.5mm 5mm; 
+  border-radius: 6px; 
+  font-weight: 700; 
+  font-size: 0.6rem; 
+  color: #64748b; 
+  margin-bottom: 2mm; 
+  letter-spacing: 0.05em;
+}
+
+.inv-item-row { 
+  display: grid;
+  grid-template-columns: 1fr 60px 100px 100px;
+  padding: 2.5mm 5mm; 
+  border-bottom: 1px solid #f8fafc; 
+  font-size: 0.75rem; 
+  font-weight: 600; 
+  color: #1e293b;
+}
+
+.col-qty { text-align: center; }
+.col-price { text-align: right; }
+.col-total { text-align: right; }
+
+.flex-spacer { flex: 1; }
+
+.inv-grand-total { 
+  margin-top: 6mm;
+  padding: 3mm 5mm; 
+  background: #f8fafc; 
+  border-radius: 8px; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+}
+
+.total-label { font-size: 0.55rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; }
+.total-value { font-size: 1.15rem; font-weight: 800; color: #10b981; }
+
+.inv-footer-premium { 
+  margin-top: auto; /* Push to bottom if space available */
+  padding-top: 6mm; 
+  padding-bottom: 5mm;
+  border-top: 1px dotted #e2e8f0;
+  display: flex; 
+  align-items: center; 
+  gap: 15px; 
+}
+
+.qr-placeholder {
+  width: 56px;
+  height: 56px;
+  color: #e2e8f0;
+  opacity: 0.2;
+}
+
+.main-msg { font-weight: 800; color: #0f172a; font-size: 0.9rem; margin-bottom: 2px; }
+.sub-msg { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
 
 /* Modals */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
@@ -2019,5 +2224,71 @@ async function generateAndProcess() {
 
 @media (min-width: 1201px) {
   .mobile-bottom-nav { display: none; }
+}
+/* Clean Success Toast Notification */
+.premium-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 11000;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 8px 14px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  overflow: hidden;
+  min-width: 200px;
+  max-width: 300px;
+  display: block; /* Force block to prevent stretching */
+}
+
+.toast-content { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+}
+
+.toast-icon { 
+  flex-shrink: 0;
+  width: 24px; 
+  height: 24px; 
+  background: rgba(16, 185, 129, 0.2); 
+  color: #10b981; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  border-radius: 6px; 
+}
+
+.toast-text { 
+  color: white; 
+  font-size: 0.8rem; 
+  font-weight: 600; 
+  white-space: nowrap;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: #10b981;
+  width: 100%;
+  animation: toast-progress 3s linear forwards;
+}
+
+@keyframes toast-progress { from { width: 100% } to { width: 0% } }
+
+.toast-slide-enter-active, .toast-slide-leave-active { 
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1); 
+}
+.toast-slide-enter-from { 
+  transform: translateX(30px); 
+  opacity: 0; 
+}
+.toast-slide-leave-to { 
+  transform: translateY(-10px); 
+  opacity: 0; 
 }
 </style>
