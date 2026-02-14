@@ -1,7 +1,7 @@
 <template>
   <MobileReportsView 
     v-if="isMobile"
-    :reports="filteredReports"
+    :reports="reportsStore.dailyReports"
     :company-options="companyOptions"
     :selected-company="selectedCompany"
     :period-types="periodTypes"
@@ -9,7 +9,7 @@
     :loading="reportsStore.loading"
     @select-company="selectCompany"
     @set-period="setPeriodType"
-    @view-detail="openReportDetail"
+    @view-detail="showReportDetail"
   />
   <div v-else class="reports-page animate-fade-in-up">
     <!-- Header Section - Elite Style -->
@@ -291,13 +291,8 @@ const periodTypes = [
 ]
 
 const companyOptions = computed(() => {
-    // Filter out Owner and Admin from the list as they are not "companies" with reports
     const all = Object.keys(COMPANY_TABLES).filter(c => c !== 'Owner' && c !== 'Admin')
-    
-    // If Admin/Owner, show all valid companies
     if (authStore.isAdmin || authStore.isOwner) return all
-    
-    // If regular user, only show their company
     const userCompany = authStore.user?.companies?.name
     return userCompany ? [userCompany] : []
 })
@@ -308,12 +303,9 @@ function setPeriodType(type) {
 }
 
 function calculateDateRange() {
-    // Get current date in Indonesian timezone (UTC+7)
     const now = new Date()
-    const indonesiaOffset = 7 * 60 // 7 hours in minutes
-    const localOffset = now.getTimezoneOffset() // Local timezone offset in minutes
-
-    // Calculate Indonesia date by adjusting for timezone difference
+    const indonesiaOffset = 7 * 60
+    const localOffset = now.getTimezoneOffset()
     const indonesiaDate = new Date(now.getTime() + (indonesiaOffset + localOffset) * 60 * 1000)
 
     const end = indonesiaDate
@@ -327,25 +319,21 @@ function calculateDateRange() {
     }
 
     if (selectedPeriodType.value === 'monthly') {
-        // First day of current month in Indonesia time
         start = new Date(indonesiaDate.getFullYear(), indonesiaDate.getMonth(), 1)
     } else {
-        // Calculate days back (7 or 14)
         let daysBack = 7
         if (selectedPeriodType.value === '2weeks') daysBack = 14
         start.setDate(indonesiaDate.getDate() - daysBack)
     }
 
-    // Reset time to midnight for clean date comparison
     start.setHours(0, 0, 0, 0)
-    end.setHours(23, 59, 59, 999) // End of day
+    end.setHours(23, 59, 59, 999)
 
     return {
         start: start.toISOString().split('T')[0],
         end: end.toISOString().split('T')[0]
     }
 }
-
 
 function formatDateShort(dateStr) {
   if (!dateStr) return '-'
@@ -376,16 +364,10 @@ function truncate(text, length) {
 
 function getActivitiesSummary(activities) {
   if (!activities) return 'Laporan Tanpa Judul'
-  
   let data = activities
   if (typeof activities === 'string' && activities.trim().startsWith('{')) {
-    try {
-      data = JSON.parse(activities)
-    } catch (e) {
-      return activities
-    }
+    try { data = JSON.parse(activities) } catch (e) { return activities }
   }
-
   if (typeof data === 'string') return data
   if (data.summary) return data.summary
   return 'Aktivitas Harian'
@@ -393,16 +375,10 @@ function getActivitiesSummary(activities) {
 
 function getActivityDetails(activities) {
     if (!activities) return null
-    
     let data = activities
     if (typeof activities === 'string' && activities.trim().startsWith('{')) {
-      try {
-        data = JSON.parse(activities)
-      } catch (e) {
-        return null
-      }
+      try { data = JSON.parse(activities) } catch (e) { return null }
     }
-
     if (typeof data === 'string') return null
     return data.details || null
 }
@@ -480,13 +456,11 @@ function selectCompany(company) {
 }
 
 onMounted(() => {
-    // Init Custom Dates
     const today = new Date()
     customEndDate.value = today.toISOString().split('T')[0]
     today.setDate(today.getDate() - 7)
     customStartDate.value = today.toISOString().split('T')[0]
 
-    // Set initial company based on user role
     if (!authStore.isAdmin && !authStore.isOwner) {
         const userCompany = authStore.user?.companies?.name
         if (userCompany) {
@@ -494,7 +468,6 @@ onMounted(() => {
         }
     }
     
-    // Global click listener for dropdown
     document.addEventListener('click', closeCompanyDropdown)
     window.addEventListener('resize', handleResize)
     
@@ -504,11 +477,6 @@ onMounted(() => {
 onUnmounted(() => {
     document.removeEventListener('click', closeCompanyDropdown)
     window.removeEventListener('resize', handleResize)
-})
-
-
-onUnmounted(() => {
-    document.removeEventListener('click', closeCompanyDropdown)
 })
 </script>
 
@@ -520,7 +488,7 @@ onUnmounted(() => {
   padding-bottom: 64px;
 }
 
-/* Spacing Utilities (Local Definition) */
+/* Spacing Utilities */
 .p-lg { padding: 24px; }
 .mb-2xl { margin-bottom: 48px; }
 .mb-xs { margin-bottom: 4px; }
@@ -548,7 +516,7 @@ onUnmounted(() => {
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-premium);
     position: relative;
-    overflow: visible; /* For dropdowns */
+    overflow: visible;
 }
 .filter-logic-box-v2 {
     display: flex;
@@ -740,7 +708,7 @@ onUnmounted(() => {
 .elite-table {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 16px; /* Row Gap for Card look */
+    border-spacing: 0 16px;
     margin-top: -16px;
 }
 
@@ -798,8 +766,8 @@ onUnmounted(() => {
     letter-spacing: 0.1em;
 }
 
-.company-tag.LYORI { border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.05); }
-.company-tag.KAJA { border-color: #f59e0b; color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+.company-tag.emerald { border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.05); }
+.company-tag.blue { border-color: #3b82f6; color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
 
 .status-badge {
     display: inline-flex;
@@ -1033,11 +1001,9 @@ onUnmounted(() => {
     box-shadow: 0 0 25px rgba(16, 185, 129, 0.6);
 }
 
-
-/* Utiltity Classes */
+/* Utility Classes */
 .mb-2xl { margin-bottom: 2rem; }
 .mb-xs { margin-bottom: 0.25rem; }
-.p-xl { padding: 2rem; }
 .gap-md { gap: 1rem; }
 .ml-auto { margin-left: auto; }
 .ml-sm { margin-left: 0.5rem; }
@@ -1051,10 +1017,6 @@ onUnmounted(() => {
 .min-h-\[300px\] { min-height: 300px; }
 .flex-col { flex-direction: column; }
 .justify-center { justify-content: center; }
-.p-3xl { padding: 3rem; }
-.px-lg { padding-left: 1.5rem; padding-right: 1.5rem; }
-.pb-lg { padding-bottom: 1.5rem; }
-.pt-md { padding-top: 1rem; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .max-w-sm { max-width: 24rem; }
 </style>
