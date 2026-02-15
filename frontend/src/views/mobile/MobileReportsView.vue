@@ -1,14 +1,20 @@
 <template>
   <div class="mobile-reports-container">
-    <!-- Sticky Header -->
-    <header class="m-sticky-header">
+    <header class="m-premium-header">
+       <div class="h-glass-effect"></div>
        <div class="h-content">
           <div class="h-left">
-             <span class="m-section-label">Monitoring</span>
-             <h1 class="m-title">Aktivitas Harian</h1>
+             <div class="h-meta-row">
+                <span class="m-badge-mini">LIVE</span>
+                <span class="m-divider"></span>
+                <span class="m-category">MONITORING</span>
+             </div>
+             <h1 class="m-title-premium">Aktivitas <span class="text-gradient">Harian</span></h1>
           </div>
           <div class="h-right">
-             <div class="live-pulse"></div>
+             <div class="status-orb-halo">
+               <div class="orb"></div>
+             </div>
           </div>
        </div>
     </header>
@@ -16,43 +22,51 @@
     <!-- App Content Area -->
     <main class="m-content">
       <!-- Horizontal Filter Scroll -->
-      <section class="m-section">
-        <h3 class="s-label">Pilih Entitas</h3>
-        <div class="m-filters-scroll">
-           <div 
-             class="m-filter-chip"
-             :class="{ active: selectedCompany === 'all' }"
-             @click="$emit('select-company', 'all')"
-           >
-             Semua
-           </div>
-           <div 
-             v-for="company in companyOptions" 
-             :key="company"
-             class="m-filter-chip"
-             :class="{ active: selectedCompany === company }"
-             @click="$emit('select-company', company)"
-           >
-             {{ company }}
-           </div>
-        </div>
-      </section>
+      <!-- Filter & Control Hub -->
+      <div class="m-control-hub animate-fade-in-up">
+        <section class="hub-section">
+          <div class="hub-label-row">
+            <AppIcon name="building-2" :size="12" />
+            <span>PILIH ENTITAS</span>
+          </div>
+          <div class="m-filters-scroll">
+             <div 
+               class="m-filter-chip"
+               :class="{ active: selectedCompany === 'all' }"
+               @click="$emit('select-company', 'all')"
+             >
+               Semua
+             </div>
+             <div 
+               v-for="company in companyOptions" 
+               :key="company"
+               class="m-filter-chip"
+               :class="{ active: selectedCompany === company }"
+               @click="$emit('select-company', company)"
+             >
+               {{ company }}
+             </div>
+          </div>
+        </section>
 
-      <!-- Period Tabs -->
-      <section class="m-section">
-        <h3 class="s-label">Rentang Waktu</h3>
-        <div class="m-period-pills">
-           <button 
-             v-for="type in periodTypes" 
-             :key="type.value"
-             class="m-pill"
-             :class="{ active: selectedPeriodType === type.value }"
-             @click="$emit('set-period', type.value)"
-           >
-             {{ type.label }}
-           </button>
-        </div>
-      </section>
+        <section class="hub-section mt-4">
+          <div class="hub-label-row">
+            <AppIcon name="calendar" :size="12" />
+            <span>RENTANG WAKTU</span>
+          </div>
+          <div class="m-period-group">
+             <button 
+               v-for="type in periodTypes" 
+               :key="type.value"
+               class="m-period-btn"
+               :class="{ active: selectedPeriodType === type.value }"
+               @click="$emit('set-period', type.value)"
+             >
+               {{ type.label }}
+             </button>
+          </div>
+        </section>
+      </div>
 
       <!-- Reports List -->
       <section class="m-section no-gap">
@@ -173,83 +187,138 @@ function getCompanyColor(company) {
 
 <style scoped>
 .mobile-reports-container {
-  background: #010409;
+  background: #0f172a;
   min-height: 100vh;
-  padding-bottom: 40px;
-  color: #e6edf3;
+  padding-bottom: 90px;
+  color: #f1f5f9;
 }
 
-/* Sticky Header */
-.m-sticky-header {
+/* Premium Header */
+.m-premium-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background: rgba(1, 4, 9, 0.8);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 1000;
   padding: 16px 20px;
+  overflow: hidden;
+}
+
+.h-glass-effect {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .h-content {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.m-section-label {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: #10b981;
-  letter-spacing: 0.1em;
+.h-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
-.m-title {
-  font-size: 1.25rem;
+.m-badge-mini {
+  font-size: 0.55rem;
+  font-weight: 900;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.m-divider {
+  width: 3px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.m-category {
+  font-size: 0.6rem;
   font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.15em;
+}
+
+.m-title-premium {
+  font-size: 1.5rem;
+  font-weight: 900;
   margin: 0;
-  background: linear-gradient(to right, #fff, #94a3b8);
+  color: white;
+  letter-spacing: -0.02em;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #fff, #10b981);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.live-pulse {
+.status-orb-halo {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 50%;
+}
+
+.orb {
   width: 8px;
   height: 8px;
   background: #10b981;
   border-radius: 50%;
   box-shadow: 0 0 10px #10b981;
-  animation: pulse 2s infinite;
+  animation: pulse-halo 2s infinite;
 }
 
-@keyframes pulse {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1); }
+@keyframes pulse-halo {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-/* Main Content Area */
-.m-content { padding: 20px; }
-.m-section { margin-bottom: 24px; }
-.m-section.no-gap { margin-top: 32px; }
+/* Control Hub */
+.m-content { padding: 16px; }
 
-.s-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #8b949e;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.m-control-hub {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 20px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.hub-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
+  color: #64748b;
 }
 
-/* Chips and Buttons */
+.hub-label-row span {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
 .m-filters-scroll {
   display: flex;
   overflow-x: auto;
-  gap: 10px;
+  gap: 8px;
   padding-bottom: 4px;
   scrollbar-width: none;
 }
@@ -257,55 +326,57 @@ function getCompanyColor(company) {
 .m-filter-chip {
   flex: 0 0 auto;
   padding: 10px 18px;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #8b949e;
-  transition: all 0.2s;
+  color: #94a3b8;
+  transition: all 0.3s;
 }
 
 .m-filter-chip.active {
   background: #10b981;
+  color: white;
   border-color: #10b981;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 8px 20px -5px rgba(16, 185, 129, 0.4);
 }
 
-.m-period-pills {
-  display: flex;
-  background: #161b22;
-  border-radius: 12px;
-  padding: 4px;
+.m-period-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
-.m-pill {
-  flex: 1;
-  background: transparent;
-  border: none;
-  padding: 8px;
-  border-radius: 10px;
+.m-period-btn {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #8b949e;
-  transition: all 0.2s;
+  color: #94a3b8;
+  transition: all 0.3s;
 }
 
-.m-pill.active {
-  background: #21262d;
-  color: #fff;
+.m-period-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* List Area */
+/* Report Stack */
 .list-meta {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
   padding: 0 4px;
+  margin-bottom: 16px;
 }
 
-.l-count { font-size: 0.7rem; font-weight: 800; color: #484f58; text-transform: uppercase; }
+.l-count {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
 
 .m-stack {
   display: flex;
@@ -314,16 +385,16 @@ function getCompanyColor(company) {
 }
 
 .m-card-premium {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 20px;
-  padding: 18px;
-  opacity: 0;
-  transform: translateY(20px);
-  animation: slideIn 0.5s forwards;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+  animation: slide-up 0.5s ease backwards;
 }
 
-@keyframes slideIn {
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -331,58 +402,67 @@ function getCompanyColor(company) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
-.c-company { 
-  font-size: 0.7rem; 
-  font-weight: 900; 
-  padding: 4px 10px; 
-  border-radius: 6px; 
-  text-transform: uppercase;
+.c-company {
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
 }
+
 .c-company.emerald { background: rgba(16, 185, 129, 0.1); color: #10b981; }
 .c-company.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-.c-company.neutral { background: rgba(255, 255, 255, 0.05); color: #8b949e; }
 
-.c-date { font-size: 0.75rem; color: #484f58; font-weight: 700; }
+.c-date {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #64748b;
+}
 
 .c-title {
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   font-weight: 800;
-  margin: 0 0 6px 0;
-  color: #f0f6fc;
+  color: white;
+  margin-bottom: 8px;
 }
 
 .c-summary {
-  font-size: 0.8rem;
-  color: #8b949e;
+  font-size: 0.85rem;
+  color: #94a3b8;
   line-height: 1.5;
-  margin: 0 0 16px 0;
+  margin-bottom: 20px;
 }
 
 .c-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 14px;
-  border-top: 1px solid #30363d;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .c-status {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 800;
   color: #10b981;
 }
 
-.c-status.has-issues { color: #f85149; }
+.c-status.has-issues { color: #f43f5e; }
 
-.c-weather { display: flex; align-items: center; gap: 8px; }
+.c-weather {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .c-weather span { font-size: 1.1rem; }
-.c-weather small { font-size: 0.65rem; color: #484f58; font-weight: 700; text-transform: uppercase; }
+.c-weather small { font-size: 0.6rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
 
 /* States */
 .m-state {
@@ -390,21 +470,22 @@ function getCompanyColor(company) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 0;
-  color: #484f58;
+  padding: 60px 20px;
+  text-align: center;
 }
 
 .m-spinner {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border: 3px solid rgba(16, 185, 129, 0.1);
   border-top-color: #10b981;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.m-empty-icon { opacity: 0.3; margin-bottom: 12px; }
+.m-empty-icon { color: #64748b; opacity: 0.2; margin-bottom: 16px; }
+.m-state p { font-size: 0.9rem; color: #64748b; font-weight: 600; }
 </style>

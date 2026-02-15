@@ -118,18 +118,21 @@
     <div v-if="isMobileVisible" class="sidebar-overlay" @click="isMobileVisible = false"></div>
 
     <main class="main-content" :class="{ 'no-sidebar': authStore.user?.role === 'farmer' }">
-      <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role) && (route.name !== 'Cashier' || windowWidth > 768)" class="top-header mobile-compact">
+      <header v-if="!['farmer', 'cashier'].includes(authStore.user?.role) && (route.name !== 'Cashier' || windowWidth > 768)" class="top-header mobile-premium-header">
         <div class="header-left">
           <!-- Hamburger for Mobile -->
           <button class="mobile-menu-toggle" @click="isMobileVisible = !isMobileVisible">
-            <AppIcon :name="isMobileVisible ? 'x' : 'menu'" :size="22" />
+            <AppIcon :name="isMobileVisible ? 'x' : 'menu'" :size="20" />
           </button>
-          <div class="mobile-brand mobile-only">
-            <span>Official <span class="text-emerald">ePanen</span></span>
+          <div class="mobile-brand-premium mobile-only">
+             <div class="brand-inner">
+               <span class="prefix">OFFICIAL</span>
+               <span class="main">ePanen</span>
+             </div>
           </div>
-          <!-- Breadcrumbs Navigation -->
-          <Breadcrumbs class="desktop-only" />
-          <h2 class="page-title desktop-only">{{ pageTitle }}</h2>
+          <!-- Breadcrumbs Navigation - Hidden on Hero Pages to prevent clutter -->
+          <Breadcrumbs v-if="!['Dashboard', 'Reports', 'FinancialReports'].includes(route.name)" class="desktop-only" />
+          <h2 v-if="!['Dashboard', 'Reports', 'FinancialReports'].includes(route.name)" class="page-title desktop-only">{{ pageTitle }}</h2>
         </div>
         <div class="header-right">
           <div class="header-action-group">
@@ -166,8 +169,10 @@
               </div>
             </div>
             <div class="current-date desktop-only">
-              <AppIcon name="calendar" :size="16" class="date-icon" />
-              <span>{{ currentDate }}</span>
+              <div class="date-icon-pod">
+                <AppIcon name="calendar" :size="14" class="date-icon" />
+              </div>
+              <span class="date-text-v2">{{ currentDate }}</span>
             </div>
           </div>
         </div>
@@ -899,31 +904,79 @@ onUnmounted(() => {
 }
 
 .current-date {
-  background: rgba(var(--bg-card-rgb), 0.5);
-  padding: 8px 18px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+  padding: 6px 20px 6px 10px;
   border-radius: 100px;
-  border: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  color: var(--text-main);
-  box-shadow: var(--shadow-sm);
-  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: default;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.date-icon-pod {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05));
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.1);
 }
 
 .date-icon {
-    color: var(--color-primary);
+    color: #10b981;
+    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.5));
+}
+
+.date-text-v2 {
+    font-size: 0.85rem;
+    font-weight: 750;
+    color: white;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    margin-top: -1px;
+}
+
+.current-date:hover {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px -10px rgba(0,0,0,0.6);
+}
+
+.current-date:hover .date-icon-pod {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
+    border-color: rgba(16, 185, 129, 0.4);
+    transform: scale(1.05);
 }
 
 .bell-btn {
-    background: rgba(var(--bg-card-rgb), 0.5);
-    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 100px;
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bell-btn:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(250, 204, 21, 0.4);
+    transform: translateY(-1px);
 }
 
 .bell-icon {
@@ -1071,7 +1124,7 @@ onUnmounted(() => {
 
 .content-area {
   flex: 1;
-  padding: var(--space-2xl);
+  padding: 16px var(--space-2xl) var(--space-2xl);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1090,29 +1143,94 @@ onUnmounted(() => {
   .mobile-only { display: block !important; }
   .desktop-only { display: none !important; }
   
-  .top-header.mobile-optimized {
-    height: 60px;
+  .top-header.mobile-premium-header {
+    height: 64px;
     padding: 0 16px;
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(15, 23, 42, 0.7) !important;
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
   }
 
-  .header-brand-mobile {
+  .header-left {
+    display: flex !important;
+    flex-direction: row !important; /* Fix vertical stacking */
+    align-items: center !important;
+    gap: 4px;
+  }
+
+  .mobile-brand-premium {
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+  }
+
+  .brand-inner {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  .brand-inner .prefix {
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: #94a3b8;
+    margin-bottom: 2px;
+  }
+
+  .brand-inner .main {
+    font-size: 1.15rem;
     font-weight: 900;
-    font-size: 1.1rem;
-    letter-spacing: -0.02em;
     color: white;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 40%, #10b981);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-
-  .text-emerald { color: #10b981; }
 
   .mobile-menu-toggle {
-    width: 40px;
-    height: 40px;
-    background: transparent;
-    border: none;
-    margin-right: 8px;
+    width: 42px;
+    height: 42px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  }
+
+  .mobile-menu-toggle:active {
+    scale: 0.92;
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+
+  .bell-btn {
+    width: 42px;
+    height: 42px;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .unread-badge {
+    top: 8px !important;
+    right: 8px !important;
+    border: 2px solid #0f172a !important;
   }
 
   .sidebar {
@@ -1185,10 +1303,8 @@ onUnmounted(() => {
     padding: 12px !important;
   }
 
-  .top-header.mobile-compact {
-    height: 56px;
-    padding: 0 12px;
-  }
+  /* Cleanup redundant stats */
+  .top-header.mobile-compact { display: none; }
 }
 
 @media (min-width: 769px) {

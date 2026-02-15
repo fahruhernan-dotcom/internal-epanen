@@ -13,128 +13,148 @@
   />
   <div v-else class="reports-page animate-fade-in-up">
     <!-- Header Section - Elite Style -->
-    <header class="welcome-section-premium animate-fade-in-up">
-      <div class="welcome-text">
-        <div class="header-meta">
-          <span class="status-indicator">
+    <header class="hero-header-premium animate-fade-in-up">
+      <div class="hero-main-content">
+        <div class="hero-badge-row">
+          <div class="status-orb-pill">
             <span class="status-dot-pulse"></span>
             LIVE MONITORING
-          </span>
-          <span class="v-divider-v2"></span>
-          <span class="role-badge-v2">OPERATIONAL LOG</span>
+          </div>
+          <span class="pill-divider"></span>
+          <span class="context-tag">OPERATIONAL LOG</span>
         </div>
-        <h1 class="user-greeting-v2 text-gradient-emerald">
-          Monitoring Aktivitas Harian
+        
+        <h1 class="hero-title-v3">
+          Monitoring <span class="text-gradient-emerald">Aktivitas Harian</span>
         </h1>
-        <p class="system-desc-v2">Pantau kondisi cuaca, kendala lapangan, dan progres kerja secara real-time.</p>
+        <p class="hero-subtitle-v3">Pantau kondisi cuaca, kendala lapangan, dan progres kerja sektor harian secara real-time.</p>
       </div>
 
-      <div class="quick-status-cards">
-        <div class="mini-card-v2">
-          <span class="mc-label">Skor Keamanan</span>
-          <span class="mc-value" :class="reportsStore.dailyReports.some(r => hasIssues(r.issues)) ? 'text-rose' : 'text-emerald'">
-            {{ reportsStore.dailyReports.some(r => hasIssues(r.issues)) ? 'WASPADA' : 'OPTIMAL' }}
-          </span>
+      <div class="hero-status-hub">
+        <div class="status-pod-v4">
+          <div class="pod-header">
+             <AppIcon name="shield-check" :size="14" class="pod-icon" />
+             <span class="pod-label">SKOR KEAMANAN</span>
+          </div>
+          <div class="pod-body">
+             <span class="pod-value" :class="reportsStore.dailyReports.some(r => hasIssues(r.issues)) ? 'text-rose' : 'text-emerald'">
+               {{ reportsStore.dailyReports.some(r => hasIssues(r.issues)) ? 'WASPADA' : 'OPTIMAL' }}
+             </span>
+          </div>
+          <div class="pod-bg-glow" :class="{ 'rose': reportsStore.dailyReports.some(r => hasIssues(r.issues)) }"></div>
         </div>
-        <div class="mini-card-v2">
-          <span class="mc-label">Aktivitas Node</span>
-          <span class="mc-value text-emerald">SYNCHRONIZED</span>
+
+        <div class="status-pod-v4">
+          <div class="pod-header">
+             <AppIcon name="cpu" :size="14" class="pod-icon" />
+             <span class="pod-label">AKTIVITAS NODE</span>
+          </div>
+          <div class="pod-body">
+             <span class="pod-value text-emerald">SYNCHRONIZED</span>
+          </div>
+          <div class="pod-bg-glow"></div>
         </div>
       </div>
     </header>
 
     <!-- Control Bar (Filters) -->
-    <div class="premium-card filter-card-premium p-xl mt-spacing-hero-xl mb-spacing-hero-2xl animate-fade-in-up stagger-1 flex flex-wrap items-end gap-xl">
-      <!-- Company Filter -->
-      <div class="filter-logic-box-v2">
-        <div class="filter-label-row-premium">
-          <AppIcon name="building-2" :size="14" class="text-emerald" />
-          <span class="filter-label-premium">ENTITAS PERUSAHAAN</span>
-        </div>
-        
-        <div v-if="authStore?.isAdmin || authStore?.isOwner" class="premium-select-wrapper-v2" ref="companyDropdownRef">
-          <div 
-            class="premium-select-trigger-v2" 
-            :class="{ open: isDropdownOpen }"
-            @click="toggleCompanyDropdown"
-          >
-            <span>{{ selectedCompany === 'all' ? 'Semua Entitas' : selectedCompany }}</span>
-            <AppIcon 
-              name="chevron-down" 
-              :size="16" 
-              class="select-arrow-v2" 
-              :class="{ rotated: isDropdownOpen }" 
-            />
+    <div class="premium-card filter-card-premium animate-fade-in-up stagger-1">
+      <div class="filter-header-mini">
+         <span class="filter-tag">FILTRASI EKOSISTEM</span>
+      </div>
+      
+      <div class="filter-flex-row">
+        <!-- Company Filter -->
+        <div class="filter-logic-box-v2">
+          <div class="filter-label-row-premium">
+            <AppIcon name="building-2" :size="14" class="text-emerald" />
+            <span class="filter-label-premium">ENTITAS PERUSAHAAN</span>
           </div>
           
-          <transition name="dropdown-slide-v2">
-            <div class="premium-options-menu-v2 glass-panel-premium" v-if="isDropdownOpen">
-              <div 
-                class="premium-option-v2" 
-                :class="{ selected: selectedCompany === 'all' }"
-                @click="selectCompany('all')"
-              >
-                <span>Semua Entitas</span>
-                <AppIcon v-if="selectedCompany === 'all'" name="check" :size="14" class="text-emerald" />
-              </div>
-              <div 
-                class="premium-option-v2" 
-                v-for="company in companyOptions" 
-                :key="company"
-                :class="{ selected: selectedCompany === company }"
-                @click="selectCompany(company)"
-              >
-                <span>{{ company }}</span>
-                <AppIcon v-if="selectedCompany === company" name="check" :size="14" class="text-emerald" />
-              </div>
+          <div v-if="authStore?.isAdmin || authStore?.isOwner" class="premium-select-wrapper-v2" ref="companyDropdownRef">
+            <div 
+              class="premium-select-trigger-v2" 
+              :class="{ open: isDropdownOpen }"
+              @click="toggleCompanyDropdown"
+            >
+              <span>{{ selectedCompany === 'all' ? 'Semua Entitas' : selectedCompany }}</span>
+              <AppIcon 
+                name="chevron-down" 
+                :size="16" 
+                class="select-arrow-v2" 
+                :class="{ rotated: isDropdownOpen }" 
+              />
             </div>
-          </transition>
-        </div>
-        <div v-else class="company-badge-static-v2">
-           <span class="font-bold text-main">{{ authStore?.user?.companies?.name || 'User' }}</span>
-        </div>
-      </div>
-
-      <!-- Time Period Selector -->
-      <div class="filter-logic-box-v2 flex-grow">
-        <div class="filter-label-row-premium">
-          <AppIcon name="calendar" :size="14" class="text-emerald" />
-          <span class="filter-label-premium">RENTANG WAKTU</span>
-        </div>
-        <div class="period-tabs-wrapper-v2">
-          <button 
-            v-for="type in periodTypes" 
-            :key="type.value"
-            class="tab-btn-v2" 
-            :class="{ active: selectedPeriodType === type.value }"
-            @click="setPeriodType(type.value)"
-          >
-            {{ type.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Custom Date Inputs -->
-      <div v-if="selectedPeriodType === 'custom'" class="flex gap-md animate-scale-up">
-        <div class="filter-logic-box-v2">
-          <div class="filter-label-row-premium">
-            <span class="filter-label-premium">MULAI</span>
+            
+            <transition name="dropdown-slide-v2">
+              <div class="premium-options-menu-v2 glass-panel-premium" v-if="isDropdownOpen">
+                <div 
+                  class="premium-option-v2" 
+                  :class="{ selected: selectedCompany === 'all' }"
+                  @click="selectCompany('all')"
+                >
+                  <span>Semua Entitas</span>
+                  <AppIcon v-if="selectedCompany === 'all'" name="check" :size="14" class="text-emerald" />
+                </div>
+                <div 
+                  class="premium-option-v2" 
+                  v-for="company in companyOptions" 
+                  :key="company"
+                  :class="{ selected: selectedCompany === company }"
+                  @click="selectCompany(company)"
+                >
+                  <span>{{ company }}</span>
+                  <AppIcon v-if="selectedCompany === company" name="check" :size="14" class="text-emerald" />
+                </div>
+              </div>
+            </transition>
           </div>
-          <input type="date" v-model="customStartDate" class="premium-date-input-v2" @change="loadReports" />
-        </div>
-        <div class="filter-logic-box-v2">
-          <div class="filter-label-row-premium">
-            <span class="filter-label-premium">SAMPAI</span>
+          <div v-else class="company-badge-static-v2">
+             <span class="font-bold text-main">{{ authStore?.user?.companies?.name || 'User' }}</span>
           </div>
-          <input type="date" v-model="customEndDate" class="premium-date-input-v2" @change="loadReports" />
         </div>
-      </div>
 
-      <!-- Apply Button -->
-      <button class="btn-primary-v2 shimmer-btn h-[52px] px-xl ml-auto" @click="loadReports">
-        <AppIcon name="search" :size="18" />
-        <span class="font-bold ml-sm">Terapkan Filter</span>
-      </button>
+        <!-- Time Period Selector -->
+        <div class="filter-logic-box-v2 flex-grow">
+          <div class="filter-label-row-premium">
+            <AppIcon name="calendar" :size="14" class="text-emerald" />
+            <span class="filter-label-premium">RENTANG WAKTU</span>
+          </div>
+          <div class="period-tabs-wrapper-v2">
+            <button 
+              v-for="type in periodTypes" 
+              :key="type.value"
+              class="tab-btn-v2" 
+              :class="{ active: selectedPeriodType === type.value }"
+              @click="setPeriodType(type.value)"
+            >
+              {{ type.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Date Inputs -->
+        <div v-if="selectedPeriodType === 'custom'" class="flex gap-md animate-scale-up">
+          <div class="filter-logic-box-v2">
+            <div class="filter-label-row-premium">
+              <span class="filter-label-premium">MULAI</span>
+            </div>
+            <input type="date" v-model="customStartDate" class="premium-date-input-v2" @change="loadReports" />
+          </div>
+          <div class="filter-logic-box-v2">
+            <div class="filter-label-row-premium">
+              <span class="filter-label-premium">SAMPAI</span>
+            </div>
+            <input type="date" v-model="customEndDate" class="premium-date-input-v2" @change="loadReports" />
+          </div>
+        </div>
+
+        <!-- Apply Button -->
+        <button class="btn-primary-v2 shimmer-btn" @click="loadReports">
+          <AppIcon name="zap" :size="18" />
+          <span class="font-bold">Sync Data</span>
+        </button>
+      </div>
     </div>
 
 
@@ -485,7 +505,7 @@ onUnmounted(() => {
 .reports-page {
   max-width: 1400px;
   margin: 0 auto;
-  padding-bottom: 64px;
+  padding: 0 0 64px 0;
 }
 
 /* Spacing Utilities */
@@ -510,95 +530,33 @@ onUnmounted(() => {
 
 /* --- Control Bar (Filters) --- */
 .filter-card-premium {
-    background: var(--bg-card);
-    backdrop-filter: var(--glass-blur);
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-premium);
-    position: relative;
-    overflow: visible;
-}
-.filter-logic-box-v2 {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    background: rgba(255, 255, 255, 0.01);
+    backdrop-filter: blur(40px);
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 32px;
+    margin-bottom: 4rem;
+    box-shadow: 0 40px 80px -20px rgba(0,0,0,0.4);
 }
 
-.filter-label-row-premium {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.filter-header-mini {
+    margin-bottom: 24px;
     padding-left: 4px;
 }
 
-.filter-label-premium {
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: var(--text-dim);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+.filter-tag {
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: #10b981;
+    letter-spacing: 0.3em;
+    opacity: 0.8;
 }
 
-/* Premium Select v2 */
-.premium-select-wrapper-v2 {
-    position: relative;
-    min-width: 200px;
-}
-
-.premium-select-trigger-v2 {
+.filter-flex-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 48px;
-    padding: 0 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    color: var(--text-main);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-main);
-}
-
-.premium-select-trigger-v2:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(16, 185, 129, 0.4);
-    transform: translateY(-2px);
-}
-
-.premium-select-trigger-v2.open {
-    background: var(--bg-card-solid);
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
-}
-
-.select-arrow-v2 {
-    transition: transform var(--transition-main);
-    color: var(--text-dim);
-}
-
-.select-arrow-v2.rotated {
-    transform: rotate(180deg);
-}
-
-/* Options Menu v2 */
-.glass-panel-premium {
-    background: var(--bg-card-solid);
-    backdrop-filter: blur(24px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-premium);
-}
-
-.premium-options-menu-v2 {
-    position: absolute;
-    top: calc(100% + 12px);
-    left: 0;
-    width: 240px;
-    border-radius: 20px;
-    padding: 10px;
-    z-index: 1000;
-    overflow: hidden;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 32px;
 }
 
 .premium-option-v2 {
@@ -821,118 +779,144 @@ onUnmounted(() => {
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-/* Spacing Utilities & Global Sync */
-.mt-spacing-hero-xl { margin-top: 6rem; }
-.mb-spacing-hero-2xl { margin-bottom: 9rem; }
-
-.welcome-section-premium {
-    position: relative;
+/* --- Hero Header Overhaul --- */
+.hero-header-premium {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+    padding: 24px 0 16px;
     margin-bottom: 2rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    gap: 40px;
 }
 
-.user-greeting-v2 {
-    font-size: 3.2rem;
-    line-height: 1.05;
-    font-weight: 850;
-    margin-bottom: 1rem;
-    letter-spacing: -0.05em;
+.hero-main-content {
+    flex: 1;
+    max-width: 800px;
 }
 
-@media (max-width: 768px) {
-    .user-greeting-v2 {
-        font-size: 2.2rem;
-    }
-}
-
-.header-meta {
+.hero-badge-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 2rem;
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
-.status-indicator {
+.status-orb-pill {
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(16, 185, 129, 0.2);
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 100px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 0.75rem;
-    font-weight: 850;
-    color: #10b981;
-    letter-spacing: 0.12em;
-}
-
-.status-dot-pulse {
-    width: 8px;
-    height: 8px;
-    background: #10b981;
-    border-radius: 50%;
-    animation: pulse-emerald 2s infinite;
-}
-
-@keyframes pulse-emerald {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
-.v-divider-v2 {
-    width: 2px;
-    height: 16px;
-    background: var(--glass-border);
-}
-
-.role-badge-v2 {
-    font-size: 0.75rem;
-    font-weight: 850;
-    color: #818cf8;
-    letter-spacing: 0.2em;
-}
-
-/* Quick Status Boxes in Header */
-.quick-status-cards {
-    display: flex;
-    gap: 20px;
-}
-
-.mini-card-v2 {
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    padding: 20px 28px;
-    border-radius: 24px;
-    display: flex;
-    flex-direction: column;
-    min-width: 180px;
-    box-shadow: var(--shadow-main);
-}
-
-.mc-label {
+    gap: 10px;
     font-size: 0.65rem;
     font-weight: 900;
-    color: var(--text-dim);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    opacity: 0.6;
+    color: #10b981;
+    letter-spacing: 0.15rem;
 }
 
-.mc-value {
+.pill-divider {
+    width: 1px;
+    height: 12px;
+    background: rgba(255,255,255,0.1);
+}
+
+.context-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.hero-title-v3 {
+    font-size: 2.75rem;
+    font-weight: 850;
+    color: white;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin: 0 0 16px 0;
+}
+
+.hero-subtitle-v3 {
+    font-size: 1rem;
+    color: #94a3b8;
+    max-width: 500px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Status Hub System */
+.hero-status-hub {
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+}
+
+.status-pod-v4 {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px 24px;
+    border-radius: 20px;
+    min-width: 200px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.pod-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.pod-icon {
+    color: #10b981;
+    opacity: 0.7;
+}
+
+.pod-label {
+    font-size: 0.6rem;
+    font-weight: 950;
+    color: #475569;
+    letter-spacing: 0.1em;
+}
+
+.pod-body {
+    position: relative;
+    z-index: 1;
+}
+
+.pod-value {
     font-size: 1.25rem;
     font-weight: 900;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
 }
 
-.text-rose { color: #f43f5e; text-shadow: 0 0 15px rgba(244, 63, 94, 0.3); }
-.text-emerald { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+.pod-bg-glow {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.1), transparent 70%);
+}
+
+.pod-bg-glow.rose {
+    background: radial-gradient(circle, rgba(244, 63, 94, 0.1), transparent 70%);
+}
+
+.text-rose { color: #f43f5e; }
+.text-emerald { color: #10b981; }
+
+@media (max-width: 1100px) {
+    .hero-header-premium {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
 
 /* Card Header Specifics */
 .card-header-flex {

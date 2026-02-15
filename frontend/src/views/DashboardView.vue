@@ -5,6 +5,8 @@
     :stats="stats"
     :recentReports="recentReports"
     :aiSummary="formattedAISummary"
+    :trendData="trendData"
+    :totalConsolidatedProfit="totalConsolidatedProfit"
     :loading="loading"
     @go-to-company="goToCompany"
     @go-to-doc="goToDoc"
@@ -12,29 +14,44 @@
   />
   <div v-else class="dashboard-expert-view">
     <!-- Welcome Header Section -->
-    <header class="welcome-section-premium animate-fade-in-up">
-      <div class="welcome-text">
-        <div class="header-meta">
-            <span class="status-indicator">
-                <span class="status-dot-pulse"></span>
-                SISTEM AKTIF
-            </span>
-            <span class="v-divider-v2"></span>
-            <span class="role-badge-v2">{{ roleLabel }}</span>
+    <header class="hero-header-premium animate-fade-in-up">
+      <div class="hero-main-content">
+        <div class="hero-badge-row">
+          <div class="status-orb-pill">
+            <span class="status-dot-pulse"></span>
+            SISTEM AKTIF
+          </div>
+          <span class="pill-divider"></span>
+          <span class="context-tag">{{ roleLabel }}</span>
         </div>
-        <h1 class="user-greeting-v2 text-gradient-emerald">
-            Monitoring Performa Ekosistem
+        
+        <h1 class="hero-title-v3">
+          Monitoring <span class="text-gradient-emerald">Performa Ekosistem</span>
         </h1>
-        <p class="system-desc-v2">Ringkasan cerdas performa ekosistem Official ePanen hari ini.</p>
+        <p class="hero-subtitle-v3">Ringkasan cerdas performa ekosistem Official ePanen hari ini.</p>
       </div>
-      <div class="quick-status-cards">
-        <div class="mini-card-v2">
-          <span class="mc-label">Skor Efisiensi</span>
-          <span class="mc-value text-emerald">94.2%</span>
+
+      <div class="hero-status-hub">
+        <div class="status-pod-v4">
+          <div class="pod-header">
+             <AppIcon name="zap" :size="14" class="pod-icon" />
+             <span class="pod-label">SKOR EFISIENSI</span>
+          </div>
+          <div class="pod-body">
+             <span class="pod-value text-emerald">94.2%</span>
+          </div>
+          <div class="pod-bg-glow"></div>
         </div>
-        <div class="mini-card-v2">
-          <span class="mc-label">Stabilitas Node</span>
-          <span class="mc-value">Optimal</span>
+
+        <div class="status-pod-v4">
+          <div class="pod-header">
+             <AppIcon name="cpu" :size="14" class="pod-icon" />
+             <span class="pod-label">STABILITAS NODE</span>
+          </div>
+          <div class="pod-body">
+             <span class="pod-value">Optimal</span>
+          </div>
+          <div class="pod-bg-glow"></div>
         </div>
       </div>
     </header>
@@ -111,29 +128,70 @@
       </div>
     </div>
 
-    <!-- AI Briefing Hub -->
-    <div v-if="authStore.isAdmin || authStore.isOwner" class="mt-spacing-hero-xl animate-fade-in-up stagger-5">
-      <div class="premium-card glass-container-hero p-0">
+    <!-- Strategic Intelligence Briefing -->
+    <div v-if="authStore.isAdmin || authStore.isOwner" class="mt-spacing-hero animate-fade-in-up stagger-5">
+      <div class="premium-card glass-container-hero p-0 overflow-hidden">
         <div class="glass-header-hero flex items-center justify-between p-2xl">
-          <div class="flex items-center gap-sm">
-            <div class="ai-orb-large pulse-emerald"></div>
-            <h3 class="text-main text-lg font-bold">Intelijen Bisnis Strategis (30H)</h3>
+          <div class="flex items-center gap-xl">
+            <div class="ai-orbit-v6">
+                <div class="orbit-center-node"></div>
+                <div class="orbit-ring-outer"></div>
+                <div class="orbit-ring-inner"></div>
+            </div>
+            <div class="flex flex-col intelligence-type-stack">
+                <h3 class="text-main font-bold tracking-tight leading-none mb-1 text-lg">Intelijen Bisnis Strategis</h3>
+                <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-black text-emerald/60 tracking-[0.3em] uppercase">AI Ecosystem Analysis Engine</span>
+                    <span class="status-blink-dot"></span>
+                </div>
+            </div>
           </div>
-          <button v-if="!aiLoading && !aiSummary" @click="generateAutoInsight" class="btn-ghost-small shimmer-btn">
-            <AppIcon name="sparkles" :size="14" />
-            <span>Bangkitkan Analisa</span>
+          <button @click="generateAutoInsight" class="btn-elite-terminal shimmer-btn" :disabled="aiLoading">
+            <div class="btn-terminal-inner">
+                <AppIcon v-if="!aiLoading" name="zap" :size="14" />
+                <div v-else class="mini-spinner-white"></div>
+                <span>{{ aiLoading ? 'SINKRONISASI...' : (aiSummary ? 'PERBARUI DATA' : 'MULAI ANALISA') }}</span>
+            </div>
           </button>
         </div>
         
-        <div class="p-3xl ai-briefing-content">
-          <div v-if="aiLoading" class="flex flex-col items-center py-2xl">
-            <div class="mini-spinner-sage mb-md"></div>
-            <p class="text-muted text-sm italic">Menganalisa pola data bulan ini...</p>
+        <div class="ai-briefing-wrapper relative">
+          <div v-if="aiLoading" class="analysis-orchestrator flex flex-col items-center justify-center py-20 relative z-10">
+             <div class="neural-network-viz mb-8">
+                 <div class="node n1"></div>
+                 <div class="node n2"></div>
+                 <div class="node n3"></div>
+                 <div class="path"></div>
+             </div>
+             <div class="analysis-steps flex flex-col gap-3 max-w-xs w-full">
+                <div v-for="(step, i) in analysisSteps" :key="i" class="step-item" :class="{ 'active': i === currentStep, 'completed': i < currentStep }">
+                    <div class="step-indicator">
+                        <AppIcon v-if="i < currentStep" name="check" :size="10" />
+                        <div v-else-if="i === currentStep" class="mini-pulse"></div>
+                    </div>
+                    <span class="step-text">{{ step }}</span>
+                </div>
+             </div>
           </div>
-          <div v-else-if="aiSummary" class="markdown-body-lite-hero" v-html="formattedAISummary"></div>
-          <div v-else class="text-center py-3xl text-muted w-full">
-            <p class="text-lg opacity-80">Klik 'Bangkitkan Analisa' untuk ringkasan performa otomatis.</p>
+          
+          <div v-else-if="aiSummary" class="p-3xl ai-briefing-content animate-fade-in relative z-10">
+             <div class="markdown-body-lite-hero" v-html="formattedAISummary"></div>
           </div>
+          
+          <div v-else class="empty-intelligence py-24 flex flex-col items-center justify-center relative z-10">
+            <div class="hero-viz-container">
+                <div class="hero-main-icon pulse-soft">
+                    <AppIcon name="brain-circuit" :size="56" class="text-emerald/30" />
+                </div>
+                <div class="viz-decorator-1"></div>
+                <div class="viz-decorator-2"></div>
+            </div>
+            <p class="text-main font-bold text-lg mb-1 tracking-normal">Mode Idle Intelijen</p>
+            <p class="text-muted text-[11px] font-medium tracking-wide opacity-50">Menunggu sinyal analisa untuk performa bulan {{ currentMonthName }}</p>
+          </div>
+
+          <div class="ai-card-glow"></div>
+          <div class="ai-glass-sweep"></div>
         </div>
       </div>
     </div>
@@ -224,13 +282,7 @@
         </template>
         <template v-else>
           <div 
-            v-for="(data, company, index) in Object.fromEntries(Object.entries(stats?.byCompany || {}).filter(([k]) => {
-              if (k === 'Owner') return false;
-              if (!authStore.isAdmin && !authStore.isOwner) {
-                return k === authStore.user?.companies?.name;
-              }
-              return true;
-            }))" 
+            v-for="(data, company, index) in filteredCompanies" 
             :key="company"
             class="company-card premium-card animate-fade-in-up"
             :style="{ animationDelay: `${0.1 * (index + 7)}s` }"
@@ -384,6 +436,19 @@ const totalConsolidatedProfit = computed(() => {
     total += companyValues.reduce((acc, v) => acc + v, 0)
   })
   return total
+})
+
+const filteredCompanies = computed(() => {
+  if (!stats.value?.byCompany) return {}
+  return Object.fromEntries(
+    Object.entries(stats.value.byCompany).filter(([k]) => {
+      if (k === 'Owner' || k === 'Unknown') return false
+      if (!authStore.isAdmin && !authStore.isOwner) {
+        return k === authStore.user?.companies?.name
+      }
+      return true
+    })
+  )
 })
 
 const roleLabel = computed(() => {
@@ -601,9 +666,24 @@ function getCompanyColor(name) {
   return colors[name] || '#94a3b8'
 }
 
+const analysisSteps = ref([
+    'Mengumpulkan data keuangan entitas...',
+    'Sinkronisasi log aktivitas operasional...',
+    'Menghitung rasio efisiensi grup...',
+    'Mensintesis insight strategis...'
+])
+const currentStep = ref(0)
+
 async function generateAutoInsight() {
     aiLoading.value = true
+    currentStep.value = 0
     try {
+        const stepInterval = setInterval(() => {
+            if (currentStep.value < analysisSteps.value.length - 1) {
+                currentStep.value++
+            }
+        }, 1200)
+
         // Fetch financial data using the SAME store as Monitoring Keuangan
         const today = new Date()
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -696,6 +776,8 @@ async function generateAutoInsight() {
   </div>
 </div>
 `
+        clearInterval(stepInterval)
+        currentStep.value = analysisSteps.value.length
     } catch (err) {
         console.error('AI Insight error:', err)
         aiSummary.value = `**Error:** Gagal memuat data konsolidasi.`
@@ -779,6 +861,10 @@ function openUploadForm() {
     router.push({ name: 'FinancialReports' })
 }
 
+const currentMonthName = computed(() => {
+    return new Date().toLocaleString('id-ID', { month: 'long' })
+})
+
 onMounted(() => {
   fetchStats()
   fetchTrendData()
@@ -792,81 +878,141 @@ onUnmounted(() => {
 
 <style scoped>
 .dashboard-expert-view {
-    padding: 32px 48px;
+    padding: 24px 48px;
     max-width: 1600px;
     margin: 0 auto;
 }
 
-/* Welcome Section - Premium */
-.welcome-section-premium {
+/* --- Hero Header Overhaul --- */
+.hero-header-premium {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 40px;
+    padding: 24px 0 16px;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    gap: 40px;
 }
 
-.header-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+.hero-main-content {
+    flex: 1;
+    max-width: 800px;
 }
 
-.status-indicator {
+.hero-badge-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.6rem;
-    font-weight: 900;
-    color: var(--color-primary);
-    letter-spacing: 0.15em;
-    background: rgba(16, 185, 129, 0.08);
-    padding: 4px 10px;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.status-orb-pill {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 6px 14px;
     border-radius: 100px;
-    border: 1px solid rgba(16, 185, 129, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #10b981;
+    letter-spacing: 0.15rem;
 }
 
-.status-dot-pulse {
-    width: 6px;
-    height: 6px;
-    background: var(--color-primary);
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--color-primary);
-    animation: p-pulse 2s infinite;
-}
-
-@keyframes p-pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.5); opacity: 0.5; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.v-divider-v2 {
+.pill-divider {
     width: 1px;
     height: 12px;
-    background: var(--glass-border);
+    background: rgba(255,255,255,0.1);
 }
 
-.role-badge-v2 {
-    font-size: 0.6rem;
+.context-tag {
+    font-size: 0.65rem;
     font-weight: 800;
-    color: var(--text-dim);
-    letter-spacing: 0.1em;
+    color: #94a3b8;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
 }
 
-.user-greeting-v2 {
-    font-size: 2.25rem;
-    font-weight: 900;
-    color: var(--text-main);
-    letter-spacing: -0.05em;
-    line-height: 1;
+.hero-title-v3 {
+    font-size: 2.75rem;
+    font-weight: 850;
+    color: white;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin: 0 0 16px 0;
 }
 
-.system-desc-v2 {
-    font-size: 0.9375rem;
-    color: var(--text-dim);
-    margin-top: 8px;
+.hero-subtitle-v3 {
+    font-size: 1rem;
+    color: #94a3b8;
+    max-width: 500px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Status Hub System */
+.hero-status-hub {
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+}
+
+.status-pod-v4 {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px 24px;
+    border-radius: 20px;
+    min-width: 200px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.pod-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.pod-icon {
+    color: #10b981;
+    opacity: 0.7;
+}
+
+.pod-label {
+    font-size: 0.6rem;
+    font-weight: 950;
+    color: #475569;
+    letter-spacing: 0.1em;
+}
+
+.pod-body {
+    position: relative;
+    z-index: 1;
+}
+
+.pod-value {
+    font-size: 1.25rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+}
+
+.pod-bg-glow {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.1), transparent 70%);
+}
+
+@media (max-width: 1100px) {
+    .hero-header-premium {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 .quick-status-cards {
@@ -1194,8 +1340,10 @@ onUnmounted(() => {
 }
 
 .glass-header-hero {
-    border-bottom: 1px solid var(--glass-border);
-    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08); /* More defined */
+    background: rgba(var(--bg-card-rgb), 0.4);
+    position: relative;
+    z-index: 10;
 }
 
 .ai-orb-large {
@@ -1761,7 +1909,163 @@ onUnmounted(() => {
     }
 }
 
+/* AI Orbit V6 - Premium Terminal Style */
+.ai-orbit-v6 {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateZ(0); /* Hardware acceleration */
+}
+.orbit-center-node {
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+    z-index: 5;
+}
+.orbit-ring-outer {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    border-radius: 50%;
+    animation: rotate-clockwise 10s linear infinite;
+}
+.orbit-ring-outer::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #10b981;
+}
+
+.orbit-ring-inner {
+    position: absolute;
+    inset: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    animation: rotate-counter-clockwise 6s linear infinite;
+}
+.orbit-ring-inner::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    right: 50%;
+    width: 4px;
+    height: 4px;
+    background: rgba(16, 185, 129, 0.4);
+    border-radius: 50%;
+}
+
+@keyframes rotate-clockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes rotate-counter-clockwise {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+
+.status-blink-dot {
+    width: 4px;
+    height: 4px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: simple-blink 2s infinite;
+}
+@keyframes simple-blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } }
+
+/* Elite Terminal Button */
+.btn-elite-terminal {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-terminal-inner {
+    padding: 10px 20px;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05rem;
+    transition: all 0.3s;
+}
+.btn-elite-terminal:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+.btn-elite-terminal:hover .btn-terminal-inner {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+/* Glass Sweep Area */
+.ai-glass-sweep {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.02) 45%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.02) 55%, transparent 70%);
+    z-index: 1;
+    pointer-events: none;
+    background-size: 200% 100%;
+    animation: sweep-move 12s linear infinite;
+}
+@keyframes sweep-move { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Hero Viz System */
+.hero-viz-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+.hero-main-icon {
+    z-index: 2;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+    padding: 20px;
+    border-radius: 50%;
+}
+.viz-decorator-1 {
+    position: absolute;
+    inset: 0;
+    border: 1px dashed rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    animation: rotate-clockwise 30s linear infinite;
+}
+.viz-decorator-2 {
+    position: absolute;
+    inset: 15px;
+    border: 1px solid rgba(16, 185, 129, 0.03);
+    border-radius: 50%;
+    animation: rotate-counter-clockwise 20s linear infinite;
+}
+
+@keyframes pulse-soft {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+}
+.pulse-soft { animation: pulse-soft 4s ease-in-out infinite; }
+
 </style>
+
 
 
 
