@@ -522,79 +522,81 @@
     </div>
 
     <!-- Modals -->
-    <Transition name="modal-fade">
-      <div v-if="showManualModal" class="modal-overlay" @click.self="showManualModal = false">
-        <div class="modal-card-premium glass-premium-dark animate-pop">
-          <div class="modal-header-premium">
-            <div class="header-icon-box amber">
-              <AppIcon name="plus-circle" :size="24" />
-            </div>
-            <div class="header-text">
-              <h3>Input Order Baru</h3>
-              <p>Tambahkan pesanan manual tanpa melalui WhatsApp</p>
-            </div>
-            <button class="modal-close-btn" @click="showManualModal = false">✕</button>
-          </div>
-
-          <div class="modal-form-content">
-            <div class="input-field full-width">
-              <label>Nama Customer</label>
-              <div class="field-container">
-                <AppIcon name="user" :size="18" />
-                <input v-model="newOrderForm.customer_name" type="text" placeholder="Masukkan nama pelanggan..." required />
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showManualModal" class="modal-overlay" @click.self="showManualModal = false">
+          <div class="modal-card-premium glass-premium-dark animate-pop">
+            <div class="modal-header-premium">
+              <div class="header-icon-box amber">
+                <AppIcon name="plus-circle" :size="24" />
               </div>
+              <div class="header-text">
+                <h3>Input Order Baru</h3>
+                <p>Tambahkan pesanan manual tanpa melalui WhatsApp</p>
+              </div>
+              <button class="modal-close-btn" @click="showManualModal = false">✕</button>
             </div>
 
-            <div class="input-field full-width">
-              <label>Pusat Pesanan (Barang & Harga)</label>
-              <div class="items-list-manual">
-                <div v-for="(item, idx) in newOrderForm.items" :key="idx" class="manual-item-row-wrapper">
-                  <div class="manual-item-row">
-                    <div class="relative-field">
-                      <input 
-                        v-model="item.label" 
-                        class="item-input label" 
-                        placeholder="Nama Barang..." 
-                        @input="onModalInput(item.label, idx)"
-                        @focus="onModalInput(item.label, idx)"
-                      />
-                      <!-- Autocomplete Dropdown -->
-                      <Transition name="fade-in-up">
-                        <div v-if="activeItemIdxModal === idx && modalSuggestions.length" class="modal-autocomplete-card glass-premium-dark">
-                          <div 
-                            v-for="s in modalSuggestions.slice(0, 5)" 
-                            :key="s.id" 
-                            class="suggestion-item"
-                            @click="selectSuggestionModal(s, idx)"
-                          >
-                            <span class="s-name">{{ s.product_name }}</span>
-                            <span class="s-price">{{ formatCurrency(s.price) }}</span>
-                          </div>
-                        </div>
-                      </Transition>
-                    </div>
-                    <div class="qty-input-wrapper-lite">
-                      <input v-model.number="item.qty" type="number" step="any" class="item-input qty" placeholder="1.0" />
-                      <span class="unit-label-lite">kg</span>
-                    </div>
-                    <input v-model.number="item.price" type="number" class="item-input price" placeholder="Harga" />
-                    <button class="btn-remove-lite" @click="newOrderForm.items.splice(idx, 1)">✕</button>
-                  </div>
+            <div class="modal-form-content">
+              <div class="input-field full-width">
+                <label>Nama Customer</label>
+                <div class="field-container">
+                  <AppIcon name="user" :size="18" />
+                  <input v-model="newOrderForm.customer_name" type="text" placeholder="Masukkan nama pelanggan..." required />
                 </div>
-                <button class="btn-add-lite" @click="newOrderForm.items.push({ label: '', qty: 1, price: 0 })">
-                   <AppIcon name="plus" :size="14" /> Tambah Item
-                </button>
               </div>
-            </div>
 
-            <div class="modal-footer-premium" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
-              <button type="button" class="btn-cancel" @click="showManualModal = false">BATALKAN</button>
-              <button type="button" class="btn-confirm" @click="createManualOrder">SIMPAN ORDER</button>
+              <div class="input-field full-width">
+                <label>Pusat Pesanan (Barang & Harga)</label>
+                <div class="items-list-manual">
+                  <div v-for="(item, idx) in newOrderForm.items" :key="idx" class="manual-item-row-wrapper">
+                    <div class="manual-item-row">
+                      <div class="relative-field">
+                        <input 
+                          v-model="item.label" 
+                          class="item-input label" 
+                          placeholder="Nama Barang..." 
+                          @input="onModalInput(item.label, idx)"
+                          @focus="onModalInput(item.label, idx)"
+                        />
+                        <!-- Autocomplete Dropdown -->
+                        <Transition name="fade-in-up">
+                          <div v-if="activeItemIdxModal === idx && modalSuggestions.length" class="modal-autocomplete-card glass-premium-dark">
+                            <div 
+                              v-for="s in modalSuggestions.slice(0, 5)" 
+                              :key="s.id" 
+                              class="suggestion-item"
+                              @click="selectSuggestionModal(s, idx)"
+                            >
+                              <span class="s-name">{{ s.product_name }}</span>
+                              <span class="s-price">{{ formatCurrency(s.price) }}</span>
+                            </div>
+                          </div>
+                        </Transition>
+                      </div>
+                      <div class="qty-input-wrapper-lite">
+                        <input v-model.number="item.qty" type="number" step="any" class="item-input qty" placeholder="1.0" />
+                        <span class="unit-label-lite">kg</span>
+                      </div>
+                      <input v-model.number="item.price" type="number" class="item-input price" placeholder="Harga" />
+                      <button class="btn-remove-lite" @click="newOrderForm.items.splice(idx, 1)">✕</button>
+                    </div>
+                  </div>
+                  <button class="btn-add-lite" @click="newOrderForm.items.push({ label: '', qty: 1, price: 0 })">
+                     <AppIcon name="plus" :size="14" /> Tambah Item
+                  </button>
+                </div>
+              </div>
+
+              <div class="modal-footer-premium" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
+                <button type="button" class="btn-cancel" @click="showManualModal = false">BATALKAN</button>
+                <button type="button" class="btn-confirm" @click="createManualOrder">SIMPAN ORDER</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
     <!-- Premium Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav mobile-only">
        <button class="nav-item-premium" :class="{ active: !mobileSidebarOpen && !mobileMonitorOpen }" @click="mobileSidebarOpen = false; mobileMonitorOpen = false">
@@ -2156,8 +2158,8 @@ async function generateAndProcess() {
 .sub-msg { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
 
 /* Modals */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-card-premium { width: 650px; border-radius: 32px; overflow: hidden; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 99999; }
+.modal-card-premium { width: 650px; border-radius: 32px; overflow: hidden; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); z-index: 100000; }
 .modal-header-premium { padding: 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .header-icon-box { min-width: 56px; height: 56px; border-radius: 20px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
 .header-icon-box.amber { color: #f59e0b; background: rgba(245,158,11,0.1); }
@@ -2356,10 +2358,11 @@ async function generateAndProcess() {
 @media (max-width: 1200px) {
   .cashier-page { 
     padding: 0;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    padding-bottom: 90px; /* Space for bottom nav */
   }
   
   .hero-header-premium {
@@ -2384,7 +2387,24 @@ async function generateAndProcess() {
     z-index: 1100;
   }
 
-  .stats-header-mini, .btn-toggle-top-products { display: none !important; }
+  .stats-header-mini {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+    flex-wrap: wrap; 
+    gap: 8px;
+  }
+  
+  .mini-brand { display: none !important; }
+
+  .btn-toggle-top-products { 
+    display: flex !important;
+    padding: 8px 12px !important;
+    margin-top: 12px !important;
+    border-radius: 12px !important;
+  }
+
   
   .stats-grid-v2 {
     display: flex !important;
@@ -2410,31 +2430,31 @@ async function generateAndProcess() {
   .main-layout-grid {
     display: flex !important;
     flex-direction: column !important;
-    flex: 1;
     width: 100%;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
-    background: #0f172a !important;
+    background: transparent !important;
     position: relative;
-    padding-bottom: 80px;
+    /* Removed overflow: hidden and fixed height to allow scrolling */
   }
 
   /* Layered UI */
   .sidebar-panel, .delivery-monitor-section {
-    position: absolute;
+    position: fixed; /* Changed to fixed to cover screen when open */
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: 80px; /* Above bottom nav */
     width: 100% !important;
-    height: 100%;
-    z-index: 1050;
+    height: auto;
+    z-index: 1250; /* Higher than sticky header (1100) but lower than nav (1300) */
     background: #0f172a;
-    transform: translateY(100%);
+    transform: translateY(110%);
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     opacity: 0;
     pointer-events: none;
+    overflow-y: auto; /* Allow scrolling inside panels */
   }
 
   .mobile-popout {
@@ -2554,6 +2574,17 @@ async function generateAndProcess() {
   .btn-group button, .btn-group a { width: 100% !important; justify-content: center; }
 
   .hide-mobile { display: none !important; }
+
+  .mobile-grid-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1040;
+    backdrop-filter: blur(4px);
+  }
 
   /* Scale down empty hubs */
   .empty-workspace-premium { padding-bottom: 150px !important; }
