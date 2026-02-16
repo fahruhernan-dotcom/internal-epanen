@@ -20,7 +20,7 @@
             </div>
             <div class="logo-glow"></div>
           </div>
-          <h1 class="brand-title">Official <span class="text-emerald">ePanen</span></h1>
+          <h1 class="brand-title">Internal <span class="text-emerald">ePanen</span></h1>
           <p class="brand-subtitle">Sistem Manajemen Ekosistem Digital</p>
         </div>
 
@@ -74,8 +74,14 @@
             </div>
           </div>
 
+          <!-- Lockout Alert -->
+          <div v-if="isLockedOut" class="error-alert lockout-alert">
+            <AppIcon name="shield-off" :size="16" />
+            <span>Terlalu banyak percobaan gagal. Coba lagi dalam <strong>{{ lockoutCountdown }}</strong> detik.</span>
+          </div>
+
           <!-- Error Alert -->
-          <div v-if="authStore.error" class="error-alert animate-shake">
+          <div v-else-if="authStore.error" class="error-alert animate-shake">
             <AppIcon name="alert-triangle" :size="16" />
             <span>{{ authStore.error }}</span>
           </div>
@@ -84,7 +90,7 @@
           <button 
             type="submit" 
             class="btn-primary-gradient"
-            :disabled="authStore.loading"
+            :disabled="authStore.loading || isLockedOut"
           >
             <span v-if="authStore.loading" class="spinner"></span>
             <span v-else>Masuk ke Dashboard</span>
@@ -96,7 +102,7 @@
         <!-- Footer -->
         <div class="card-footer">
           <p class="copyright">
-            &copy; 2026 Official ePanen. <br>
+            &copy; 2026 Internal ePanen. <br>
             <span class="opacity-60">Secured by ePanen Protocol</span>
           </p>
         </div>
@@ -106,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/AppIcon.vue'
@@ -119,10 +125,46 @@ const password = ref('')
 const showPassword = ref(false)
 const focusedField = ref(null)
 
+// === BRUTE-FORCE PROTECTION ===
+const MAX_ATTEMPTS = 5
+const LOCKOUT_SECONDS = 30
+const failedAttempts = ref(0)
+const lockoutUntil = ref(0)
+const lockoutCountdown = ref(0)
+let lockoutTimer = null
+
+const isLockedOut = computed(() => Date.now() < lockoutUntil.value)
+
+function startLockoutTimer() {
+  lockoutCountdown.value = LOCKOUT_SECONDS
+  lockoutTimer = setInterval(() => {
+    const remaining = Math.ceil((lockoutUntil.value - Date.now()) / 1000)
+    if (remaining <= 0) {
+      lockoutCountdown.value = 0
+      failedAttempts.value = 0
+      clearInterval(lockoutTimer)
+    } else {
+      lockoutCountdown.value = remaining
+    }
+  }, 1000)
+}
+
+onUnmounted(() => { if (lockoutTimer) clearInterval(lockoutTimer) })
+
 async function handleLogin() {
+  // Block if locked out
+  if (isLockedOut.value) return
+
   const success = await authStore.login(phone.value, password.value)
   if (success) {
+    failedAttempts.value = 0
     router.push('/')
+  } else {
+    failedAttempts.value++
+    if (failedAttempts.value >= MAX_ATTEMPTS) {
+      lockoutUntil.value = Date.now() + (LOCKOUT_SECONDS * 1000)
+      startLockoutTimer()
+    }
   }
 }
 </script>

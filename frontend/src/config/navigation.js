@@ -1,5 +1,5 @@
 /**
- * Official ePanen - Navigation Configuration
+ * Internal ePanen - Navigation Configuration
  * Pusat kendali menu dan ikon 3D Sidebar.
  */
 

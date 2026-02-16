@@ -466,7 +466,7 @@ Total Revenue terdeteksi sekitar **Rp ${totalRev.toLocaleString('id-ID')}**.
         }
 
         const prompt = `
-      Anda adalah sistem AI administrator Official ePanen.s untuk petani/pekerja di ${context.company || 'ePanen'}.
+      Anda adalah sistem AI administrator Internal ePanen.s untuk petani/pekerja di ${context.company || 'ePanen'}.
       Tugas Anda adalah MEMPERLUAS ringkasan singkat menjadi laporan harian profesional yang detail dan rapi.
       
       DATA SAAT INI:

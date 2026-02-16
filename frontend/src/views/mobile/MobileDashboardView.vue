@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 import TrendAnalysisChart from '@/components/TrendAnalysisChart.vue'
+import { sanitizeHTML } from '@/utils/security'
 
 const props = defineProps({
   stats: Object,
@@ -137,7 +138,7 @@ function formatDate(date) {
              <div class="ai-orb-mini"></div>
              <span>Intelijen Bisnis Strategis (30H)</span>
           </div>
-          <div class="ai-body-mobile-premium markdown-body-lite-hero" v-html="aiSummary"></div>
+          <div class="ai-body-mobile-premium markdown-body-lite-hero" v-html="sanitizeHTML(aiSummary)"></div>
        </div>
     </section>
 

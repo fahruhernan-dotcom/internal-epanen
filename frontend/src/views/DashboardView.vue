@@ -28,7 +28,7 @@
         <h1 class="hero-title-v3">
           Monitoring <span class="text-gradient-emerald">Performa Ekosistem</span>
         </h1>
-        <p class="hero-subtitle-v3">Ringkasan cerdas performa ekosistem Official ePanen hari ini.</p>
+        <p class="hero-subtitle-v3">Ringkasan cerdas performa ekosistem Internal ePanen hari ini.</p>
       </div>
 
       <div class="hero-status-hub">
@@ -459,13 +459,14 @@ const roleLabel = computed(() => {
   return 'OPERATOR'
 })
 
+import { sanitizeHTML } from '@/utils/security'
 const formattedAISummary = computed(() => {
   if (!aiSummary.value) return ''
   // If content is already HTML, return as-is
-  if (aiSummary.value.trim().startsWith('<div')) return aiSummary.value
-  return aiSummary.value
+  if (aiSummary.value.trim().startsWith('<div')) return sanitizeHTML(aiSummary.value)
+  return sanitizeHTML(aiSummary.value
     .replace(/\n/g, '<br/>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'))
 })
 
 async function fetchStats() {

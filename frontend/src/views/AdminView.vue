@@ -6,7 +6,7 @@
         <div class="title-group">
           <div class="premium-badge mb-xs">SYSTEM COMMAND</div>
           <h2 class="page-title">Direktori & Akses</h2>
-          <p class="page-subtitle">Pusat kendali otentikasi dan manajemen personil Official ePanen.</p>
+          <p class="page-subtitle">Pusat kendali otentikasi dan manajemen personil Internal ePanen.</p>
         </div>
         <button class="btn-primary-glow" @click="openAddModal">
           <AppIcon name="user-plus" :size="20" />
@@ -322,6 +322,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
 import AppIcon from '@/components/AppIcon.vue'
+import { sanitizeInput, validatePhoneNumber } from '@/utils/security'
 
 const users = ref([])
 const companies = ref([])
@@ -465,7 +466,7 @@ function openEditModal(user) {
     phone_number: String(user.phone_number || ''),
     role: user.role || '',
     company_id: user.company_id || '',
-    password: user.password || '',
+    password: '', // Clear password on edit for security
     is_active: user.is_active !== false
   }
   formError.value = ''
@@ -488,17 +489,41 @@ async function saveUser() {
   saving.value = true
   formError.value = ''
   try {
+    // Sanitize inputs
+    const cleanName = sanitizeInput(formData.value.full_name)
+    if (!cleanName || cleanName.length < 2) {
+      formError.value = 'Nama harus minimal 2 karakter.'
+      return
+    }
+
     let phone = String(formData.value.phone_number).replace(/\D/g, '')
     if (phone.startsWith('0')) phone = '62' + phone.slice(1)
     if (phone.length > 0 && !phone.startsWith('62')) phone = '62' + phone
 
+    if (!validatePhoneNumber(phone)) {
+      formError.value = 'Format nomor telepon tidak valid.'
+      return
+    }
+
+    if (!formData.value.role) {
+      formError.value = 'Role harus dipilih.'
+      return
+    }
+
     const userData = {
-      full_name: formData.value.full_name,
+      full_name: cleanName,
       phone_number: phone ? parseInt(phone) : null,
       role: formData.value.role,
       company_id: formData.value.company_id || null,
-      password: formData.value.password || 'epanen2026',
       is_active: formData.value.is_active
+    }
+
+    // Only include password if it was entered
+    if (formData.value.password) {
+      userData.password = formData.value.password
+    } else if (!editingUser.value) {
+      // For new users, default to epanen2026 if empty
+      userData.password = 'epanen2026'
     }
 
     if (editingUser.value) {
@@ -559,7 +584,7 @@ async function loadUsers() {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select(`*, companies (id, name, code)`)
+      .select(`id, full_name, role, phone_number, company_id, is_active, created_at, companies (id, name, code)`)
       .order('full_name')
     if (error) throw error
     users.value = data || []

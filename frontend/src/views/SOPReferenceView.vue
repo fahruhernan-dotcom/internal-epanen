@@ -3,7 +3,7 @@
     <header v-if="!embedded" class="dashboard-header mb-lg">
       <span class="section-label">Farmer Support</span>
       <h2 class="gradient-text">Buku Saku SOP</h2>
-      <p class="text-muted">Panduan standar operasional untuk memastikan kualitas terbaik di setiap panen Official ePanen.</p>
+      <p class="text-muted">Panduan standar operasional untuk memastikan kualitas terbaik di setiap panen Internal ePanen.</p>
     </header>
 
     <div class="sop-grid" :class="{ 'single-col': embedded }">
@@ -51,7 +51,7 @@
             </div>
           </div>
           
-          <div class="sop-body mt-lg" v-html="selectedSOP.content"></div>
+          <div class="sop-body mt-lg" v-html="sanitizeHTML(selectedSOP.content)"></div>
           
           <div class="sop-footer mt-xl pt-lg border-top">
             <div class="sop-agreement card glass-premium">
@@ -73,6 +73,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
+import { sanitizeHTML } from '@/utils/security'
 
 const props = defineProps({
     embedded: { type: Boolean, default: false }

@@ -146,7 +146,7 @@ const userInitials = computed(() => {
     return name.charAt(0).toUpperCase()
 })
 
-const userCompany = computed(() => authStore.user?.companies?.name || 'Official ePanen')
+const userCompany = computed(() => authStore.user?.companies?.name || 'Internal ePanen')
 
 const userCompanyLogo = computed(() => {
     const name = userCompany.value

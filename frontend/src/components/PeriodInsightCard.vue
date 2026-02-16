@@ -83,7 +83,7 @@
         </div>
 
         <div v-else-if="period.aiSummary" class="analysis-content scrollable-brief">
-          <div class="markdown-body-lite" v-html="formattedAI"></div>
+          <div class="markdown-body-lite" v-html="sanitizeHTML(formattedAI)"></div>
           <div class="analysis-footer">
             <button class="btn-action-small" @click.stop="$emit('generate-ai', period)">
                 <AppIcon name="refresh-cw" :size="12" />
@@ -167,7 +167,7 @@
                                         </div>
                                     </div>
                                     <div class="logic-analysis">
-                                        <div class="analysis-bubble" v-html="highlightAnalysis(item.note)"></div>
+                                        <div class="analysis-bubble" v-html="sanitizeHTML(highlightAnalysis(item.note))"></div>
                                     </div>
                                 </div>
                             </div>
@@ -200,6 +200,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
+import { sanitizeHTML } from '@/utils/security'
 
 const props = defineProps({
   period: Object,

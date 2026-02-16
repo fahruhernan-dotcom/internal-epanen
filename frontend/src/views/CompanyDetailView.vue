@@ -77,7 +77,7 @@
                 <AppIcon :name="section.icon" :size="16" />
                 <h4>{{ section.title }}</h4>
               </div>
-              <div class="card-content markdown-body" v-html="section.content"></div>
+              <div class="card-content markdown-body" v-html="sanitizeHTML(section.content)"></div>
             </div>
           </div>
         </section>
@@ -165,6 +165,7 @@ import { supabase, COMPANY_TABLES, VIEWS } from '@/services/supabase'
 import { aiService } from '@/services/ai'
 import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/AppIcon.vue'
+import { sanitizeHTML } from '@/utils/security'
 
 // System: Synchronizing component view state...
 

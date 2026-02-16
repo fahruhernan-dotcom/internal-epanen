@@ -1,5 +1,6 @@
 <template>
-  <div class="main-layout">
+  <!-- Security Gate: Render NOTHING if not authenticated -->
+  <div v-if="authStore.isAuthenticated" class="main-layout">
     <!-- Aurora Mesh Background Ambience -->
     <div class="aurora-container">
       <div class="aurora-blob blob-1"></div>
@@ -12,7 +13,7 @@
         <div class="logo">
           <AppIcon name="leaf" :size="24" class="logo-icon" />
           <span v-if="!sidebarCollapsed" class="logo-text">
-            Official <span class="text-emerald">ePanen</span>
+            Internal <span class="text-emerald">ePanen</span>
           </span>
         </div>
         <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">
@@ -126,7 +127,7 @@
           </button>
           <div class="mobile-brand-premium mobile-only">
              <div class="brand-inner">
-               <span class="prefix">OFFICIAL</span>
+               <span class="prefix">INTERNAL</span>
                <span class="main">ePanen</span>
              </div>
           </div>
@@ -205,6 +206,15 @@ const notificationStore = useNotificationStore()
 const sidebarCollapsed = ref(false)
 const isMobileVisible = ref(false)
 const windowWidth = ref(window.innerWidth)
+
+// Security: Force redirect if not authenticated
+onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    console.warn('🚫 MainLayout: Not authenticated. Redirecting to login.')
+    authStore.logout()
+    router.replace('/login')
+  }
+})
 
 const updateWidth = () => {
   windowWidth.value = window.innerWidth

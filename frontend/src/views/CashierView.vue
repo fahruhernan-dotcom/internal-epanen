@@ -470,7 +470,7 @@
                       </div>
                       <div class="footer-msg">
                         <p class="main-msg">Terima kasih atas kepercayaannya.</p>
-                        <p class="sub-msg">Official ePanen System © 2026 Jakarta Selatan, Indonesia</p>
+                        <p class="sub-msg">Internal ePanen System © 2026 Jakarta Selatan, Indonesia</p>
                       </div>
                     </div>
                   </div>

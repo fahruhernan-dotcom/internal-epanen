@@ -11,7 +11,7 @@
           <div v-if="isTyping && message.role === 'assistant'" class="modern-typing">
             <span></span><span></span><span></span>
           </div>
-          <div v-else v-html="formatMessage(message.content)"></div>
+          <div v-else v-html="sanitizeHTML(formatMessage(message.content))"></div>
         </div>
         <div class="message-meta">
           <span class="time">{{ formatTime(message.timestamp) }}</span>
@@ -28,6 +28,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
+import { sanitizeHTML } from '@/utils/security'
 
 const props = defineProps({
   message: {
