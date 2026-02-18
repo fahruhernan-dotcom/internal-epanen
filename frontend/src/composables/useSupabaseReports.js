@@ -103,7 +103,8 @@ export function useSupabaseReports() {
     }
 
     return {
-      user_id: authStore.user?.full_name || authStore.user?.phone_number || 'Unknown',
+      // FIX: Use Auth UUID (auth_id) for RLS check on daily_reports_* tables
+      user_id: authStore.user?.auth_id || authStore.user?.id,
       company_id: authStore.user?.company_id,
       report_date: new Date().toLocaleDateString('en-CA'), // Get local YYYY-MM-DD
       activities,
@@ -134,7 +135,11 @@ export function useSupabaseReports() {
       // Transform data
       const reportData = transformReportData(extractedData)
 
-      // Insert to database
+      if (!reportData.user_id || !reportData.company_id) {
+        throw new Error('Identitas user atau perusahaan tidak valid untuk submission.')
+      }
+
+      // Insert to database       
       const { data, error } = await supabase
         .from(tableName)
         .insert(reportData)
@@ -168,11 +173,12 @@ export function useSupabaseReports() {
       const authStore = useAuthStore()
       const tableName = getDailyReportsTable()
       const today = new Date().toLocaleDateString('en-CA')
+      const userId = authStore.user?.auth_id || authStore.user?.id
 
       const { data, error } = await supabase
         .from(tableName)
         .select('id, report_date')
-        .eq('user_id', authStore.user?.full_name || authStore.user?.phone_number)
+        .eq('user_id', userId)
         .eq('report_date', today)
         .limit(1)
 
@@ -199,11 +205,12 @@ export function useSupabaseReports() {
       const authStore = useAuthStore()
       const tableName = getDailyReportsTable()
       const today = new Date().toLocaleDateString('en-CA')
+      const userId = authStore.user?.auth_id || authStore.user?.id
 
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
-        .eq('user_id', authStore.user?.full_name || authStore.user?.phone_number)
+        .eq('user_id', userId)
         .eq('report_date', today)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -228,11 +235,12 @@ export function useSupabaseReports() {
     try {
       const authStore = useAuthStore()
       const tableName = getDailyReportsTable()
+      const userId = authStore.user?.auth_id || authStore.user?.id
 
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
-        .eq('user_id', authStore.user?.full_name || authStore.user?.phone_number)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(limit)
 

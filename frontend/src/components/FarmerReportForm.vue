@@ -218,12 +218,14 @@ async function saveDraft() {
 
   if (saveTimeout) clearTimeout(saveTimeout)
   saveTimeout = setTimeout(async () => {
-    if (!authStore.user?.id || !authStore.user?.company_id) return
+    // FIX: Back to Public UUID, matches database FK
+    const userId = authStore.user?.id
+    if (!userId || !authStore.user?.company_id) return
     try {
-      // Delete existing draft first, then insert new one (safer than upsert with unguaranteed constraint)
-      await supabase.from('draft_daily_reports').delete().eq('user_id', authStore.user.id)
+      // Delete existing draft first
+      await supabase.from('draft_daily_reports').delete().eq('user_id', userId)
       await supabase.from('draft_daily_reports').insert({
-          user_id: authStore.user.id,
+          user_id: userId,
           company_id: authStore.user.company_id,
           report_data: formData.value,
           last_saved: new Date().toISOString()
@@ -240,16 +242,26 @@ async function loadDraft() {
     statusType.value = 'info'
     return
   }
-  if (authStore.user?.id) {
+  
+  // FIX: Use Public UUID & maybeSingle() to avoid 406 on empty
+  const userId = authStore.user?.id
+  if (userId) {
     try {
       const { data } = await supabase.from('draft_daily_reports')
-        .select('report_data').eq('user_id', authStore.user.id).limit(1).single()
+        .select('report_data')
+        .eq('user_id', userId)
+        .order('last_saved', { ascending: false })
+        .limit(1)
+        .maybeSingle() // Use maybeSingle to avoid 406/Error on empty result
+      
       if (data?.report_data) {
         formData.value = data.report_data
         statusMessage.value = '☁️ Draft cloud dimuat.'
         statusType.value = 'info'
       }
-    } catch {}
+    } catch (err) {
+      console.log('No cloud draft found or error loading:', err)
+    }
   }
 }
 
@@ -262,7 +274,10 @@ async function clearDraft() {
     notes: '' 
   }
   draftSavedAt.value = null
-  if (authStore.user?.id) await supabase.from('draft_daily_reports').delete().eq('user_id', authStore.user.id)
+  
+  // FIX: Use Public UUID
+  const userId = authStore.user?.id
+  if (userId) await supabase.from('draft_daily_reports').delete().eq('user_id', userId)
 }
 
 watch(formData, () => saveDraft(), { deep: true })

@@ -1059,7 +1059,7 @@ async function generateAndProcess() {
     // 3. Cleanup
     document.body.removeChild(captureDiv)
 
-    const fileName = `public/${Date.now()}_inv_${selectedOrder.value.id}.pdf`
+    const fileName = `${Date.now()}_inv_${selectedOrder.value.id}.pdf`
     
     const { error: uploadError } = await supabase.storage.from('invoices').upload(fileName, pdfBlob, {
       contentType: 'application/pdf',

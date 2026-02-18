@@ -537,6 +537,9 @@ onUnmounted(() => {
     padding: 32px;
     margin-bottom: 4rem;
     box-shadow: 0 40px 80px -20px rgba(0,0,0,0.4);
+    position: relative;
+    z-index: 50;
+    overflow: visible !important; /* Ensure dropdowns can spill out */
 }
 
 .filter-header-mini {
@@ -582,6 +585,103 @@ onUnmounted(() => {
     background: rgba(16, 185, 129, 0.12);
     color: var(--color-primary);
     font-weight: 800;
+}
+
+/* --- Added Missing Filter Styles --- */
+.filter-logic-box-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.filter-label-row-premium {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 4px;
+}
+
+.filter-label-premium {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+}
+
+.premium-select-wrapper-v2 {
+    position: relative;
+    min-width: 240px;
+    z-index: 60; /* Higher than card base */
+}
+
+.premium-select-trigger-v2 {
+    height: 52px; /* Match button height */
+    padding: 0 20px;
+    background: rgba(var(--bg-card-rgb), 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all var(--transition-main);
+}
+
+.premium-select-trigger-v2:hover, .premium-select-trigger-v2.open {
+    background: rgba(var(--bg-card-rgb), 0.5);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.select-arrow-v2 {
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+
+.select-arrow-v2.rotated {
+    transform: rotate(180deg);
+    color: var(--color-primary);
+}
+
+.premium-options-menu-v2 {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 100%;
+    background: #1e293b; /* Fallback */
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 8px;
+    z-index: 9999; /* Ensure it floats above everything */
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.premium-options-menu-v2::-webkit-scrollbar {
+    display: none;
+}
+
+.company-badge-static-v2 {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    background: rgba(var(--bg-card-rgb), 0.2);
+    border: 1px dashed var(--glass-border);
+    border-radius: 14px;
+    color: var(--text-muted);
 }
 
 /* Period Tabs v2 */

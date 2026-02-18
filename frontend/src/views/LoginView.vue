@@ -36,7 +36,7 @@
               <input 
                 type="tel" 
                 v-model="phone" 
-                class="form-input" 
+                class="login-input" 
                 placeholder="Contoh: 08123456789"
                 required
                 @focus="focusedField = 'phone'"
@@ -57,7 +57,7 @@
               <input 
                 :type="showPassword ? 'text' : 'password'" 
                 v-model="password" 
-                class="form-input" 
+                class="login-input" 
                 placeholder="Masukkan kata sandi Anda"
                 required
                 @focus="focusedField = 'password'"
@@ -350,23 +350,28 @@ async function handleLogin() {
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(var(--bg-main-rgb), 0.5); /* Semi-transparent input bg */
-  border: 1px solid var(--glass-border);
+  /* Premium Glass Effect: Light tint for contrast on dark cards */
+  background: rgba(255, 255, 255, 0.03); 
+  border: 1px solid rgba(255, 255, 255, 0.08); /* Finer border */
   border-radius: 16px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 6px; 
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .input-group:hover {
-  background: rgba(var(--bg-main-rgb), 0.8);
-  border-color: rgba(var(--text-main-rgb), 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .input-group.focused {
-  background: var(--bg-main);
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 20px -2px rgba(16, 185, 129, 0.2),
+    0 0 0 1px rgba(16, 185, 129, 0.2);
+  transform: translateY(-2px);
 }
 
 .input-icon-box {
@@ -383,16 +388,33 @@ async function handleLogin() {
   color: var(--color-primary);
 }
 
-.form-input {
+.login-input {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 12px 0;
+  padding: 12px 16px 12px 0; /* Add nice right padding */
   font-size: 1rem;
   color: var(--text-main);
   font-weight: 500;
   outline: none;
-  width: 100%; /* Fix width */
+  width: 100%;
+}
+
+/* Autofill Fix for dark mode glassmorphism */
+/* True Transparent Autofill Hack - Expert Method */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover, 
+.login-input:-webkit-autofill:focus, 
+.login-input:-webkit-autofill:active {
+  /* Delays the background color change infinitely so it stays transparent */
+  transition: background-color 9999s ease-in-out 0s;
+  -webkit-text-fill-color: var(--text-main) !important;
+  caret-color: var(--text-main);
+}
+
+/* Dark mode specific autofill adjustment if needed (Vue scoped handles this generally, but we want to be sure) */
+:deep(.input-group) .login-input:-webkit-autofill {
+    caret-color: var(--text-main);
 }
 
 /* Password Toggle */
