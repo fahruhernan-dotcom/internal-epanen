@@ -99,6 +99,10 @@
               
               <div class="c-body">
                  <h4 class="c-title">{{ getActivitiesSummary(rep.activities) }}</h4>
+                 <div class="c-reporter-row" v-if="rep.user_name">
+                    <AppIcon name="user" :size="10" />
+                    <span>{{ rep.user_name }}</span>
+                 </div>
                  <p class="c-summary">{{ truncate(getActivityDetails(rep.activities), 80) }}</p>
               </div>
 
@@ -426,7 +430,18 @@ function getCompanyColor(company) {
   font-size: 1.1rem;
   font-weight: 800;
   color: white;
+  margin-bottom: 4px;
+}
+
+.c-reporter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #10b981;
   margin-bottom: 8px;
+  opacity: 0.8;
 }
 
 .c-summary {

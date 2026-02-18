@@ -27,7 +27,7 @@
             </span>
             <div class="summary-text">
               <span class="label">Pelapor</span>
-              <span class="value">{{ report.user_id || '-' }}</span>
+              <span class="value">{{ report.user_name || report.user_id || '-' }}</span>
             </div>
           </div>
           <div class="summary-item card">

@@ -224,10 +224,10 @@
               <td>
                  <div class="user-cell">
                   <div class="avatar-circle-sm" :style="{ background: stringToColor(report.user_id) }">
-                    {{ (report.user_id || '?').charAt(0).toUpperCase() }}
+                    {{ (report.user_name || report.user_id || '?').charAt(0).toUpperCase() }}
                   </div>
                   <span class="font-medium text-sm text-main truncate max-w-[100px]" :title="report.user_id">
-                    {{ report.user_id || 'Unknown' }}
+                    {{ report.user_name || report.user_id || 'Unknown' }}
                   </span>
                 </div>
               </td>
