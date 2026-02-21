@@ -58,10 +58,7 @@
                 <AppIcon name="refresh-cw" :size="14" :class="{ 'animate-spin': aiLoading }" />
                 <span>REFRESH AI</span>
               </button>
-              <button v-if="canModify && getSubmissionUrl()" @click="openUploadForm" class="action-btn primary">
-                <AppIcon name="plus" :size="14" />
-                <span>INPUT DATA</span>
-              </button>
+
             </div>
           </div>
 
@@ -86,23 +83,54 @@
         <div class="log-suite">
           <div class="log-suite-header">
             <div class="flex items-center gap-sm">
-              <div class="header-icon">
-                <AppIcon name="activity" :size="18" />
+              <div class="header-icon" :class="{ 'syncing': loading || reports.length === 0 }">
+                <AppIcon :name="loading ? 'refresh-cw' : 'activity'" :size="18" :class="{ 'animate-spin': loading }" />
               </div>
-              <h3>OPERATIONAL RECORD LOG</h3>
+              <div class="header-titles">
+                <h3>OPERATIONAL RECORD LOG</h3>
+                <p class="header-subtitle">Real-time ledger of field activities and resource allocation</p>
+              </div>
             </div>
             <div class="header-meta">
-              <span class="count-pill">{{ reports.length }} RECORDS SYNCED</span>
+              <div v-if="loading" class="status-badge processing">
+                <span class="dot-blink"></span>
+                <span>SYNCING NODE...</span>
+              </div>
+              <span v-else class="count-pill">{{ reports.length }} RECORDS SYNCED</span>
             </div>
           </div>
 
-          <div v-if="reports.length === 0" class="log-empty">
-            <AppIcon name="database" :size="48" class="opacity-10" />
-            <p>Waiting for operational data synchronization...</p>
-          </div>
+          <!-- Syncing / Data Viewport -->
+          <div class="log-viewport">
+            <!-- Dynamic Sync Orchestrator (Shown during loading) -->
+            <div v-if="loading" class="log-status-orchestrator syncing">
+              <div class="orchestrator-viz">
+                <div class="viz-radar active">
+                  <div class="radar-line"></div>
+                  <div class="radar-circles">
+                    <span></span><span></span><span></span>
+                  </div>
+                  <div class="central-node shadow-glow">
+                    <AppIcon name="refresh-cw" :size="32" class="text-primary animate-spin" />
+                  </div>
+                </div>
+                <!-- Animated Data Packets -->
+                <div class="data-packets">
+                  <div v-for="i in 8" :key="i" class="packet" :style="{ '--delay': (i * 0.2) + 's', '--angle': (i * 45) + 'deg' }"></div>
+                </div>
+              </div>
 
-          <div v-else class="log-viewport">
-            <table class="elite-table">
+              <div class="orchestrator-content">
+                <div class="sync-step-container">
+                  <div class="sync-pulse-bar"></div>
+                  <h4 class="console-text">{{ syncMessage }}</h4>
+                </div>
+                <p class="empty-message">Mengambil ledger operasional dari server distribusi ePanen...</p>
+              </div>
+            </div>
+
+            <!-- Table View (Visible when data exists or in skeleton mode if preferred, but we use orchestrator for main loading now) -->
+            <table v-if="!loading && reports.length > 0" class="elite-table">
               <thead>
                 <tr>
                   <th>OPERATOR / TIMESTAMP</th>
@@ -112,7 +140,9 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="report in reports" :key="report.id" class="table-row">
+                <tr v-for="(report, idx) in reports" :key="report.id" 
+                    class="table-row animate-fade-in" 
+                    :style="{ animationDelay: (idx * 0.05) + 's' }">
                   <td class="cell-op">
                     <div class="op-box">
                       <span class="op-name">{{ formatOperatorName(report.user_id) }}</span>
@@ -120,21 +150,21 @@
                     </div>
                   </td>
                   <td class="cell-main">
-                    <p class="activity-excerpt">{{ getActivitiesSummary(report.activities) }}</p>
+                    <p class="activity-excerpt text-balance">{{ getActivitiesSummary(report.activities) }}</p>
                   </td>
                   <td class="cell-status">
-                    <div :class="['status-pod', hasIssues(report.issues) ? 'issue' : 'nominal']">
-                      <div class="dot"></div>
+                    <div :class="['status-pod-v5', hasIssues(report.issues) ? 'issue' : 'nominal']">
+                      <div class="glow-point"></div>
                       <span>{{ hasIssues(report.issues) ? 'ALERT DETECTED' : 'NOMINAL' }}</span>
                     </div>
                   </td>
                   <td class="cell-meta">
                     <div class="meta-pills">
-                      <div class="pill" title="Weather">
+                      <div class="pill-v3" :title="'Weather: ' + (report.weather || 'Normal')">
                         <AppIcon name="sun" :size="12" />
                         <span>{{ report.weather || '-' }}</span>
                       </div>
-                      <div v-if="report.notes" class="pill info" :title="report.notes">
+                      <div v-if="report.notes" class="pill-v3 info" :title="report.notes">
                         <AppIcon name="info" :size="12" />
                         <span>DETAIL</span>
                       </div>
@@ -143,6 +173,33 @@
                 </tr>
               </tbody>
             </table>
+
+            <!-- Truly Empty State (Only if not loading and 0 reports) -->
+            <div v-if="!loading && reports.length === 0" class="log-status-orchestrator empty">
+              <div class="orchestrator-viz">
+                <div class="viz-radar">
+                  <div class="radar-circles">
+                    <span></span><span></span><span></span>
+                  </div>
+                  <div class="central-node shadow-glow">
+                    <AppIcon name="database" :size="32" class="text-primary opacity-20" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="orchestrator-content">
+                <h4>INTEGRITAS DATA TERJAGA</h4>
+                <p class="empty-message">Belum ada record operasional yang tercatat untuk unit bisnis ini dalam index sistem (Sync-A1).</p>
+                
+                <div class="orchestrator-actions">
+
+                  <button @click="loadCompanyData" class="action-btn">
+                    <AppIcon name="refresh-cw" :size="14" />
+                    <span>PERBARUI INDEX</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -179,9 +236,37 @@ const company = ref(null)
 const reports = ref([])
 const aiSummary = ref('')
 const stats = ref({ total: 0, today: 0, week: 0 })
+const syncMessage = ref('Establishing secure data tunnel...')
 
 const companyId = computed(() => route.params.id)
 const canModify = computed(() => authStore.user && (authStore.isAdmin || authStore.isOwner))
+
+// Sync Message Rotation
+const syncMessages = [
+  'Establishing secure data tunnel...',
+  'Synchronizing with Supabase node-A...',
+  'Applying AI intelligence mapping...',
+  'Verifying record signatures...',
+  'Compiling operational ledger...',
+  'Finalizing system index...'
+]
+
+let messageIdx = 0
+let messageInterval = null
+
+const startSyncSimulation = () => {
+  messageIdx = 0
+  syncMessage.value = syncMessages[0]
+  if (messageInterval) clearInterval(messageInterval)
+  messageInterval = setInterval(() => {
+    messageIdx = (messageIdx + 1) % syncMessages.length
+    syncMessage.value = syncMessages[messageIdx]
+  }, 1200)
+}
+
+const stopSyncSimulation = () => {
+  if (messageInterval) clearInterval(messageInterval)
+}
 
 // UI Helpers
 const getCompanyIconName = (code) => {
@@ -368,6 +453,7 @@ const hasIssues = (issues) => {
 const loadCompanyData = async () => {
   loading.value = true
   aiSummary.value = ''
+  startSyncSimulation()
   try {
     const { data: comp } = await supabase.from('companies').select('*').eq('id', companyId.value).single()
     if (!comp) return
@@ -389,7 +475,12 @@ const loadCompanyData = async () => {
       stats.value = { total: tRes.count || 0, today: todayRes.count || 0, week: weekRes.count || 0 }
     }
     loadAISummary(comp)
-  } catch (err) { console.error('Data Load Error:', err) } finally { loading.value = false }
+  } catch (err) { 
+    console.error('Data Load Error:', err) 
+  } finally { 
+    loading.value = false 
+    stopSyncSimulation()
+  }
 }
 
 const loadAISummary = async (comp, force = false) => {
@@ -402,16 +493,7 @@ const loadAISummary = async (comp, force = false) => {
 
 const refreshAISummary = () => company.value && loadAISummary(company.value, true)
 
-const getSubmissionUrl = () => {
-  if (!company.value) return null
-  const name = company.value.name.toLowerCase()
-  if (name.includes('lyori')) return 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/72b3dbbe-34c7-48f0-b7de-f2e7c017d519'
-  if (name.includes('moafarm')) return 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/4a20bcf8-ed90-4910-9451-45631fc26fe5'
-  if (name.includes('kaja')) return 'https://n8n-wrw2bveswawm.cica.sumopod.my.id/form/ea756b54-6155-4de3-be2a-415bb3cd769e'
-  return null
-}
 
-const openUploadForm = () => { const url = getSubmissionUrl(); if (url) window.open(url, '_blank') }
 
 watch(companyId, () => loadCompanyData())
 onMounted(() => loadCompanyData())
@@ -505,31 +587,320 @@ onMounted(() => loadCompanyData())
 :deep(.md-table-elite tr:last-child td) { border-bottom: none; }
 :deep(.md-table-elite tr:hover td) { background: rgba(255,255,255,0.015); color: var(--text-main); }
 
-/* Log Table */
-.log-suite { background: rgba(0,0,0,0.15); border-radius: 28px; border: 1px solid var(--glass-border); overflow: hidden; }
-.log-suite-header { padding: 1.5rem 2rem; background: rgba(255,255,255,0.01); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
-.log-suite-header h3 { font-size: 1rem; font-weight: 900; color: var(--text-main); }
-.header-icon { padding: 8px; background: rgba(16,185,129,0.1); color: #10b981; border-radius: 10px; }
+/* Log Table Layer */
+.log-suite { 
+  background: rgba(0,0,0,0.15); 
+  border-radius: 32px; 
+  border: 1px solid var(--glass-border); 
+  overflow: hidden; 
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+}
 
+.log-suite-header { 
+  padding: 2.25rem 2.25rem 1.75rem; 
+  background: rgba(255,255,255,0.01); 
+  border-bottom: 1px solid var(--glass-border); 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+}
+
+.header-titles { display: flex; flex-direction: column; }
+.log-suite-header h3 { font-size: 1.15rem; font-weight: 950; color: var(--text-main); letter-spacing: -0.02em; line-height: 1; }
+.header-subtitle { font-size: 0.75rem; color: var(--text-dim); opacity: 0.5; margin-top: 4px; font-weight: 500; }
+
+.header-icon { 
+  padding: 10px; 
+  background: rgba(255,255,255,0.03); 
+  color: var(--text-dim); 
+  border-radius: 14px; 
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s ease;
+}
+.header-icon.syncing { border-color: var(--color-primary); color: var(--color-primary); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+
+.status-badge { 
+  display: flex; align-items: center; gap: 8px; 
+  padding: 6px 12px; border-radius: 20px; font-size: 0.65rem; font-weight: 850;
+  background: rgba(255,255,255,0.05); color: var(--text-dim);
+}
+.status-badge.processing { color: var(--color-primary); border: 1px solid rgba(16, 185, 129, 0.2); }
+.dot-blink { width: 6px; height: 6px; background: var(--color-primary); border-radius: 50%; animation: blink-soft 1s infinite alternate; }
+
+/* Orchestrator Viz (Syncing/Empty state) */
+.log-status-orchestrator {
+  padding: 6rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ambient Background Glows */
+.log-status-orchestrator::before {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.orchestrator-viz { 
+  position: relative; 
+  width: 140px; 
+  height: 140px; 
+  z-index: 1;
+}
+
+.viz-radar { 
+  width: 100%; 
+  height: 100%; 
+  border: 1px solid rgba(255,255,255,0.05); 
+  border-radius: 50%; 
+  position: relative;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.02) 0%, transparent 80%);
+}
+
+.radar-line {
+  position: absolute; 
+  width: 50%; 
+  height: 80px; 
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.4));
+  top: 50%; 
+  left: 50%; 
+  transform-origin: 0% 0%; 
+  opacity: 0;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  margin-top: -40px;
+}
+
+.viz-radar.active .radar-line { 
+  animation: radar-spin 4s linear infinite; 
+  opacity: 1; 
+}
+
+.radar-circles span {
+  position: absolute; 
+  border: 1px solid rgba(16, 185, 129, 0.1); 
+  border-radius: 50%;
+  top: 50%; 
+  left: 50%; 
+  transform: translate(-50%, -50%);
+}
+.radar-circles span:nth-child(1) { width: 40%; height: 40%; }
+.radar-circles span:nth-child(2) { width: 70%; height: 70%; }
+.radar-circles span:nth-child(3) { width: 100%; height: 100%; }
+
+.viz-radar.active .radar-circles span { 
+  animation: pulse-ripple 4s infinite cubic-bezier(0.4, 0, 0.2, 1); 
+}
+
+.central-node {
+  position: absolute; 
+  top: 50%; 
+  left: 50%; 
+  transform: translate(-50%, -50%);
+  width: 64px; 
+  height: 64px; 
+  background: rgba(15, 23, 42, 0.8); 
+  border: 1px solid rgba(16, 185, 129, 0.3); 
+  border-radius: 20px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  z-index: 2;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.15);
+}
+
+.data-packets { 
+  position: absolute; 
+  inset: -40px; 
+  pointer-events: none;
+}
+
+.packet {
+  position: absolute; 
+  width: 4px; 
+  height: 4px; 
+  background: var(--color-primary); 
+  border-radius: 50%;
+  filter: blur(1px); 
+  top: 50%; 
+  left: 50%; 
+  opacity: 0;
+  box-shadow: 0 0 10px var(--color-primary);
+}
+
+.viz-radar.active + .data-packets .packet { 
+  animation: fly-in-v2 2.5s infinite ease-in var(--delay); 
+}
+
+.orchestrator-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.sync-step-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sync-pulse-bar {
+  width: 120px;
+  height: 2px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sync-pulse-bar::after {
+  content: "";
+  position: absolute;
+  width: 40px;
+  height: 100%;
+  background: var(--color-primary);
+  left: -40px;
+  animation: bar-slide 2s infinite ease-in-out;
+  box-shadow: 0 0 15px var(--color-primary);
+}
+
+.console-text { 
+  font-family: var(--font-mono); 
+  color: var(--color-primary); 
+  font-size: 0.75rem; 
+  font-weight: 800;
+  letter-spacing: 0.2em; 
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.orchestrator-content h4 { 
+  font-size: 1.25rem; 
+  font-weight: 900; 
+  color: var(--text-main); 
+  letter-spacing: 0.05em; 
+  margin: 0;
+}
+
+.empty-message { 
+  font-size: 0.95rem; 
+  color: var(--text-dim); 
+  opacity: 0.7; 
+  max-width: 440px; 
+  margin: 0 auto; 
+  line-height: 1.7; 
+  font-weight: 400;
+}
+
+.orchestrator-actions { 
+  display: flex; 
+  gap: 1.25rem; 
+  margin-top: 1rem; 
+  justify-content: center; 
+}
+.large-btn { height: 44px !important; padding: 0 24px !important; border-radius: 14px !important; }
+
+/* Table View */
 .elite-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.elite-table th { padding: 1rem 2rem; text-align: left; font-size: 0.65rem; font-weight: 950; color: var(--text-dim); opacity: 0.4; border-bottom: 1px solid var(--glass-border); }
-.table-row td { padding: 1.25rem 2rem; border-bottom: 1px solid var(--glass-border); transition: background 0.2s; }
+.elite-table th { 
+  padding: 1.25rem 2.25rem; text-align: left; font-size: 0.7rem; font-weight: 950; 
+  color: var(--text-dim); opacity: 0.5; border-bottom: 1px solid var(--glass-border); 
+  background: rgba(0,0,0,0.1); text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+.table-row td { padding: 1.5rem 2.25rem; border-bottom: 1px solid var(--glass-border); transition: all 0.3s; }
 .table-row:hover td { background: rgba(255,255,255,0.02); }
 
-.op-box { display: flex; flex-direction: column; }
-.op-name { font-size: 0.85rem; font-weight: 800; color: var(--text-main); }
-.op-date { font-size: 0.7rem; color: var(--text-dim); font-family: var(--font-mono); }
-.activity-excerpt { font-size: 0.85rem; line-height: 1.5; color: var(--text-muted); }
+.op-box { display: flex; flex-direction: column; gap: 4px; }
+.op-name { font-size: 0.9rem; font-weight: 850; color: var(--text-main); }
+.op-date { font-size: 0.75rem; color: var(--text-dim); font-family: var(--font-mono); opacity: 0.6; }
+.activity-excerpt { font-size: 0.9rem; line-height: 1.6; color: var(--text-muted); font-weight: 500; }
 
-.status-pod { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 900; }
-.status-pod .dot { width: 6px; height: 6px; border-radius: 50%; }
-.status-pod.nominal { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-.status-pod.nominal .dot { background: #10b981; box-shadow: 0 0 5px #10b981; }
-.status-pod.issue { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-.status-pod.issue .dot { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
+.status-pod-v5 { 
+  display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; 
+  border-radius: 8px; font-size: 0.7rem; font-weight: 900; border: 1px solid transparent; 
+}
+.glow-point { width: 8px; height: 8px; border-radius: 50%; }
+.status-pod-v5.nominal { background: rgba(16, 185, 129, 0.08); color: #10b981; border-color: rgba(16, 185, 129, 0.1); }
+.status-pod-v5.nominal .glow-point { background: #10b981; box-shadow: 0 0 10px #10b981; }
+.status-pod-v5.issue { background: rgba(245, 158, 11, 0.08); color: #f59e0b; border-color: rgba(245, 158, 11, 0.1); }
+.status-pod-v5.issue .glow-point { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
 
-.meta-pills { display: flex; gap: 8px; }
-.pill { display: flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,0.03); color: var(--text-dim); font-size: 0.65rem; font-weight: 700; border: 1px solid var(--glass-border); }
+.pill-v3 { 
+  display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; 
+  background: rgba(255,255,255,0.03); color: var(--text-dim); font-size: 0.7rem; 
+  font-weight: 800; border: 1px solid var(--glass-border); transition: all 0.2s;
+}
+.pill-v3:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+
+/* Custom Animations */
+@keyframes radar-spin { 
+  from { transform: rotate(0deg); } 
+  to { transform: rotate(360deg); } 
+}
+
+@keyframes pulse-ripple { 
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; } 
+  20% { opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; } 
+}
+
+@keyframes fly-in-v2 { 
+  0% { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(-100px) scale(0); } 
+  50% { opacity: 1; transform: rotate(var(--angle, 0deg)) translateY(-40px) scale(1.5); } 
+  100% { opacity: 0; transform: rotate(var(--angle, 0deg)) translateY(0) scale(0.5); } 
+}
+
+@keyframes bar-slide {
+  from { left: -40px; }
+  to { left: 120px; }
+}
+
+@keyframes blink-soft { 
+  from { opacity: 0.4; transform: scale(0.9); } 
+  to { opacity: 1; transform: scale(1.1); } 
+}
+
+/* Skeleton Loading Utilities */
+.skeleton-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-box::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  animation: skeleton-shimmer 1.5s infinite;
+}
+@keyframes skeleton-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+.w-24 { width: 6rem; }
+.w-20 { width: 5rem; }
+.w-12 { width: 3rem; }
+.w-full { width: 100%; }
+.w-2\/3 { width: 66.666667%; }
+.h-10 { height: 2.5rem; }
+.h-6 { height: 1.5rem; }
+.h-4 { height: 1rem; }
 
 /* Animation Utils */
 .spinner-premium { width: 40px; height: 40px; border: 3px solid rgba(16, 185, 129, 0.1); border-top-color: #10b981; border-radius: 50%; animation: spin 1s linear infinite; }

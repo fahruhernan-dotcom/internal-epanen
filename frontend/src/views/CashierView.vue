@@ -191,7 +191,7 @@
                 <div class="card-body">
                   <div class="card-meta">
                     <span class="time-stamp">{{ formatTime(order.created_at) }}</span>
-                    <span class="order-hash">#{{ order.id }}</span>
+                    <span class="order-hash">{{ formatInvoiceId(order) }}</span>
                   </div>
                   <h4 class="card-title">{{ order.customer_name || 'Pelanggan Baru' }}</h4>
                   <p class="card-desc">{{ getSummarySnippet(order.summary_text) }}</p>
@@ -220,7 +220,7 @@
                 <div class="card-body">
                   <div class="card-meta">
                     <span class="time-stamp">{{ formatDate(order.created_at) }}</span>
-                    <span class="order-hash">#{{ order.id }}</span>
+                    <span class="order-hash">{{ formatInvoiceId(order) }}</span>
                   </div>
                   <h4 class="card-title">{{ order.customer_name || 'Pelanggan' }}</h4>
                   <div class="card-footer">
@@ -248,7 +248,7 @@
               <div class="toolbar-left">
                 <div class="order-indicator">
                   <AppIcon name="zap" :size="16" class="text-amber" />
-                  <span>Sedang Memproses Order <strong>#{{ selectedOrder.id }}</strong></span>
+                  <span>Sedang Memproses Order <strong>{{ formatInvoiceId(selectedOrder) }}</strong></span>
                 </div>
               </div>
 
@@ -422,7 +422,7 @@
                         </div>
                         <div class="details-right">
                           <span class="meta-label">INVOICE NO.</span>
-                          <span class="meta-val">#EP-{{ selectedOrder.id }}</span>
+                          <span class="meta-val">{{ formatInvoiceId(selectedOrder) }}</span>
                         </div>
                       </div>
                       <div class="details-row">
@@ -680,6 +680,16 @@ const isEditing = ref(false)
 const isProcessing = ref(false)
 const showSuccessToast = ref(false)
 const toastMsg = ref('')
+
+function formatInvoiceId(order) {
+  if (!order) return ''
+  const date = new Date(order.created_at)
+  const Y = date.getFullYear()
+  const M = String(date.getMonth() + 1).padStart(2, '0')
+  const D = String(date.getDate()).padStart(2, '0')
+  const num = String(order.id).padStart(3, '0')
+  return `EP-${Y}${M}${D}${num}`
+}
 
 function triggerToast(msg) {
   toastMsg.value = msg
@@ -1038,7 +1048,7 @@ async function generateAndProcess() {
 
   const opt = {
     margin: 0,
-    filename: `inv_${selectedOrder.value.id}.pdf`,
+    filename: `inv_${formatInvoiceId(selectedOrder.value)}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
       scale: 3, 
@@ -1059,7 +1069,7 @@ async function generateAndProcess() {
     // 3. Cleanup
     document.body.removeChild(captureDiv)
 
-    const fileName = `${Date.now()}_inv_${selectedOrder.value.id}.pdf`
+    const fileName = `${Date.now()}_inv_${formatInvoiceId(selectedOrder.value)}.pdf`
     
     const { error: uploadError } = await supabase.storage.from('invoices').upload(fileName, pdfBlob, {
       contentType: 'application/pdf',

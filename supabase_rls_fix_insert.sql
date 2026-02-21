@@ -309,6 +309,40 @@ FOR UPDATE TO authenticated USING (bucket_id = 'invoices');
 CREATE POLICY "invoices_storage_delete" ON storage.objects
 FOR DELETE TO authenticated USING (bucket_id = 'invoices');
 
+-- ============================================================
+-- FIX 7: AI FINANCIAL CACHE & SUMMARIES (Fix error 401)
+-- ============================================================
+-- Tabel ini menyimpan hasil ekstraksi AI agar tidak boros API.
+-- Supabase menolak INSERT jika RLS aktif tapi policy tidak ada.
+
+-- 7a. Standardized Financials
+ALTER TABLE public.standardized_financials ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "std_fin_select" ON public.standardized_financials;
+DROP POLICY IF EXISTS "std_fin_insert" ON public.standardized_financials;
+DROP POLICY IF EXISTS "std_fin_update" ON public.standardized_financials;
+DROP POLICY IF EXISTS "std_fin_delete" ON public.standardized_financials;
+
+CREATE POLICY "std_fin_select" ON public.standardized_financials FOR SELECT TO authenticated USING (true);
+CREATE POLICY "std_fin_insert" ON public.standardized_financials FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "std_fin_update" ON public.standardized_financials FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "std_fin_delete" ON public.standardized_financials FOR DELETE USING (
+    EXISTS (SELECT 1 FROM public.get_current_user_claims() c WHERE c.role IN ('admin', 'owner'))
+);
+
+-- 7b. Financial Period Summaries
+ALTER TABLE public.financial_period_summaries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "fin_sum_select" ON public.financial_period_summaries;
+DROP POLICY IF EXISTS "fin_sum_insert" ON public.financial_period_summaries;
+DROP POLICY IF EXISTS "fin_sum_update" ON public.financial_period_summaries;
+DROP POLICY IF EXISTS "fin_sum_delete" ON public.financial_period_summaries;
+
+CREATE POLICY "fin_sum_select" ON public.financial_period_summaries FOR SELECT TO authenticated USING (true);
+CREATE POLICY "fin_sum_insert" ON public.financial_period_summaries FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "fin_sum_update" ON public.financial_period_summaries FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "fin_sum_delete" ON public.financial_period_summaries FOR DELETE USING (
+    EXISTS (SELECT 1 FROM public.get_current_user_claims() c WHERE c.role IN ('admin', 'owner'))
+);
+
 
 -- ╔══════════════════════════════════════════════════════════════════╗
 -- ║  SELESAI! Fix yang diterapkan:                                 ║
@@ -319,8 +353,10 @@ FOR DELETE TO authenticated USING (bucket_id = 'invoices');
 -- ║  ✅ product_market_prices: RLS + SELECT/INSERT/UPDATE policies ║
 -- ║  ✅ chat_history    : RLS + SELECT/INSERT policies             ║
 -- ║  ✅ storage.objects : Upload/read policies for invoices bucket ║
+-- ║  ✅ AI Financials   : Caching & Summary policies added         ║
 -- ║                                                                ║
 -- ║  Farmer bisa submit laporan ✅                                 ║
 -- ║  Cashier bisa generate invoice + upload PDF ✅                 ║
+-- ║  AI bisa simpan data cache & summary keuangan ✅               ║
 -- ║  Admin bisa melakukan semua operasi ✅                         ║
 -- ╚══════════════════════════════════════════════════════════════════╝
